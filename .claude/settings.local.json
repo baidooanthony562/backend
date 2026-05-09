@@ -5,7 +5,9 @@
       "PowerShell($env:PATH = \"C:\\\\Program Files\\\\Git\\\\bin;\" + $env:PATH; git --version)",
       "PowerShell($env:PATH = \"C:\\\\Program Files\\\\Git\\\\bin;\" + $env:PATH; cd \"c:\\\\Users\\\\baido\\\\OneDrive\\\\Desktop\\\\new web\"; git init; git remote add origin https://github.com/baidooanthony562/backend.git)",
       "PowerShell($env:PATH = \"C:\\\\Program Files\\\\Git\\\\bin;\" + $env:PATH; Set-Content -Path \"c:\\\\Users\\\\baido\\\\OneDrive\\\\Desktop\\\\new web\\\\.gitignore\" -Value \"node_modules/`n.env`ndist/`n.DS_Store\" -Encoding utf8)",
-      "PowerShell($env:PATH = \"C:\\\\Program Files\\\\Git\\\\bin;\" + $env:PATH; cd \"c:\\\\Users\\\\baido\\\\OneDrive\\\\Desktop\\\\new web\"; git config user.email \"baidooanthony562@gmail.com\"; git config user.name \"baidooanthony562\"; git add .; git commit -m \"Initial commit - Cindy Nut Enterprise full stack app\")"
+      "PowerShell($env:PATH = \"C:\\\\Program Files\\\\Git\\\\bin;\" + $env:PATH; cd \"c:\\\\Users\\\\baido\\\\OneDrive\\\\Desktop\\\\new web\"; git config user.email \"baidooanthony562@gmail.com\"; git config user.name \"baidooanthony562\"; git add .; git commit -m \"Initial commit - Cindy Nut Enterprise full stack app\")",
+      "PowerShell($env:PATH = \"C:\\\\Program Files\\\\Git\\\\bin;\" + $env:PATH; cd \"c:\\\\Users\\\\baido\\\\OneDrive\\\\Desktop\\\\new web\"; git branch -M main; git push -u origin main 2>&1)",
+      "PowerShell($env:PATH = \"C:\\\\Program Files\\\\Git\\\\bin;\" + $env:PATH; cd \"c:\\\\Users\\\\baido\\\\OneDrive\\\\Desktop\\\\new web\"; Remove-Item -Path \"backend\\\\package-lock.json\" -Force; git add .; git commit -m \"Remove package-lock.json to fix Yarn conflict on Render\"; git push origin main 2>&1)"
     ]
   }
 }
