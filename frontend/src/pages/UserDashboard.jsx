@@ -1,7 +1,8 @@
 ﻿import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { getAuthUser, getToken, isAuthenticated } from '../utils/auth';
-import { fetchUserOrders, fetchWishlist, fetchUserProfile, removeWishlistItem } from '../utils/api';
+import { fetchUserOrders, fetchUserProfile } from '../utils/api';
+import { getWishlist, removeFromWishlist } from '../utils/wishlist';
 
 export default function UserDashboard() {
   const navigate = useNavigate();
@@ -20,17 +21,16 @@ export default function UserDashboard() {
 
     const loadData = async () => {
       setLoading(true);
+      setWishlist(getWishlist());
       try {
-        const [profileRes, ordersRes, wishlistRes] = await Promise.all([
+        const [profileRes, ordersRes] = await Promise.all([
           fetchUserProfile(token),
           fetchUserOrders(token),
-          fetchWishlist(token),
         ]);
         setProfile(profileRes.data);
         setOrders(ordersRes.data);
-        setWishlist(wishlistRes.data);
       } catch (err) {
-        setError(err.response?.data?.message || 'Unable to load dashboard data');
+        setError(err.response?.data?.message || 'Unable to load orders — showing local data.');
       } finally {
         setLoading(false);
       }
@@ -39,13 +39,9 @@ export default function UserDashboard() {
     loadData();
   }, [navigate, token]);
 
-  const handleRemoveWishlist = async (productId) => {
-    try {
-      const response = await removeWishlistItem(productId, token);
-      setWishlist(response.data);
-    } catch (err) {
-      setError(err.response?.data?.message || 'Unable to update wishlist');
-    }
+  const handleRemoveWishlist = (productId) => {
+    const next = removeFromWishlist(productId);
+    setWishlist(next);
   };
 
   return (
@@ -112,19 +108,25 @@ export default function UserDashboard() {
               ) : wishlist.length === 0 ? (
                 <p className="text-slate-500">Your wishlist is empty. Add items from the shop to save them for later.</p>
               ) : (
-                wishlist.map((product) => (
-                  <div key={product._id} className="rounded-3xl border border-slate-200 bg-slate-50 p-4">
-                    <div className="flex items-center justify-between gap-4">
-                      <div>
-                        <p className="font-semibold text-slate-900">{product.name}</p>
-                        <p className="text-sm text-slate-500">₵{product.price.toFixed(2)}</p>
+                wishlist.map((product) => {
+                  const pid = product._id || product.id;
+                  return (
+                    <div key={pid} className="rounded-3xl border border-slate-200 bg-slate-50 p-4">
+                      <div className="flex items-center gap-3">
+                        {(product.images?.[0] || product.image) && (
+                          <img src={product.images?.[0] || product.image} alt={product.name} className="h-12 w-12 rounded-xl object-contain bg-white border border-slate-100" onError={(e) => { e.target.style.display = 'none'; }} />
+                        )}
+                        <div className="flex-1 min-w-0">
+                          <p className="font-semibold text-slate-900 truncate">{product.name}</p>
+                          <p className="text-sm text-slate-500">₵{Number(product.price).toFixed(2)}</p>
+                        </div>
+                        <button onClick={() => handleRemoveWishlist(pid)} className="shrink-0 rounded-full bg-rose-100 px-3 py-1.5 text-sm text-rose-700 transition hover:bg-rose-200">
+                          Remove
+                        </button>
                       </div>
-                      <button onClick={() => handleRemoveWishlist(product._id)} className="rounded-full bg-rose-100 px-4 py-2 text-sm text-rose-700 transition hover:bg-rose-200">
-                        Remove
-                      </button>
                     </div>
-                  </div>
-                ))
+                  );
+                })
               )}
             </div>
           </div>

@@ -6,6 +6,7 @@ import {
 } from '../utils/api';
 import { isAdmin, getAdminToken } from '../utils/auth';
 import { getProducts, saveProducts, upsertProduct, removeProduct } from '../utils/productStore';
+import { showToast } from '../components/Toast';
 
 const TABS = ['Overview', 'Products', 'Orders', 'Users'];
 
@@ -182,7 +183,7 @@ export default function AdminDashboard() {
       await updateOrderStatus(orderId, status, token);
       setOrders((prev) => prev.map((o) => o._id === orderId ? { ...o, status } : o));
     } catch {
-      alert('Failed to update order status.');
+      showToast('Failed to update order status.', 'error');
     } finally {
       setUpdatingOrder(null);
     }

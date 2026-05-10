@@ -8,6 +8,7 @@ export default function NavBar() {
   const [adminMode, setAdminMode] = useState(false);
   const [user, setUser] = useState(null);
   const [search, setSearch] = useState('');
+  const [searchCat, setSearchCat] = useState('');
   const [cartCount, setCartCount] = useState(0);
   const navigate = useNavigate();
 
@@ -43,8 +44,11 @@ export default function NavBar() {
 
   const handleSearch = (e) => {
     e.preventDefault();
-    if (search.trim()) {
-      navigate(`/shop?search=${encodeURIComponent(search.trim())}`);
+    const params = new URLSearchParams();
+    if (search.trim()) params.set('search', search.trim());
+    if (searchCat) params.set('category', searchCat);
+    if (params.toString()) {
+      navigate(`/shop?${params.toString()}`);
       setSearch('');
     }
   };
@@ -75,7 +79,7 @@ export default function NavBar() {
 
           {/* Search bar */}
           <form onSubmit={handleSearch} className="flex flex-1 overflow-hidden rounded-lg">
-            <select className="shrink-0 border-r border-slate-300 bg-slate-200 px-3 py-2 text-xs text-slate-700 outline-none">
+            <select value={searchCat} onChange={(e) => setSearchCat(e.target.value)} className="shrink-0 border-r border-slate-300 bg-slate-200 px-3 py-2 text-xs text-slate-700 outline-none">
               <option>All</option>
               <option>Blenders & Juicers</option>
               <option>Rice Cookers</option>

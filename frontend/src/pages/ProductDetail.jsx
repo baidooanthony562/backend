@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { fetchProduct, submitReview, addWishlistItem } from '../utils/api';
+import { fetchProduct, submitReview } from '../utils/api';
 import { getToken, isAuthenticated } from '../utils/auth';
 import { getProducts } from '../utils/productStore';
 import { showToast } from '../components/Toast';
+import { isInWishlist, addToWishlist, removeFromWishlist } from '../utils/wishlist';
 
 const PLACEHOLDER = 'https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?auto=format&fit=crop&w=800&q=80';
 
@@ -21,6 +22,7 @@ export default function ProductDetail() {
   const [product, setProduct] = useState(null);
   const [quantity, setQuantity] = useState(1);
   const [loading, setLoading] = useState(true);
+  const [wishlisted, setWishlisted] = useState(false);
   const [reviewRating, setReviewRating] = useState(5);
   const [reviewComment, setReviewComment] = useState('');
   const [reviewMessage, setReviewMessage] = useState('');
@@ -30,10 +32,15 @@ export default function ProductDetail() {
   useEffect(() => {
     setLoading(true);
     fetchProduct(id)
-      .then((response) => setProduct(response.data))
+      .then((response) => {
+        setProduct(response.data);
+        setWishlisted(isInWishlist(response.data._id || response.data.id || id));
+      })
       .catch(() => {
         const local = getProducts();
-        setProduct(local.find((item) => item.id === id || item._id === id) || local[0]);
+        const found = local.find((item) => item.id === id || item._id === id) || local[0];
+        setProduct(found);
+        setWishlisted(isInWishlist(found?.id || found?._id || id));
       })
       .finally(() => setLoading(false));
   }, [id]);
@@ -113,13 +120,15 @@ export default function ProductDetail() {
     }
   };
 
-  const handleWishlist = async () => {
-    if (!isAuthenticated()) { navigate('/login'); return; }
-    try {
-      await addWishlistItem(productId, token);
-      showToast('Added to your wishlist ❤️');
-    } catch (err) {
-      showToast(err.response?.data?.message || 'Already in wishlist.', 'error');
+  const handleWishlist = () => {
+    if (wishlisted) {
+      removeFromWishlist(productId);
+      setWishlisted(false);
+      showToast('Removed from wishlist');
+    } else {
+      addToWishlist({ ...product, id: productId, image: productImage });
+      setWishlisted(true);
+      showToast('Saved to wishlist ❤️');
     }
   };
 
@@ -296,9 +305,9 @@ export default function ProductDetail() {
               </button>
               <button
                 onClick={handleWishlist}
-                className="w-full rounded-full border border-slate-200 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+                className={`w-full rounded-full border py-3 text-sm font-semibold transition ${wishlisted ? 'border-red-300 bg-red-50 text-red-600 hover:bg-red-100' : 'border-slate-200 text-slate-700 hover:bg-slate-50'}`}
               >
-                ❤️ Save to Wishlist
+                {wishlisted ? '❤️ Saved to Wishlist' : '🤍 Save to Wishlist'}
               </button>
             </div>
 
