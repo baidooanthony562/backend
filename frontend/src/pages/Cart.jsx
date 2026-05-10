@@ -1,7 +1,14 @@
-﻿import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { createOrder, validatePromo } from '../utils/api';
 import { getAuthUser, getToken, isAuthenticated } from '../utils/auth';
+
+function resolveUnitPrice(item) {
+  const qty = item.quantity;
+  const hasWholesale = item.wholesalePrice && item.wholesaleMinQty;
+  if (hasWholesale && qty >= item.wholesaleMinQty) return item.wholesalePrice;
+  return item.retailPrice || item.price;
+}
 
 export default function Cart() {
   const navigate = useNavigate();
@@ -19,27 +26,32 @@ export default function Cart() {
 
   useEffect(() => {
     const stored = JSON.parse(localStorage.getItem('cart') || '[]');
-    setCartItems(stored);
+    setCartItems(stored.map((item) => ({ ...item, unitPrice: resolveUnitPrice(item) })));
   }, []);
 
-  const total = useMemo(() => cartItems.reduce((sum, item) => sum + item.price * item.quantity, 0), [cartItems]);
+  const total = useMemo(
+    () => cartItems.reduce((sum, item) => sum + item.unitPrice * item.quantity, 0),
+    [cartItems]
+  );
   const finalTotal = promoResult ? promoResult.totalAfterDiscount : total;
 
-  const updateQuantity = (id, action) => {
-    const next = cartItems.map((item) => {
-      if (item.id !== id) return item;
-      const nextQty = action === 'add' ? item.quantity + 1 : item.quantity - 1;
-      return { ...item, quantity: Math.max(1, nextQty) };
-    });
-    setCartItems(next);
-    localStorage.setItem('cart', JSON.stringify(next));
-  };
-
-  const removeItem = (id) => {
-    const next = cartItems.filter((item) => (item.id || item._id) !== id);
+  const persist = (next) => {
     setCartItems(next);
     localStorage.setItem('cart', JSON.stringify(next));
     window.dispatchEvent(new Event('storage'));
+  };
+
+  const updateQuantity = (id, action) => {
+    const next = cartItems.map((item) => {
+      if ((item.id || item._id) !== id) return item;
+      const nextQty = action === 'add' ? item.quantity + 1 : Math.max(1, item.quantity - 1);
+      return { ...item, quantity: nextQty, unitPrice: resolveUnitPrice({ ...item, quantity: nextQty }) };
+    });
+    persist(next);
+  };
+
+  const removeItem = (id) => {
+    persist(cartItems.filter((item) => (item.id || item._id) !== id));
   };
 
   const applyPromo = async () => {
@@ -79,10 +91,10 @@ export default function Cart() {
     setCheckoutMessage('');
 
     const orderItems = cartItems.map((item) => ({
-      product: item.id,
+      product: item.id || item._id,
       name: item.name,
       quantity: item.quantity,
-      price: item.price,
+      price: item.unitPrice,
       image: item.image,
     }));
 
@@ -102,6 +114,7 @@ export default function Cart() {
       setCartItems([]);
       setPromoResult(null);
       setPromoCode('');
+      window.dispatchEvent(new Event('storage'));
       navigate(`/order-confirmation/${data._id}`);
     } catch (err) {
       setCheckoutMessage(err.response?.data?.message || 'Unable to place order.');
@@ -126,24 +139,55 @@ export default function Cart() {
               Your cart is empty. <Link to="/shop" className="text-brand-dark underline">Browse products</Link>.
             </div>
           ) : (
-            cartItems.map((item) => (
-              <div key={item.id} className="flex flex-col gap-4 rounded-3xl border border-slate-200 bg-white p-6 sm:flex-row sm:items-center">
-                <img src={item.image} alt={item.name} className="h-32 w-32 rounded-3xl object-cover" />
-                <div className="flex-1">
-                  <h2 className="text-xl font-semibold text-slate-900">{item.name}</h2>
-                  <p className="mt-2 text-sm text-slate-500">{item.category || 'Product'}</p>
-                  <p className="mt-3 text-lg font-semibold text-brand-dark">₵{item.price.toFixed(2)}</p>
-                </div>
-                <div className="flex flex-col gap-3">
-                  <div className="flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50 p-2">
-                    <button onClick={() => updateQuantity(item.id, 'subtract')} className="rounded-full bg-white px-3 py-1 text-slate-700">-</button>
-                    <span className="min-w-[2rem] text-center text-sm font-semibold text-slate-900">{item.quantity}</span>
-                    <button onClick={() => updateQuantity(item.id, 'add')} className="rounded-full bg-white px-3 py-1 text-slate-700">+</button>
+            cartItems.map((item) => {
+              const itemId = item.id || item._id;
+              const hasWholesale = item.wholesalePrice && item.wholesaleMinQty;
+              const isWholesale = hasWholesale && item.quantity >= item.wholesaleMinQty;
+              const toWholesale = hasWholesale && !isWholesale ? item.wholesaleMinQty - item.quantity : 0;
+
+              return (
+                <div key={itemId} className="flex flex-col gap-4 rounded-3xl border border-slate-200 bg-white p-6 sm:flex-row sm:items-center">
+                  <img src={item.image} alt={item.name} className="h-32 w-32 rounded-3xl object-cover" onError={(e) => { e.target.src = 'https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?auto=format&fit=crop&w=800&q=80'; }} />
+                  <div className="flex-1">
+                    <h2 className="text-xl font-semibold text-slate-900">{item.name}</h2>
+                    <p className="mt-1 text-sm text-slate-500">{item.category || 'Product'}</p>
+
+                    <div className="mt-2 flex items-center gap-2">
+                      <p className={`text-lg font-semibold ${isWholesale ? 'text-emerald-600' : 'text-brand-dark'}`}>
+                        ₵{item.unitPrice.toFixed(2)}/unit
+                      </p>
+                      {isWholesale && (
+                        <span className="rounded-full bg-emerald-100 px-2.5 py-0.5 text-xs font-bold text-emerald-700">
+                          Wholesale Price
+                        </span>
+                      )}
+                    </div>
+
+                    {toWholesale > 0 && (
+                      <button
+                        onClick={() => updateQuantity(itemId, 'add')}
+                        className="mt-1 text-xs text-[#007185] hover:underline"
+                      >
+                        Add {toWholesale} more to unlock wholesale (₵{item.wholesalePrice}/unit)
+                      </button>
+                    )}
+
+                    <p className="mt-1 text-sm font-semibold text-slate-700">
+                      Total: ₵{(item.unitPrice * item.quantity).toFixed(2)}
+                    </p>
                   </div>
-                  <button onClick={() => removeItem(item.id)} className="text-sm text-rose-600 transition hover:text-rose-800">Remove</button>
+
+                  <div className="flex flex-col gap-3">
+                    <div className="flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50 p-2">
+                      <button onClick={() => updateQuantity(itemId, 'subtract')} className="rounded-full bg-white px-3 py-1 text-slate-700 hover:bg-slate-100">−</button>
+                      <span className="min-w-[2rem] text-center text-sm font-semibold text-slate-900">{item.quantity}</span>
+                      <button onClick={() => updateQuantity(itemId, 'add')} className="rounded-full bg-white px-3 py-1 text-slate-700 hover:bg-slate-100">+</button>
+                    </div>
+                    <button onClick={() => removeItem(itemId)} className="text-sm text-rose-600 transition hover:text-rose-800">Remove</button>
+                  </div>
                 </div>
-              </div>
-            ))
+              );
+            })
           )}
         </div>
 

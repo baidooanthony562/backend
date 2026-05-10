@@ -7,6 +7,8 @@ const productSchema = mongoose.Schema(
     category: { type: mongoose.Schema.Types.ObjectId, required: true, ref: 'Category' },
     images: [{ type: String }],
     price: { type: Number, required: true, default: 0 },
+    wholesalePrice: { type: Number, default: 0 },
+    wholesaleMinQty: { type: Number, default: 0 },
     discount: { type: Number, default: 0 },
     stock: { type: Number, required: true, default: 0 },
     sku: { type: String },

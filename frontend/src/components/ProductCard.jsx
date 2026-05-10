@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { showToast } from './Toast';
 
@@ -27,11 +28,22 @@ function StarRating({ rating }) {
 }
 
 export default function ProductCard({ product }) {
+  const [qty, setQty] = useState(1);
+
   const productId = product._id || product.id;
   const productImage = product.images?.[0] || product.image || PLACEHOLDER;
   const discount = product.discount || 0;
-  const originalPrice = discount > 0 ? (product.price / (1 - discount / 100)) : null;
   const inStock = product.stock === undefined || Number(product.stock) > 0;
+  const maxStock = Number(product.stock) || 99;
+
+  const hasWholesale = product.wholesalePrice && product.wholesaleMinQty;
+  const isWholesaleQty = hasWholesale && qty >= product.wholesaleMinQty;
+  const unitPrice = isWholesaleQty ? product.wholesalePrice : product.price;
+  const originalPrice = discount > 0 && !isWholesaleQty ? (product.price / (1 - discount / 100)) : null;
+
+  const changeQty = (delta) => {
+    setQty((prev) => Math.min(maxStock, Math.max(1, prev + delta)));
+  };
 
   const addToCart = (e) => {
     e.preventDefault();
@@ -39,22 +51,40 @@ export default function ProductCard({ product }) {
     const cart = JSON.parse(localStorage.getItem('cart') || '[]');
     const existing = cart.find((item) => (item.id || item._id) === productId);
     if (existing) {
-      existing.quantity += 1;
+      existing.quantity += qty;
+      existing.unitPrice = unitPrice;
+      existing.isWholesale = isWholesaleQty;
     } else {
-      cart.push({ ...product, id: productId, image: productImage, quantity: 1 });
+      cart.push({
+        ...product,
+        id: productId,
+        image: productImage,
+        quantity: qty,
+        unitPrice,
+        retailPrice: product.price,
+        wholesalePrice: product.wholesalePrice,
+        wholesaleMinQty: product.wholesaleMinQty,
+        isWholesale: isWholesaleQty,
+      });
     }
     localStorage.setItem('cart', JSON.stringify(cart));
     window.dispatchEvent(new Event('storage'));
-    showToast(`${product.name} added to cart`);
+    const label = qty > 1 ? `${qty}x ${product.name}` : product.name;
+    showToast(`${label} added to cart${isWholesaleQty ? ' at wholesale price' : ''}`);
   };
 
   return (
     <div className="group flex flex-col bg-white border border-slate-200 hover:shadow-lg transition rounded-sm overflow-hidden">
       {/* Image */}
       <Link to={`/product/${productId}`} className="relative block bg-slate-50 p-4">
-        {discount > 0 && (
+        {discount > 0 && !isWholesaleQty && (
           <span className="absolute left-2 top-2 z-10 rounded-sm bg-red-600 px-1.5 py-0.5 text-xs font-bold text-white">
             -{discount}%
+          </span>
+        )}
+        {isWholesaleQty && (
+          <span className="absolute left-2 top-2 z-10 rounded-sm bg-emerald-600 px-1.5 py-0.5 text-xs font-bold text-white">
+            Wholesale
           </span>
         )}
         {product.bestseller && (
@@ -80,31 +110,84 @@ export default function ProductCard({ product }) {
 
         <StarRating rating={product.rating} />
 
+        {/* Price display */}
         <div className="mt-1">
           {originalPrice && (
-            <p className="text-xs text-slate-500">
-              Was: <span className="line-through">₵{originalPrice.toFixed(2)}</span>
+            <p className="text-xs text-slate-400 line-through">₵{originalPrice.toFixed(2)}</p>
+          )}
+          <div className="flex items-baseline gap-2">
+            <p className={`text-lg font-bold ${isWholesaleQty ? 'text-emerald-600' : 'text-slate-900'}`}>
+              <span className="text-sm font-normal align-top">₵</span>
+              {unitPrice.toFixed(2)}
+              <span className="ml-1 text-xs font-normal text-slate-400">/ unit</span>
+            </p>
+          </div>
+          {isWholesaleQty && (
+            <p className="text-xs font-semibold text-emerald-600">
+              Save ₵{(product.price - product.wholesalePrice).toFixed(2)}/unit wholesale
             </p>
           )}
-          <p className="text-lg font-bold text-slate-900">
-            <span className="text-sm font-normal align-top">₵</span>
-            {Number(product.price).toFixed(2)}
-          </p>
-          {discount > 0 && (
-            <p className="text-xs font-semibold text-red-600">Save ₵{(originalPrice - product.price).toFixed(2)} ({discount}%)</p>
+          {!isWholesaleQty && discount > 0 && (
+            <p className="text-xs font-semibold text-red-600">
+              Save ₵{(originalPrice - product.price).toFixed(2)} ({discount}% off)
+            </p>
           )}
         </div>
 
+        {/* Wholesale tier hint */}
+        {hasWholesale && !isWholesaleQty && (
+          <p className="text-xs text-slate-500 bg-slate-50 rounded px-2 py-1">
+            🏭 Wholesale ₵{product.wholesalePrice}/unit from {product.wholesaleMinQty} units
+          </p>
+        )}
+
         <p className={`text-xs ${inStock ? 'text-[#007185]' : 'text-red-500'}`}>
-          {inStock ? '✓ In Stock — Ships from Kumasi' : '✗ Out of stock'}
+          {inStock ? `✓ ${product.stock} in stock` : '✗ Out of stock'}
         </p>
+
+        {/* Quantity stepper */}
+        <div className="flex items-center gap-2">
+          <span className="text-xs font-semibold text-slate-500">Qty:</span>
+          <div className="flex items-center rounded-lg border border-slate-200 overflow-hidden">
+            <button
+              onClick={(e) => { e.preventDefault(); changeQty(-1); }}
+              disabled={qty <= 1}
+              className="px-2.5 py-1 text-slate-600 hover:bg-slate-100 disabled:opacity-30 disabled:cursor-not-allowed text-sm font-bold"
+            >
+              −
+            </button>
+            <span className="px-3 py-1 text-sm font-bold text-slate-900 min-w-[2rem] text-center border-x border-slate-200">
+              {qty}
+            </span>
+            <button
+              onClick={(e) => { e.preventDefault(); changeQty(1); }}
+              disabled={qty >= maxStock}
+              className="px-2.5 py-1 text-slate-600 hover:bg-slate-100 disabled:opacity-30 disabled:cursor-not-allowed text-sm font-bold"
+            >
+              +
+            </button>
+          </div>
+          {qty > 1 && (
+            <span className="text-xs font-semibold text-slate-500">
+              = ₵{(unitPrice * qty).toFixed(2)}
+            </span>
+          )}
+        </div>
 
         <button
           onClick={addToCart}
           disabled={!inStock}
-          className="mt-auto w-full rounded-full bg-brand-gold py-2 text-sm font-semibold text-slate-900 transition hover:bg-yellow-400 active:scale-95 disabled:cursor-not-allowed disabled:opacity-50"
+          className={`mt-1 w-full rounded-full py-2 text-sm font-semibold transition active:scale-95 disabled:cursor-not-allowed disabled:opacity-50 ${
+            isWholesaleQty
+              ? 'bg-emerald-600 text-white hover:bg-emerald-700'
+              : 'bg-brand-gold text-slate-900 hover:bg-yellow-400'
+          }`}
         >
-          {inStock ? 'Add to Cart' : 'Out of Stock'}
+          {inStock
+            ? isWholesaleQty
+              ? `Add ${qty} at Wholesale Price`
+              : `Add ${qty > 1 ? qty + ' to' : 'to'} Cart`
+            : 'Out of Stock'}
         </button>
       </div>
     </div>

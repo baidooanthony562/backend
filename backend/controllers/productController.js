@@ -44,7 +44,7 @@ const getProductById = asyncHandler(async (req, res) => {
 });
 
 const createProduct = asyncHandler(async (req, res) => {
-  const { name, description, category, images, image, price, stock, discount, featured, bestseller } = req.body;
+  const { name, description, category, images, image, price, stock, discount, wholesalePrice, wholesaleMinQty, featured, bestseller } = req.body;
   if (!name || !price || !stock) {
     res.status(400);
     throw new Error('Name, price and stock are required');
@@ -58,6 +58,8 @@ const createProduct = asyncHandler(async (req, res) => {
     price: Number(price),
     stock: Number(stock),
     discount: Number(discount) || 0,
+    wholesalePrice: Number(wholesalePrice) || 0,
+    wholesaleMinQty: Number(wholesaleMinQty) || 0,
     featured: Boolean(featured),
     bestseller: Boolean(bestseller),
     active: true,
@@ -76,6 +78,8 @@ const updateProduct = asyncHandler(async (req, res) => {
     product.discount = req.body.discount || product.discount;
     product.category = req.body.category || product.category;
     product.images = req.body.images || product.images;
+    product.wholesalePrice = req.body.wholesalePrice !== undefined ? Number(req.body.wholesalePrice) : product.wholesalePrice;
+    product.wholesaleMinQty = req.body.wholesaleMinQty !== undefined ? Number(req.body.wholesaleMinQty) : product.wholesaleMinQty;
     product.featured = req.body.featured ?? product.featured;
     product.bestseller = req.body.bestseller ?? product.bestseller;
     const updated = await product.save();

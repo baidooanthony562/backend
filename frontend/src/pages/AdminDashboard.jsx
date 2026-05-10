@@ -30,7 +30,8 @@ const ALL_CATEGORIES = [
 
 const EMPTY = {
   name: '', description: '', price: '', stock: '',
-  discount: '0', category: '', image: '', bestseller: false,
+  discount: '0', wholesalePrice: '', wholesaleMinQty: '',
+  category: '', image: '', bestseller: false,
 };
 
 export default function AdminDashboard() {
@@ -100,6 +101,8 @@ export default function AdminDashboard() {
       price: p.price || '',
       stock: p.stock || '',
       discount: p.discount || 0,
+      wholesalePrice: p.wholesalePrice || '',
+      wholesaleMinQty: p.wholesaleMinQty || '',
       category: p.category?.name || p.category || '',
       image: p.images?.[0] || p.image || '',
       bestseller: p.bestseller || false,
@@ -130,6 +133,8 @@ export default function AdminDashboard() {
         price: Number(form.price),
         stock: Number(form.stock),
         discount: Number(form.discount),
+        wholesalePrice: form.wholesalePrice ? Number(form.wholesalePrice) : 0,
+        wholesaleMinQty: form.wholesaleMinQty ? Number(form.wholesaleMinQty) : 0,
         images: form.image ? [form.image] : [],
       };
 
@@ -365,6 +370,14 @@ export default function AdminDashboard() {
                           <div className="sm:col-span-2">
                             <label className="mb-1 block text-xs font-semibold text-slate-600">Discount (%)</label>
                             <input type="number" min="0" max="100" value={form.discount} onChange={(e) => setForm({ ...form, discount: e.target.value })} placeholder="e.g. 10" className="w-full rounded-lg border px-3 py-2 text-sm outline-none focus:border-brand-gold" />
+                          </div>
+                          <div>
+                            <label className="mb-1 block text-xs font-semibold text-slate-600">Wholesale Price (₵)</label>
+                            <input type="number" min="0" value={form.wholesalePrice} onChange={(e) => setForm({ ...form, wholesalePrice: e.target.value })} placeholder="e.g. 260" className="w-full rounded-lg border px-3 py-2 text-sm outline-none focus:border-brand-gold" />
+                          </div>
+                          <div>
+                            <label className="mb-1 block text-xs font-semibold text-slate-600">Min Qty for Wholesale</label>
+                            <input type="number" min="1" value={form.wholesaleMinQty} onChange={(e) => setForm({ ...form, wholesaleMinQty: e.target.value })} placeholder="e.g. 5" className="w-full rounded-lg border px-3 py-2 text-sm outline-none focus:border-brand-gold" />
                           </div>
                         </div>
 
