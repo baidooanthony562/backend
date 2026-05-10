@@ -1,4 +1,4 @@
-﻿import { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { adminLogin } from '../utils/api';
 import { isAdmin, saveAdminToken } from '../utils/auth';
@@ -8,42 +8,92 @@ export default function AdminLogin() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [showPass, setShowPass] = useState(false);
 
   useEffect(() => {
-    if (isAdmin()) {
-      navigate('/admin');
-    }
+    if (isAdmin()) navigate('/admin');
   }, [navigate]);
 
-  const handleSubmit = async (event) => {
-    event.preventDefault();
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    setError('');
     try {
       const { data } = await adminLogin({ email, password });
       saveAdminToken(data.token);
       navigate('/admin');
     } catch (err) {
-      setError(err.response?.data?.message || 'Admin login failed');
+      setError(err.response?.data?.message || 'Invalid admin credentials. Please try again.');
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
-    <section className="mx-auto max-w-2xl px-4 pb-24 pt-8 md:px-8">
-      <div className="rounded-[2rem] border border-slate-200 bg-white p-10 shadow-sm">
-        <h1 className="text-3xl font-bold text-slate-900">Admin login</h1>
-        <p className="mt-3 text-slate-600">Access the secure Cindy Nat Enterprise admin dashboard.</p>
-        {error && <div className="mt-6 rounded-3xl bg-rose-50 px-4 py-3 text-sm text-rose-700">{error}</div>}
-        <form onSubmit={handleSubmit} className="mt-8 space-y-5">
-          <label className="block text-sm font-medium text-slate-700">
-            Email address
-            <input value={email} onChange={(e) => setEmail(e.target.value)} type="email" required className="mt-3 w-full rounded-3xl border border-slate-200 bg-slate-50 px-4 py-3 outline-none focus:border-brand-gold" />
-          </label>
-          <label className="block text-sm font-medium text-slate-700">
-            Password
-            <input value={password} onChange={(e) => setPassword(e.target.value)} type="password" required className="mt-3 w-full rounded-3xl border border-slate-200 bg-slate-50 px-4 py-3 outline-none focus:border-brand-gold" />
-          </label>
-          <button type="submit" className="w-full rounded-full bg-brand-dark px-6 py-4 text-sm font-semibold text-white transition hover:bg-slate-800">Login as admin</button>
-        </form>
+    <div className="flex min-h-screen items-center justify-center bg-[#131921] px-4">
+      <div className="w-full max-w-md">
+        {/* Logo */}
+        <div className="mb-8 text-center">
+          <span className="inline-flex h-14 w-14 items-center justify-center rounded-xl bg-brand-gold text-xl font-extrabold text-black">CN</span>
+          <h1 className="mt-3 text-2xl font-extrabold text-white">Cindy Nat Enterprise</h1>
+          <p className="mt-1 text-sm text-slate-400">Admin Portal</p>
+        </div>
+
+        {/* Card */}
+        <div className="rounded-xl bg-white p-8 shadow-2xl">
+          <h2 className="text-xl font-bold text-slate-900">Sign in to Admin Panel</h2>
+          <p className="mt-1 text-sm text-slate-500">Authorised personnel only</p>
+
+          {error && (
+            <div className="mt-4 flex items-center gap-2 rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700">
+              <span>⚠️</span> {error}
+            </div>
+          )}
+
+          <form onSubmit={handleSubmit} className="mt-6 space-y-4">
+            <div>
+              <label className="mb-1.5 block text-sm font-semibold text-slate-700">Email address</label>
+              <input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+                placeholder="admin@example.com"
+                className="w-full rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-sm outline-none focus:border-brand-gold focus:bg-white"
+              />
+            </div>
+            <div>
+              <label className="mb-1.5 block text-sm font-semibold text-slate-700">Password</label>
+              <div className="relative">
+                <input
+                  type={showPass ? 'text' : 'password'}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                  placeholder="••••••••"
+                  className="w-full rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 pr-12 text-sm outline-none focus:border-brand-gold focus:bg-white"
+                />
+                <button type="button" onClick={() => setShowPass(!showPass)} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700">
+                  {showPass ? '🙈' : '👁️'}
+                </button>
+              </div>
+            </div>
+
+            <button
+              type="submit"
+              disabled={loading}
+              className="mt-2 w-full rounded-full bg-brand-gold py-3 text-sm font-extrabold text-black transition hover:bg-yellow-400 disabled:opacity-60"
+            >
+              {loading ? 'Signing in...' : 'Sign in to Admin Panel'}
+            </button>
+          </form>
+
+          <p className="mt-6 text-center text-xs text-slate-400">
+            This area is restricted to authorised administrators only.
+          </p>
+        </div>
       </div>
-    </section>
+    </div>
   );
 }

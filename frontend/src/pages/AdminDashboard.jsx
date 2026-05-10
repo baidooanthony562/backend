@@ -1,149 +1,417 @@
-﻿import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { fetchDashboard } from '../utils/api';
+import {
+  fetchDashboard, fetchAllUsers, fetchAllOrders, fetchProducts,
+  updateOrderStatus, createProduct, updateProduct, deleteProduct,
+} from '../utils/api';
 import { isAdmin, getAdminToken } from '../utils/auth';
+
+const TABS = ['Overview', 'Products', 'Orders', 'Users'];
+
+const STATUS_COLORS = {
+  Pending: 'bg-yellow-100 text-yellow-700',
+  Processing: 'bg-blue-100 text-blue-700',
+  Shipped: 'bg-purple-100 text-purple-700',
+  Delivered: 'bg-green-100 text-green-700',
+  Cancelled: 'bg-red-100 text-red-700',
+};
+
+const EMPTY_PRODUCT = { name: '', description: '', price: '', stock: '', discount: '0', category: '', images: [''], featured: false, bestseller: false };
 
 export default function AdminDashboard() {
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState('overview');
-  const [dashboardData, setDashboardData] = useState(null);
+  const token = getAdminToken();
+  const [tab, setTab] = useState('Overview');
+  const [stats, setStats] = useState(null);
+  const [products, setProducts] = useState([]);
+  const [orders, setOrders] = useState([]);
+  const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
-  const adminToken = getAdminToken();
+  const [error, setError] = useState('');
+
+  // Product form
+  const [showForm, setShowForm] = useState(false);
+  const [editing, setEditing] = useState(null);
+  const [form, setForm] = useState(EMPTY_PRODUCT);
+  const [saving, setSaving] = useState(false);
+  const [formError, setFormError] = useState('');
+
+  // Order status update
+  const [updatingOrder, setUpdatingOrder] = useState(null);
 
   useEffect(() => {
-    if (!isAdmin()) {
-      navigate('/admin/login');
-      return;
+    if (!isAdmin()) { navigate('/admin/login'); return; }
+    loadAll();
+  }, [navigate]);
+
+  const loadAll = async () => {
+    setLoading(true);
+    try {
+      const [dashRes, prodRes, orderRes, userRes] = await Promise.all([
+        fetchDashboard(token),
+        fetchProducts(),
+        fetchAllOrders(token),
+        fetchAllUsers(token),
+      ]);
+      setStats(dashRes.data);
+      setProducts(prodRes.data);
+      setOrders(orderRes.data);
+      setUsers(userRes.data);
+    } catch (e) {
+      setError('Failed to load admin data. Check your connection.');
+    } finally {
+      setLoading(false);
     }
-    const loadDashboard = async () => {
-      setLoading(true);
-      try {
-        const { data } = await fetchDashboard(adminToken);
-        setDashboardData(data);
-      } catch {
-        setDashboardData(null);
-      } finally {
-        setLoading(false);
-      }
-    };
-    loadDashboard();
-  }, [navigate, adminToken]);
+  };
 
-  const stats = dashboardData
-    ? [
-        { label: 'Total Users', value: dashboardData.totalUsers },
-        { label: 'Total Products', value: dashboardData.totalProducts },
-        { label: 'Total Orders', value: dashboardData.totalOrders },
-        { label: 'Revenue', value: `$${Number(dashboardData.revenue).toLocaleString()}` },
-      ]
-    : [
-        { label: 'Total Users', value: 'â€”' },
-        { label: 'Total Products', value: 'â€”' },
-        { label: 'Total Orders', value: 'â€”' },
-        { label: 'Revenue', value: 'â€”' },
-      ];
+  const openAdd = () => { setEditing(null); setForm(EMPTY_PRODUCT); setFormError(''); setShowForm(true); };
+  const openEdit = (p) => {
+    setEditing(p._id);
+    setForm({
+      name: p.name, description: p.description, price: p.price,
+      stock: p.stock, discount: p.discount || 0, category: p.category?.name || p.category || '',
+      images: p.images || [''], featured: p.featured || false, bestseller: p.bestseller || false,
+    });
+    setFormError('');
+    setShowForm(true);
+  };
 
-  const lowStock = dashboardData?.lowStock || [];
+  const handleSave = async (e) => {
+    e.preventDefault();
+    if (!form.name || !form.price || !form.stock) { setFormError('Name, price and stock are required.'); return; }
+    setSaving(true);
+    setFormError('');
+    try {
+      const payload = { ...form, price: Number(form.price), stock: Number(form.stock), discount: Number(form.discount) };
+      if (editing) await updateProduct(editing, payload, token);
+      else await createProduct(payload, token);
+      setShowForm(false);
+      const res = await fetchProducts();
+      setProducts(res.data);
+    } catch (e) {
+      setFormError(e.response?.data?.message || 'Failed to save product.');
+    } finally {
+      setSaving(false);
+    }
+  };
 
-  const tasks = useMemo(
-    () => [
-      { title: 'Approve new product listing', status: 'Pending' },
-      { title: 'Review payment reports', status: 'Completed' },
-    ],
-    []
-  );
+  const handleDelete = async (id) => {
+    if (!window.confirm('Delete this product? This cannot be undone.')) return;
+    try {
+      await deleteProduct(id, token);
+      setProducts((prev) => prev.filter((p) => p._id !== id));
+    } catch {
+      alert('Failed to delete product.');
+    }
+  };
+
+  const handleOrderStatus = async (orderId, status) => {
+    setUpdatingOrder(orderId);
+    try {
+      await updateOrderStatus(orderId, status, token);
+      setOrders((prev) => prev.map((o) => o._id === orderId ? { ...o, status } : o));
+    } catch {
+      alert('Failed to update order status.');
+    } finally {
+      setUpdatingOrder(null);
+    }
+  };
+
+  const statCards = stats ? [
+    { label: 'Total Users', value: stats.totalUsers, icon: '👥', color: 'bg-blue-50 text-blue-700' },
+    { label: 'Total Products', value: stats.totalProducts, icon: '📦', color: 'bg-amber-50 text-amber-700' },
+    { label: 'Total Orders', value: stats.totalOrders, icon: '🛒', color: 'bg-purple-50 text-purple-700' },
+    { label: 'Revenue', value: `₵${Number(stats.revenue).toLocaleString()}`, icon: '💰', color: 'bg-green-50 text-green-700' },
+  ] : [];
 
   return (
-    <section className="mx-auto max-w-7xl px-4 pb-24 pt-8 md:px-8">
-      <div className="mb-10 rounded-[2rem] bg-brand-dark px-8 py-10 text-white shadow-soft">
-        <h1 className="text-4xl font-bold">Admin dashboard</h1>
-        <p className="mt-4 max-w-2xl text-slate-200">Manage products, monitor orders, and keep the Cindy Nat Enterprise storefront running smoothly.</p>
-      </div>
+    <div className="min-h-screen bg-[#EAEDED]">
+      <div className="mx-auto max-w-7xl px-4 py-6 md:px-8">
 
-      <div className="mb-8 grid gap-6 md:grid-cols-4">
-        {stats.map((item) => (
-          <div key={item.label} className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-            <p className="text-sm uppercase tracking-[0.3em] text-brand-gold">{item.label}</p>
-            <p className="mt-4 text-3xl font-bold text-slate-900">{loading ? '...' : item.value}</p>
+        {/* Header */}
+        <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <p className="text-xs font-bold uppercase tracking-widest text-brand-gold">Admin Panel</p>
+            <h1 className="mt-1 text-2xl font-extrabold text-[#131921]">Cindy Nat Enterprise</h1>
           </div>
-        ))}
-      </div>
+          <button onClick={loadAll} className="rounded-full border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">
+            ↻ Refresh
+          </button>
+        </div>
 
-      <div className="grid gap-6 xl:grid-cols-[1.3fr_0.7fr]">
-        <div className="rounded-3xl border border-slate-200 bg-white p-8 shadow-sm">
-          <div className="flex items-center justify-between gap-4">
-            <h2 className="text-xl font-semibold text-slate-900">Inventory summary</h2>
-            <div className="flex gap-2 rounded-full border border-slate-200 bg-slate-50 p-2">
-              {['overview', 'orders'].map((tab) => (
-                <button key={tab} onClick={() => setActiveTab(tab)} className={`rounded-full px-4 py-2 text-sm ${activeTab === tab ? 'bg-brand-dark text-white' : 'text-slate-600'}`}>
-                  {tab === 'overview' ? 'Overview' : 'Orders'}
-                </button>
-              ))}
-            </div>
-          </div>
-          <div className="mt-8 space-y-6">
-            {activeTab === 'overview' ? (
-              <div className="space-y-4">
-                {loading ? (
-                  <p className="text-slate-500">Loading inventory...</p>
-                ) : lowStock.length === 0 ? (
-                  <p className="text-slate-500">All products are well-stocked.</p>
-                ) : (
-                  lowStock.map((product) => (
-                    <div key={product._id} className="flex items-center justify-between rounded-3xl bg-slate-50 p-5">
-                      <div>
-                        <p className="font-semibold text-slate-900">{product.name}</p>
-                        <p className="text-sm text-slate-500">Stock: {product.stock}</p>
-                      </div>
-                      <span className={`rounded-full px-3 py-1 text-sm ${product.stock === 0 ? 'bg-rose-100 text-rose-700' : 'bg-amber-100 text-amber-700'}`}>
-                        {product.stock === 0 ? 'Out of stock' : 'Low stock'}
-                      </span>
+        {error && <div className="mb-4 rounded-lg bg-red-50 p-4 text-sm text-red-700">{error}</div>}
+
+        {/* Tabs */}
+        <div className="mb-6 flex overflow-x-auto rounded-lg bg-white shadow-sm">
+          {TABS.map((t) => (
+            <button key={t} onClick={() => setTab(t)}
+              className={`flex-1 px-6 py-3 text-sm font-semibold transition whitespace-nowrap ${tab === t ? 'border-b-2 border-brand-gold bg-white text-[#131921]' : 'text-slate-500 hover:text-slate-800'}`}>
+              {t}
+            </button>
+          ))}
+        </div>
+
+        {loading ? (
+          <div className="rounded-lg bg-white p-16 text-center text-slate-500 shadow-sm">Loading admin data...</div>
+        ) : (
+          <>
+            {/* ── OVERVIEW ── */}
+            {tab === 'Overview' && (
+              <div className="space-y-6">
+                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                  {statCards.map((s) => (
+                    <div key={s.label} className={`rounded-lg p-6 shadow-sm ${s.color}`}>
+                      <p className="text-3xl">{s.icon}</p>
+                      <p className="mt-3 text-3xl font-extrabold">{s.value}</p>
+                      <p className="mt-1 text-sm font-semibold">{s.label}</p>
                     </div>
-                  ))
-                )}
-              </div>
-            ) : (
-              <div className="space-y-4">
-                {tasks.map((task) => (
-                  <div key={task.title} className="rounded-3xl bg-slate-50 p-5">
-                    <p className="font-semibold text-slate-900">{task.title}</p>
-                    <p className="mt-2 text-sm text-slate-500">Status: {task.status}</p>
+                  ))}
+                </div>
+
+                {/* Low stock */}
+                <div className="rounded-lg bg-white p-6 shadow-sm">
+                  <h2 className="mb-4 text-lg font-bold text-slate-900">⚠️ Low Stock Alerts</h2>
+                  {stats?.lowStock?.length === 0 ? (
+                    <p className="text-sm text-slate-500">All products are well stocked.</p>
+                  ) : (
+                    <div className="space-y-3">
+                      {stats?.lowStock?.map((p) => (
+                        <div key={p._id} className="flex items-center justify-between rounded-lg bg-red-50 px-4 py-3">
+                          <p className="font-semibold text-red-800">{p.name}</p>
+                          <span className="rounded-full bg-red-600 px-3 py-1 text-xs font-bold text-white">{p.stock} left</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* Recent orders */}
+                <div className="rounded-lg bg-white p-6 shadow-sm">
+                  <h2 className="mb-4 text-lg font-bold text-slate-900">🛒 Recent Orders</h2>
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-sm">
+                      <thead><tr className="border-b text-left text-xs font-bold uppercase text-slate-500">
+                        <th className="pb-3 pr-4">Order ID</th>
+                        <th className="pb-3 pr-4">Customer</th>
+                        <th className="pb-3 pr-4">Total</th>
+                        <th className="pb-3">Status</th>
+                      </tr></thead>
+                      <tbody className="divide-y">
+                        {orders.slice(0, 5).map((o) => (
+                          <tr key={o._id}>
+                            <td className="py-3 pr-4 font-mono text-xs">#{o._id.slice(-6).toUpperCase()}</td>
+                            <td className="py-3 pr-4">{o.user?.name || 'Customer'}</td>
+                            <td className="py-3 pr-4 font-semibold">₵{o.totalPrice?.toFixed(2)}</td>
+                            <td className="py-3"><span className={`rounded-full px-2 py-1 text-xs font-semibold ${STATUS_COLORS[o.status] || 'bg-slate-100 text-slate-600'}`}>{o.status}</span></td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
                   </div>
-                ))}
+                </div>
               </div>
             )}
-          </div>
-        </div>
 
-        <div className="space-y-6">
-          <div className="rounded-3xl border border-slate-200 bg-white p-8 shadow-sm">
-            <h2 className="text-xl font-semibold text-slate-900">Low stock alerts</h2>
-            <div className="mt-6 space-y-4">
-              {loading ? (
-                <p className="text-slate-500">Loading alerts...</p>
-              ) : lowStock.length === 0 ? (
-                <p className="text-slate-500">No low-stock alerts.</p>
-              ) : (
-                lowStock.map((product) => (
-                  <div key={product._id} className={`rounded-3xl p-5 ${product.stock === 0 ? 'bg-rose-50' : 'bg-amber-50'}`}>
-                    <p className={`font-semibold ${product.stock === 0 ? 'text-rose-700' : 'text-amber-700'}`}>{product.name}</p>
-                    <p className={`text-sm ${product.stock === 0 ? 'text-rose-600' : 'text-amber-600'}`}>
-                      {product.stock === 0 ? 'Out of stock. Restock immediately.' : `Only ${product.stock} unit${product.stock !== 1 ? 's' : ''} left. Restock soon.`}
-                    </p>
+            {/* ── PRODUCTS ── */}
+            {tab === 'Products' && (
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <p className="text-sm text-slate-600">{products.length} products total</p>
+                  <button onClick={openAdd} className="rounded-full bg-brand-gold px-5 py-2 text-sm font-bold text-black hover:bg-yellow-400">
+                    + Add Product
+                  </button>
+                </div>
+
+                {/* Product form modal */}
+                {showForm && (
+                  <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/50 p-4 pt-10">
+                    <div className="w-full max-w-lg rounded-xl bg-white p-6 shadow-2xl">
+                      <h2 className="mb-5 text-xl font-bold">{editing ? 'Edit Product' : 'Add New Product'}</h2>
+                      {formError && <p className="mb-4 rounded bg-red-50 p-3 text-sm text-red-700">{formError}</p>}
+                      <form onSubmit={handleSave} className="space-y-4">
+                        <div className="grid gap-4 sm:grid-cols-2">
+                          <div>
+                            <label className="mb-1 block text-xs font-semibold text-slate-600">Product Name *</label>
+                            <input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="e.g. Premium Blender" className="w-full rounded-lg border px-3 py-2 text-sm outline-none focus:border-brand-gold" />
+                          </div>
+                          <div>
+                            <label className="mb-1 block text-xs font-semibold text-slate-600">Category</label>
+                            <select value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })} className="w-full rounded-lg border px-3 py-2 text-sm outline-none focus:border-brand-gold">
+                              <option value="">Select category</option>
+                              {['Blenders', 'Rice Cookers', 'Pots & Pans', 'Tea Dispensers'].map((c) => <option key={c}>{c}</option>)}
+                            </select>
+                          </div>
+                          <div>
+                            <label className="mb-1 block text-xs font-semibold text-slate-600">Price (₵) *</label>
+                            <input type="number" value={form.price} onChange={(e) => setForm({ ...form, price: e.target.value })} placeholder="e.g. 320" className="w-full rounded-lg border px-3 py-2 text-sm outline-none focus:border-brand-gold" />
+                          </div>
+                          <div>
+                            <label className="mb-1 block text-xs font-semibold text-slate-600">Stock *</label>
+                            <input type="number" value={form.stock} onChange={(e) => setForm({ ...form, stock: e.target.value })} placeholder="e.g. 10" className="w-full rounded-lg border px-3 py-2 text-sm outline-none focus:border-brand-gold" />
+                          </div>
+                          <div>
+                            <label className="mb-1 block text-xs font-semibold text-slate-600">Discount (%)</label>
+                            <input type="number" value={form.discount} onChange={(e) => setForm({ ...form, discount: e.target.value })} placeholder="e.g. 10" className="w-full rounded-lg border px-3 py-2 text-sm outline-none focus:border-brand-gold" />
+                          </div>
+                          <div>
+                            <label className="mb-1 block text-xs font-semibold text-slate-600">Image URL</label>
+                            <input value={form.images[0]} onChange={(e) => setForm({ ...form, images: [e.target.value] })} placeholder="https://..." className="w-full rounded-lg border px-3 py-2 text-sm outline-none focus:border-brand-gold" />
+                          </div>
+                        </div>
+                        <div>
+                          <label className="mb-1 block text-xs font-semibold text-slate-600">Description</label>
+                          <textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} rows="3" placeholder="Product description..." className="w-full rounded-lg border px-3 py-2 text-sm outline-none focus:border-brand-gold" />
+                        </div>
+                        <div className="flex gap-6">
+                          <label className="flex items-center gap-2 text-sm">
+                            <input type="checkbox" checked={form.featured} onChange={(e) => setForm({ ...form, featured: e.target.checked })} className="accent-brand-gold" />
+                            Featured
+                          </label>
+                          <label className="flex items-center gap-2 text-sm">
+                            <input type="checkbox" checked={form.bestseller} onChange={(e) => setForm({ ...form, bestseller: e.target.checked })} className="accent-brand-gold" />
+                            Best Seller
+                          </label>
+                        </div>
+                        <div className="flex gap-3 pt-2">
+                          <button type="submit" disabled={saving} className="flex-1 rounded-full bg-brand-gold py-2.5 text-sm font-bold text-black hover:bg-yellow-400 disabled:opacity-60">
+                            {saving ? 'Saving...' : editing ? 'Save Changes' : 'Add Product'}
+                          </button>
+                          <button type="button" onClick={() => setShowForm(false)} className="flex-1 rounded-full border py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50">
+                            Cancel
+                          </button>
+                        </div>
+                      </form>
+                    </div>
                   </div>
-                ))
-              )}
-            </div>
-          </div>
-          <div className="rounded-3xl border border-slate-200 bg-white p-8 shadow-sm">
-            <h2 className="text-xl font-semibold text-slate-900">Admin actions</h2>
-            <div className="mt-6 space-y-3">
-              <button className="w-full rounded-full bg-brand-gold px-5 py-3 font-semibold text-black">Add product</button>
-              <button className="w-full rounded-full border border-slate-200 px-5 py-3 text-slate-700">Manage orders</button>
-            </div>
-          </div>
-        </div>
+                )}
+
+                {/* Products table */}
+                <div className="rounded-lg bg-white shadow-sm overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead><tr className="border-b bg-slate-50 text-left text-xs font-bold uppercase text-slate-500">
+                      <th className="px-4 py-3">Product</th>
+                      <th className="px-4 py-3">Category</th>
+                      <th className="px-4 py-3">Price</th>
+                      <th className="px-4 py-3">Stock</th>
+                      <th className="px-4 py-3">Discount</th>
+                      <th className="px-4 py-3">Actions</th>
+                    </tr></thead>
+                    <tbody className="divide-y">
+                      {products.length === 0 ? (
+                        <tr><td colSpan="6" className="px-4 py-8 text-center text-slate-500">No products yet. Add your first product.</td></tr>
+                      ) : products.map((p) => (
+                        <tr key={p._id} className="hover:bg-slate-50">
+                          <td className="px-4 py-3">
+                            <div className="flex items-center gap-3">
+                              <img src={p.images?.[0] || p.image} alt={p.name} className="h-10 w-10 rounded object-cover" />
+                              <span className="font-medium text-slate-900 line-clamp-1">{p.name}</span>
+                            </div>
+                          </td>
+                          <td className="px-4 py-3 text-slate-600">{p.category?.name || p.category}</td>
+                          <td className="px-4 py-3 font-semibold">₵{Number(p.price).toFixed(2)}</td>
+                          <td className="px-4 py-3">
+                            <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${p.stock <= 5 ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'}`}>{p.stock}</span>
+                          </td>
+                          <td className="px-4 py-3">{p.discount || 0}%</td>
+                          <td className="px-4 py-3">
+                            <div className="flex gap-2">
+                              <button onClick={() => openEdit(p)} className="rounded-full bg-blue-100 px-3 py-1 text-xs font-semibold text-blue-700 hover:bg-blue-200">Edit</button>
+                              <button onClick={() => handleDelete(p._id)} className="rounded-full bg-red-100 px-3 py-1 text-xs font-semibold text-red-700 hover:bg-red-200">Delete</button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+
+            {/* ── ORDERS ── */}
+            {tab === 'Orders' && (
+              <div className="space-y-4">
+                <p className="text-sm text-slate-600">{orders.length} total orders</p>
+                <div className="rounded-lg bg-white shadow-sm overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead><tr className="border-b bg-slate-50 text-left text-xs font-bold uppercase text-slate-500">
+                      <th className="px-4 py-3">Order ID</th>
+                      <th className="px-4 py-3">Customer</th>
+                      <th className="px-4 py-3">Items</th>
+                      <th className="px-4 py-3">Total</th>
+                      <th className="px-4 py-3">Date</th>
+                      <th className="px-4 py-3">Status</th>
+                      <th className="px-4 py-3">Update</th>
+                    </tr></thead>
+                    <tbody className="divide-y">
+                      {orders.length === 0 ? (
+                        <tr><td colSpan="7" className="px-4 py-8 text-center text-slate-500">No orders yet.</td></tr>
+                      ) : orders.map((o) => (
+                        <tr key={o._id} className="hover:bg-slate-50">
+                          <td className="px-4 py-3 font-mono text-xs font-semibold">#{o._id.slice(-6).toUpperCase()}</td>
+                          <td className="px-4 py-3">{o.user?.name || 'Customer'}</td>
+                          <td className="px-4 py-3">{o.orderItems?.length} item{o.orderItems?.length !== 1 ? 's' : ''}</td>
+                          <td className="px-4 py-3 font-bold">₵{o.totalPrice?.toFixed(2)}</td>
+                          <td className="px-4 py-3 text-slate-500">{new Date(o.createdAt).toLocaleDateString()}</td>
+                          <td className="px-4 py-3">
+                            <span className={`rounded-full px-2 py-1 text-xs font-semibold ${STATUS_COLORS[o.status] || 'bg-slate-100 text-slate-600'}`}>{o.status}</span>
+                          </td>
+                          <td className="px-4 py-3">
+                            <select
+                              value={o.status}
+                              disabled={updatingOrder === o._id}
+                              onChange={(e) => handleOrderStatus(o._id, e.target.value)}
+                              className="rounded-lg border px-2 py-1 text-xs outline-none focus:border-brand-gold disabled:opacity-50"
+                            >
+                              {['Pending', 'Processing', 'Shipped', 'Delivered', 'Cancelled'].map((s) => <option key={s}>{s}</option>)}
+                            </select>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+
+            {/* ── USERS ── */}
+            {tab === 'Users' && (
+              <div className="space-y-4">
+                <p className="text-sm text-slate-600">{users.length} registered users</p>
+                <div className="rounded-lg bg-white shadow-sm overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead><tr className="border-b bg-slate-50 text-left text-xs font-bold uppercase text-slate-500">
+                      <th className="px-4 py-3">Name</th>
+                      <th className="px-4 py-3">Email</th>
+                      <th className="px-4 py-3">Phone</th>
+                      <th className="px-4 py-3">City</th>
+                      <th className="px-4 py-3">Orders</th>
+                      <th className="px-4 py-3">Role</th>
+                    </tr></thead>
+                    <tbody className="divide-y">
+                      {users.length === 0 ? (
+                        <tr><td colSpan="6" className="px-4 py-8 text-center text-slate-500">No users registered yet.</td></tr>
+                      ) : users.map((u) => (
+                        <tr key={u._id} className="hover:bg-slate-50">
+                          <td className="px-4 py-3 font-medium">{u.name}</td>
+                          <td className="px-4 py-3 text-slate-600">{u.email}</td>
+                          <td className="px-4 py-3 text-slate-600">{u.phone || '—'}</td>
+                          <td className="px-4 py-3 text-slate-600">{u.city || '—'}</td>
+                          <td className="px-4 py-3">{u.orders?.length || 0}</td>
+                          <td className="px-4 py-3">
+                            <span className={`rounded-full px-2 py-1 text-xs font-semibold ${u.isAdmin ? 'bg-purple-100 text-purple-700' : 'bg-slate-100 text-slate-600'}`}>
+                              {u.isAdmin ? 'Admin' : 'Customer'}
+                            </span>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+          </>
+        )}
       </div>
-    </section>
+    </div>
   );
 }

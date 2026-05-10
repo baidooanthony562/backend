@@ -27,4 +27,10 @@ export const fetchOrderDetail = (id, token) => api.get(`/orders/${id}`, authConf
 export const sendSupportMessage = (payload) => api.post('/support/message', payload);
 export const adminLogin = (payload) => api.post('/admin/login', payload);
 export const fetchDashboard = (token) => api.get('/admin/dashboard', authConfig(token));
+export const fetchAllUsers = (token) => api.get('/admin/users', authConfig(token));
+export const fetchAllOrders = (token) => api.get('/orders', authConfig(token));
+export const updateOrderStatus = (id, status, token) => api.put(`/orders/${id}/status`, { status }, authConfig(token));
+export const createProduct = (payload, token) => api.post('/products', payload, authConfig(token));
+export const updateProduct = (id, payload, token) => api.put(`/products/${id}`, payload, authConfig(token));
+export const deleteProduct = (id, token) => api.delete(`/products/${id}`, authConfig(token));
 export default api;
