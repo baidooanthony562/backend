@@ -1,4 +1,4 @@
-import { Link } from 'react-router-dom';
+﻿import { Link } from 'react-router-dom';
 
 const links = [
   { label: 'About', href: '/#about' },
@@ -12,7 +12,7 @@ export default function Footer() {
     <footer className="bg-slate-950 text-slate-200">
       <div className="mx-auto grid max-w-7xl gap-8 px-4 py-14 md:grid-cols-3 md:px-8">
         <div>
-          <h3 className="mb-4 text-xl font-semibold text-white">Cindy Nut Enterprise</h3>
+          <h3 className="mb-4 text-xl font-semibold text-white">Cindy Nat Enterprise</h3>
           <p className="max-w-sm leading-7 text-slate-300">
             Professional home appliances and kitchenware with fast shipping, trusted support, and premium service for every home.
           </p>
@@ -37,7 +37,7 @@ export default function Footer() {
         </div>
       </div>
       <div className="border-t border-slate-800 px-4 py-5 text-center text-sm text-slate-500 md:px-8">
-        © 2026 Cindy Nut Enterprise. Crafted for premium kitchen & home appliance experiences.
+        Â© 2026 Cindy Nat Enterprise. Crafted for premium kitchen & home appliance experiences.
       </div>
     </footer>
   );

@@ -1,4 +1,4 @@
-const asyncHandler = require('express-async-handler');
+﻿const asyncHandler = require('express-async-handler');
 const bcrypt = require('bcryptjs');
 const User = require('../models/User');
 const Product = require('../models/Product');
@@ -13,7 +13,7 @@ const adminLogin = asyncHandler(async (req, res) => {
     return res.json({
       token: generateToken('admin'),
       email,
-      name: 'Cindy Nut Admin',
+      name: 'Cindy Nat Admin',
       isAdmin: true,
     });
   }

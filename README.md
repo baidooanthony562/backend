@@ -1,4 +1,4 @@
-# Cindy Nut Enterprise
+﻿# Cindy Nat Enterprise
 
 A modern full-stack eCommerce website for a home appliance and kitchenware business built with React, Tailwind CSS, Node.js, Express, and MongoDB.
 

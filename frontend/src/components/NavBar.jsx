@@ -1,4 +1,4 @@
-import { Link, useNavigate } from 'react-router-dom';
+﻿import { Link, useNavigate } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import { getAuthUser, isAuthenticated, isAdmin, logout } from '../utils/auth';
 
@@ -57,7 +57,7 @@ export default function NavBar() {
       <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-4 md:px-8">
         <Link to="/" className="flex items-center gap-3 text-lg font-bold text-brand-dark dark:text-white">
           <span className="inline-flex h-10 w-10 items-center justify-center rounded-2xl bg-brand-gold text-black">CN</span>
-          Cindy Nut Enterprise
+          Cindy Nat Enterprise
         </Link>
 
         <nav className="hidden items-center gap-6 md:flex">

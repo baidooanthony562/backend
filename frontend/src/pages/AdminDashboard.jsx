@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+﻿import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { fetchDashboard } from '../utils/api';
 import { isAdmin, getAdminToken } from '../utils/auth';
@@ -37,10 +37,10 @@ export default function AdminDashboard() {
         { label: 'Revenue', value: `$${Number(dashboardData.revenue).toLocaleString()}` },
       ]
     : [
-        { label: 'Total Users', value: '—' },
-        { label: 'Total Products', value: '—' },
-        { label: 'Total Orders', value: '—' },
-        { label: 'Revenue', value: '—' },
+        { label: 'Total Users', value: 'â€”' },
+        { label: 'Total Products', value: 'â€”' },
+        { label: 'Total Orders', value: 'â€”' },
+        { label: 'Revenue', value: 'â€”' },
       ];
 
   const lowStock = dashboardData?.lowStock || [];
@@ -57,7 +57,7 @@ export default function AdminDashboard() {
     <section className="mx-auto max-w-7xl px-4 pb-24 pt-8 md:px-8">
       <div className="mb-10 rounded-[2rem] bg-brand-dark px-8 py-10 text-white shadow-soft">
         <h1 className="text-4xl font-bold">Admin dashboard</h1>
-        <p className="mt-4 max-w-2xl text-slate-200">Manage products, monitor orders, and keep the Cindy Nut Enterprise storefront running smoothly.</p>
+        <p className="mt-4 max-w-2xl text-slate-200">Manage products, monitor orders, and keep the Cindy Nat Enterprise storefront running smoothly.</p>
       </div>
 
       <div className="mb-8 grid gap-6 md:grid-cols-4">

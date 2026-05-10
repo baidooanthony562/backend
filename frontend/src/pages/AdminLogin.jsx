@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+﻿import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { adminLogin } from '../utils/api';
 import { isAdmin, saveAdminToken } from '../utils/auth';
@@ -30,7 +30,7 @@ export default function AdminLogin() {
     <section className="mx-auto max-w-2xl px-4 pb-24 pt-8 md:px-8">
       <div className="rounded-[2rem] border border-slate-200 bg-white p-10 shadow-sm">
         <h1 className="text-3xl font-bold text-slate-900">Admin login</h1>
-        <p className="mt-3 text-slate-600">Access the secure Cindy Nut Enterprise admin dashboard.</p>
+        <p className="mt-3 text-slate-600">Access the secure Cindy Nat Enterprise admin dashboard.</p>
         {error && <div className="mt-6 rounded-3xl bg-rose-50 px-4 py-3 text-sm text-rose-700">{error}</div>}
         <form onSubmit={handleSubmit} className="mt-8 space-y-5">
           <label className="block text-sm font-medium text-slate-700">

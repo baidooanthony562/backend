@@ -1,4 +1,4 @@
-const express = require('express');
+﻿const express = require('express');
 const dotenv = require('dotenv');
 const cors = require('cors');
 const morgan = require('morgan');
@@ -24,7 +24,7 @@ app.use(cors());
 app.use(express.json());
 app.use(morgan('dev'));
 
-app.get('/api/status', (req, res) => res.json({ status: 'ok', message: 'Cindy Nut backend running' }));
+app.get('/api/status', (req, res) => res.json({ status: 'ok', message: 'Cindy Nat backend running' }));
 app.get('/api/seed', seedData);
 app.use('/api/auth', authRoutes);
 app.use('/api/products', productRoutes);

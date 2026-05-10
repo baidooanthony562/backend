@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+﻿import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { featuredProducts as defaultFeatured } from '../data/products';
 import { categories } from '../data/categories';
@@ -42,7 +42,7 @@ export default function Home() {
                 Modern home appliances for every cook and every home.
               </h1>
               <p className="max-w-xl text-lg text-slate-200">
-                Cindy Nut Enterprise delivers quality blenders, rice cookers, cookware, and electronics with trusted support and fast delivery.
+                Cindy Nat Enterprise delivers quality blenders, rice cookers, cookware, and electronics with trusted support and fast delivery.
               </p>
             </div>
             <div className="flex flex-col gap-4 sm:flex-row">
@@ -86,7 +86,7 @@ export default function Home() {
             <h2 className="mt-2 text-3xl font-bold text-slate-900">Shop by collection</h2>
           </div>
           <Link to="/shop" className="text-sm font-semibold text-brand-dark transition hover:text-brand-gold">
-            Browse all categories →
+            Browse all categories â†’
           </Link>
         </div>
         <div className="grid gap-5 md:grid-cols-4">
@@ -98,9 +98,9 @@ export default function Home() {
 
       <section className="mx-auto max-w-7xl px-4 md:px-8">
         <div className="rounded-[2rem] bg-slate-950 px-10 py-12 text-white shadow-soft">
-          <h2 className="text-3xl font-bold">About Cindy Nut Enterprise</h2>
+          <h2 className="text-3xl font-bold">About Cindy Nat Enterprise</h2>
           <p className="mt-4 max-w-3xl text-lg leading-8 text-slate-200">
-            Cindy Nut Enterprise offers premium kitchen appliances and household electronics with a focus on quality, trust, and exceptional customer service. From blenders to rice cookers and drink dispensers, every product is selected for modern homes.
+            Cindy Nat Enterprise offers premium kitchen appliances and household electronics with a focus on quality, trust, and exceptional customer service. From blenders to rice cookers and drink dispensers, every product is selected for modern homes.
           </p>
         </div>
       </section>
