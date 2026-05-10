@@ -5,16 +5,19 @@ import { categories } from '../data/categories';
 import { getProducts, onProductsChange } from '../utils/productStore';
 
 const sortOptions = [
-  { label: 'Newest', value: 'newest' },
-  { label: 'Cheapest', value: 'cheapest' },
-  { label: 'Popular', value: 'popular' },
+  { label: 'Newest First', value: 'newest' },
+  { label: 'Price: Low to High', value: 'cheapest' },
+  { label: 'Price: High to Low', value: 'expensive' },
+  { label: 'Most Popular', value: 'popular' },
+  { label: 'Biggest Discount', value: 'discount' },
 ];
 
 const priceOptions = [
   { label: 'All Prices', value: 'all' },
-  { label: 'Under ₵50', value: 'under50' },
-  { label: '₵50 - ₵100', value: '50-100' },
-  { label: 'Above ₵100', value: 'over100' },
+  { label: 'Under ₵200', value: 'under200' },
+  { label: '₵200 – ₵400', value: '200-400' },
+  { label: '₵400 – ₵600', value: '400-600' },
+  { label: 'Above ₵600', value: 'over600' },
 ];
 
 export default function Shop() {
@@ -53,14 +56,17 @@ export default function Shop() {
         return cat.toLowerCase() === selectedCategory.toLowerCase();
       })
       .filter((p) => {
-        if (priceRange === 'under50') return p.price < 50;
-        if (priceRange === '50-100') return p.price >= 50 && p.price <= 100;
-        if (priceRange === 'over100') return p.price > 100;
+        if (priceRange === 'under200') return p.price < 200;
+        if (priceRange === '200-400') return p.price >= 200 && p.price <= 400;
+        if (priceRange === '400-600') return p.price > 400 && p.price <= 600;
+        if (priceRange === 'over600') return p.price > 600;
         return true;
       })
       .sort((a, b) => {
-        if (sort === 'cheapest') return a.price - b.price;
-        if (sort === 'popular') return (b.rating || 0) - (a.rating || 0);
+        if (sort === 'cheapest')   return a.price - b.price;
+        if (sort === 'expensive')  return b.price - a.price;
+        if (sort === 'popular')    return (b.rating || 0) - (a.rating || 0);
+        if (sort === 'discount')   return (b.discount || 0) - (a.discount || 0);
         return 0;
       });
   }, [search, selectedCategory, priceRange, sort, allProducts]);
@@ -116,15 +122,23 @@ export default function Shop() {
               >
                 <span>🏪</span> All Products
               </button>
-              {categories.map((cat) => (
-                <button
-                  key={cat.id}
-                  onClick={() => handleCategorySelect(cat.name)}
-                  className={`flex w-full items-center gap-3 rounded-xl px-4 py-2.5 text-left text-sm transition ${selectedCategory === cat.name ? 'bg-brand-dark font-semibold text-white' : 'bg-slate-50 text-slate-700 hover:bg-slate-100'}`}
-                >
-                  <span>{cat.icon}</span> {cat.name}
-                </button>
-              ))}
+              {categories.map((cat) => {
+                const count = allProducts.filter((p) => {
+                  const c = typeof p.category === 'string' ? p.category : p.category?.name || '';
+                  return c.toLowerCase() === cat.name.toLowerCase();
+                }).length;
+                return (
+                  <button
+                    key={cat.id}
+                    onClick={() => handleCategorySelect(cat.name)}
+                    className={`flex w-full items-center gap-3 rounded-xl px-4 py-2.5 text-left text-sm transition ${selectedCategory === cat.name ? 'bg-brand-dark font-semibold text-white' : 'bg-slate-50 text-slate-700 hover:bg-slate-100'}`}
+                  >
+                    <span>{cat.icon}</span>
+                    <span className="flex-1">{cat.name}</span>
+                    <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${selectedCategory === cat.name ? 'bg-white/20 text-white' : 'bg-slate-200 text-slate-600'}`}>{count}</span>
+                  </button>
+                );
+              })}
             </div>
           </div>
 
@@ -159,7 +173,7 @@ export default function Shop() {
           ) : (
             <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
               {filteredProducts.map((product) => (
-                <ProductCard key={product.id} product={product} />
+                <ProductCard key={product.id || product._id} product={product} />
               ))}
             </div>
           )}
