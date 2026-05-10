@@ -1,0 +1,7 @@
+{
+  "permissions": {
+    "allow": [
+      "PowerShell($env:PATH = \"C:\\\\Program Files\\\\Git\\\\bin;\" + $env:PATH; cd \"c:\\\\Users\\\\baido\\\\OneDrive\\\\Desktop\\\\new web\"; git add .; git commit -m \"Add 12 real appliance products with proper Unsplash images and GHS prices\"; git push origin main 2>&1)"
+    ]
+  }
+}
