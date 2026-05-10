@@ -2,79 +2,70 @@ import { Link } from 'react-router-dom';
 
 export default function Footer() {
   return (
-    <footer className="bg-slate-950 text-slate-300">
-      <div className="mx-auto max-w-7xl px-4 py-14 md:px-8">
-        <div className="grid gap-10 md:grid-cols-4">
-          {/* Brand */}
-          <div className="md:col-span-1">
-            <div className="flex items-center gap-2">
-              <span className="inline-flex h-9 w-9 items-center justify-center rounded-xl bg-brand-gold text-sm font-bold text-black">CN</span>
-              <span className="text-lg font-bold text-white">Cindy Nat Enterprise</span>
-            </div>
-            <p className="mt-4 text-sm leading-7 text-slate-400">
-              Ghana's trusted home appliance store. Quality products, fast delivery, and exceptional customer service.
-            </p>
-            <div className="mt-4 flex gap-3">
-              <a href="https://wa.me/233257543723" target="_blank" rel="noreferrer" className="rounded-full bg-green-600 px-4 py-2 text-xs font-semibold text-white hover:bg-green-700">
-                WhatsApp
-              </a>
-              <a href="mailto:baidooanthony562@gmail.com" className="rounded-full border border-slate-700 px-4 py-2 text-xs font-semibold text-slate-300 hover:border-brand-gold hover:text-brand-gold">
-                Email Us
-              </a>
-            </div>
-          </div>
+    <footer>
+      {/* Back to top */}
+      <button onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })} className="w-full bg-[#37475A] py-3 text-center text-sm font-semibold text-white transition hover:bg-[#485769]">
+        Back to top
+      </button>
 
-          {/* Shop */}
+      {/* Main footer */}
+      <div className="bg-[#232F3E] px-4 py-10 text-slate-300 md:px-8">
+        <div className="mx-auto grid max-w-7xl gap-8 md:grid-cols-4">
           <div>
-            <h4 className="mb-4 font-bold uppercase tracking-wider text-white">Shop</h4>
-            <ul className="space-y-3 text-sm">
-              <li><Link to="/shop" className="hover:text-brand-gold">All Products</Link></li>
-              <li><Link to="/shop?sort=popular" className="hover:text-brand-gold">Best Sellers</Link></li>
-              <li><Link to="/shop?sort=newest" className="hover:text-brand-gold">New Arrivals</Link></li>
-              <li><Link to="/shop?sort=cheapest" className="hover:text-brand-gold">Deals & Offers</Link></li>
+            <p className="mb-3 font-bold text-white">Get to Know Us</p>
+            <ul className="space-y-2 text-sm">
+              <li><Link to="/" className="hover:text-white hover:underline">About Cindy Nat</Link></li>
+              <li><a href="mailto:baidooanthony562@gmail.com" className="hover:text-white hover:underline">Contact Us</a></li>
+              <li><span className="text-slate-400">Adum & Alabar, Kumasi</span></li>
             </ul>
           </div>
-
-          {/* Account */}
           <div>
-            <h4 className="mb-4 font-bold uppercase tracking-wider text-white">Account</h4>
-            <ul className="space-y-3 text-sm">
-              <li><Link to="/login" className="hover:text-brand-gold">Login</Link></li>
-              <li><Link to="/register" className="hover:text-brand-gold">Register</Link></li>
-              <li><Link to="/dashboard" className="hover:text-brand-gold">My Orders</Link></li>
-              <li><Link to="/dashboard" className="hover:text-brand-gold">Wishlist</Link></li>
+            <p className="mb-3 font-bold text-white">Shop With Us</p>
+            <ul className="space-y-2 text-sm">
+              <li><Link to="/shop" className="hover:text-white hover:underline">All Products</Link></li>
+              <li><Link to="/shop?sort=popular" className="hover:text-white hover:underline">Today's Deals</Link></li>
+              <li><Link to="/shop?sort=newest" className="hover:text-white hover:underline">New Arrivals</Link></li>
+              <li><Link to="/shop?sort=cheapest" className="hover:text-white hover:underline">Best Prices</Link></li>
             </ul>
           </div>
-
-          {/* Contact */}
           <div>
-            <h4 className="mb-4 font-bold uppercase tracking-wider text-white">Contact</h4>
-            <ul className="space-y-3 text-sm">
-              <li className="flex items-center gap-2">
-                <span>📧</span> baidooanthony562@gmail.com
-              </li>
-              <li className="flex items-center gap-2">
-                <span>📱</span> 0257543723
-              </li>
-              <li className="flex items-start gap-2">
-                <span>📍</span>
-                <span>Adum, Kumasi &amp; Alabar, Kumasi</span>
+            <p className="mb-3 font-bold text-white">Your Account</p>
+            <ul className="space-y-2 text-sm">
+              <li><Link to="/login" className="hover:text-white hover:underline">Sign In</Link></li>
+              <li><Link to="/register" className="hover:text-white hover:underline">Create Account</Link></li>
+              <li><Link to="/orders" className="hover:text-white hover:underline">Your Orders</Link></li>
+              <li><Link to="/dashboard" className="hover:text-white hover:underline">Your Wishlist</Link></li>
+            </ul>
+          </div>
+          <div>
+            <p className="mb-3 font-bold text-white">Help & Support</p>
+            <ul className="space-y-2 text-sm">
+              <li className="flex items-center gap-2"><span>📱</span> 0257543723</li>
+              <li className="flex items-center gap-2"><span>📧</span> baidooanthony562@gmail.com</li>
+              <li className="flex items-center gap-2"><span>📍</span> Adum & Alabar, Kumasi</li>
+              <li>
+                <a href="https://wa.me/233257543723" target="_blank" rel="noreferrer" className="mt-2 inline-flex items-center gap-1 rounded bg-green-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-green-700">
+                  💬 WhatsApp Us
+                </a>
               </li>
             </ul>
-            <div className="mt-5">
-              <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-slate-400">We Accept</p>
-              <div className="flex flex-wrap gap-2 text-xs">
-                <span className="rounded bg-slate-800 px-2 py-1">Mobile Money</span>
-                <span className="rounded bg-slate-800 px-2 py-1">Visa</span>
-                <span className="rounded bg-slate-800 px-2 py-1">Mastercard</span>
-                <span className="rounded bg-slate-800 px-2 py-1">Cash</span>
-              </div>
-            </div>
           </div>
         </div>
       </div>
-      <div className="border-t border-slate-800 px-4 py-5 text-center text-xs text-slate-500 md:px-8">
-        © 2026 Cindy Nat Enterprise. All rights reserved. Built for modern Ghanaian homes.
+
+      {/* Bottom bar */}
+      <div className="bg-[#131921] px-4 py-6 text-center md:px-8">
+        <div className="flex items-center justify-center gap-2 mb-3">
+          <span className="flex h-7 w-7 items-center justify-center rounded bg-brand-gold text-xs font-extrabold text-black">CN</span>
+          <span className="text-sm font-bold text-white">Cindy Nat Enterprise</span>
+        </div>
+        <div className="flex flex-wrap justify-center gap-4 text-xs text-slate-400 mb-3">
+          <span className="rounded bg-slate-700 px-2 py-1">Mobile Money</span>
+          <span className="rounded bg-slate-700 px-2 py-1">Visa</span>
+          <span className="rounded bg-slate-700 px-2 py-1">Mastercard</span>
+          <span className="rounded bg-slate-700 px-2 py-1">Cash on Delivery</span>
+        </div>
+        <p className="text-xs text-slate-500">© 2026 Cindy Nat Enterprise. All rights reserved. Adum & Alabar, Kumasi, Ghana.</p>
       </div>
     </footer>
   );

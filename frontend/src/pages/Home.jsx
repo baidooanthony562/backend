@@ -1,240 +1,189 @@
 import { useEffect, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { featuredProducts as defaultFeatured } from '../data/products';
 import { categories } from '../data/categories';
 import { fetchFeaturedProducts } from '../utils/api';
-import CategoryCard from '../components/CategoryCard';
 import ProductCard from '../components/ProductCard';
-import TestimonialCard from '../components/TestimonialCard';
 
-const testimonials = [
-  { quote: 'Fast shipping and excellent appliances for every kitchen.', name: 'Amina O.', role: 'Home Chef' },
-  { quote: 'Amazing products and reliable customer service.', name: 'David U.', role: 'Business Owner' },
-  { quote: 'Beautiful design and top-notch performance.', name: 'Mercy N.', role: 'Interior Designer' },
+const banners = [
+  { bg: 'from-[#232F3E] to-[#131921]', label: "Today's Deals", title: 'Up to 15% Off Kitchen Appliances', sub: 'Limited time offers on blenders, rice cookers, pots & more', link: '/shop?sort=popular', cta: 'Shop Deals' },
+  { bg: 'from-[#1a3a2a] to-[#0f2218]', label: 'New Arrivals', title: 'Fresh Stock Just Landed', sub: 'Discover the latest home appliances from Cindy Nat Enterprise', link: '/shop?sort=newest', cta: 'See New Arrivals' },
+  { bg: 'from-[#3a2400] to-[#1a1000]', label: 'Best Sellers', title: 'Ghana\'s Favourite Appliances', sub: 'Top-rated products trusted by hundreds of Ghanaian homes', link: '/shop?sort=popular', cta: 'Shop Best Sellers' },
 ];
 
-const promos = [
-  { icon: '🚚', title: 'Free Delivery', detail: 'On orders over ₵100' },
-  { icon: '↩️', title: 'Easy Returns', detail: '30-day money-back guarantee' },
-  { icon: '🔒', title: 'Secure Payments', detail: 'Safe & encrypted checkout' },
-  { icon: '🎧', title: '24/7 Support', detail: 'Always here to help you' },
-];
-
-function useCountdown(targetHours = 8) {
-  const [timeLeft, setTimeLeft] = useState({ h: targetHours, m: 0, s: 0 });
+function useCycle(length, interval = 5000) {
+  const [idx, setIdx] = useState(0);
   useEffect(() => {
-    const end = Date.now() + targetHours * 3600 * 1000;
-    const tick = () => {
-      const diff = Math.max(0, end - Date.now());
-      setTimeLeft({
-        h: Math.floor(diff / 3600000),
-        m: Math.floor((diff % 3600000) / 60000),
-        s: Math.floor((diff % 60000) / 1000),
-      });
-    };
-    tick();
-    const id = setInterval(tick, 1000);
+    const id = setInterval(() => setIdx((i) => (i + 1) % length), interval);
     return () => clearInterval(id);
-  }, []);
-  return timeLeft;
+  }, [length, interval]);
+  return [idx, setIdx];
 }
 
-function CountdownBox({ value, label }) {
-  return (
-    <div className="flex flex-col items-center rounded-lg bg-brand-dark px-3 py-1 text-white">
-      <span className="text-xl font-bold leading-none">{String(value).padStart(2, '0')}</span>
-      <span className="text-xs text-slate-400">{label}</span>
-    </div>
-  );
+function useCountdown(hours = 8) {
+  const [t, setT] = useState({ h: hours, m: 0, s: 0 });
+  useEffect(() => {
+    const end = Date.now() + hours * 3600000;
+    const id = setInterval(() => {
+      const d = Math.max(0, end - Date.now());
+      setT({ h: Math.floor(d / 3600000), m: Math.floor((d % 3600000) / 60000), s: Math.floor((d % 60000) / 1000) });
+    }, 1000);
+    return () => clearInterval(id);
+  }, []);
+  return t;
 }
 
 export default function Home() {
   const [featured, setFeatured] = useState(defaultFeatured);
-  const [search, setSearch] = useState('');
-  const navigate = useNavigate();
+  const [idx, setIdx] = useCycle(banners.length);
   const { h, m, s } = useCountdown(8);
 
   useEffect(() => {
-    fetchFeaturedProducts()
-      .then((res) => setFeatured(res.data))
-      .catch(() => setFeatured(defaultFeatured));
+    fetchFeaturedProducts().then((r) => setFeatured(r.data)).catch(() => setFeatured(defaultFeatured));
   }, []);
 
-  const handleSearch = (e) => {
-    e.preventDefault();
-    if (search.trim()) navigate(`/shop?search=${encodeURIComponent(search.trim())}`);
-  };
+  const banner = banners[idx];
+  const blenders = featured.filter((p) => p.category === 'Blenders');
+  const riceCookers = featured.filter((p) => p.category === 'Rice Cookers');
+  const potsAndPans = featured.filter((p) => p.category === 'Pots & Pans');
+  const dispensers = featured.filter((p) => p.category === 'Tea Dispensers');
 
   return (
-    <div className="space-y-10">
+    <div className="bg-[#EAEDED] min-h-screen space-y-4 pb-10">
 
-      {/* Hero Banner */}
-      <section className="relative overflow-hidden bg-brand-dark text-white">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,_rgba(212,175,55,0.4),_transparent_50%)]" />
-        <div className="relative mx-auto max-w-7xl px-4 py-16 md:px-8 md:py-24">
-          <div className="max-w-2xl space-y-6">
-            <span className="inline-flex rounded-full bg-brand-gold px-4 py-1.5 text-xs font-bold uppercase tracking-widest text-black">
-              Premium Kitchen Essentials
-            </span>
-            <h1 className="text-4xl font-extrabold leading-tight md:text-6xl">
-              Shop the Best Home Appliances in Ghana
-            </h1>
-            <p className="text-lg text-slate-300">
-              Cindy Nat Enterprise — quality blenders, rice cookers, cookware and electronics delivered fast.
-            </p>
-            <form onSubmit={handleSearch} className="flex max-w-xl overflow-hidden rounded-full bg-white shadow-lg">
-              <input
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                placeholder="Search for blenders, rice cookers..."
-                className="flex-1 px-6 py-4 text-sm text-slate-900 outline-none"
-              />
-              <button type="submit" className="bg-brand-gold px-6 text-sm font-bold text-black transition hover:bg-yellow-400">
-                Search
-              </button>
-            </form>
-            <div className="flex flex-wrap gap-3">
-              <Link to="/shop" className="rounded-full bg-brand-gold px-7 py-3 text-sm font-bold text-black transition hover:bg-yellow-400">
-                Shop Now
-              </Link>
-              <Link to="/shop?sort=popular" className="rounded-full border border-white/30 px-7 py-3 text-sm text-white transition hover:border-brand-gold hover:text-brand-gold">
-                View Deals
-              </Link>
-            </div>
-          </div>
+      {/* Hero Carousel */}
+      <div className={`relative bg-gradient-to-r ${banner.bg} text-white overflow-hidden`}>
+        <div className="mx-auto max-w-7xl px-6 py-16 md:py-24">
+          <p className="text-xs font-bold uppercase tracking-widest text-brand-gold">{banner.label}</p>
+          <h1 className="mt-3 max-w-2xl text-3xl font-extrabold leading-tight md:text-5xl">{banner.title}</h1>
+          <p className="mt-3 max-w-xl text-slate-300">{banner.sub}</p>
+          <Link to={banner.link} className="mt-6 inline-flex rounded-full bg-brand-gold px-8 py-3 text-sm font-bold text-black transition hover:bg-yellow-400">
+            {banner.cta}
+          </Link>
         </div>
-      </section>
-
-      {/* Promo strips */}
-      <section className="mx-auto max-w-7xl px-4 md:px-8">
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          {promos.map((item) => (
-            <div key={item.title} className="flex items-center gap-4 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-              <span className="text-3xl">{item.icon}</span>
-              <div>
-                <p className="font-semibold text-slate-900">{item.title}</p>
-                <p className="text-sm text-slate-500">{item.detail}</p>
-              </div>
-            </div>
+        {/* Carousel dots */}
+        <div className="absolute bottom-4 left-1/2 flex -translate-x-1/2 gap-2">
+          {banners.map((_, i) => (
+            <button key={i} onClick={() => setIdx(i)} className={`h-2 rounded-full transition-all ${i === idx ? 'w-6 bg-brand-gold' : 'w-2 bg-white/40'}`} />
           ))}
         </div>
-      </section>
+      </div>
 
-      {/* Flash Deals */}
-      <section className="mx-auto max-w-7xl px-4 md:px-8">
-        <div className="rounded-2xl border border-red-100 bg-red-50 p-6">
-          <div className="mb-6 flex flex-wrap items-center gap-4">
-            <div className="flex items-center gap-2">
-              <span className="text-2xl">⚡</span>
-              <h2 className="text-2xl font-extrabold text-red-600">Flash Deals</h2>
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="text-sm font-semibold text-slate-600">Ends in:</span>
-              <div className="flex items-center gap-1">
-                <CountdownBox value={h} label="HRS" />
-                <span className="font-bold text-slate-600">:</span>
-                <CountdownBox value={m} label="MIN" />
-                <span className="font-bold text-slate-600">:</span>
-                <CountdownBox value={s} label="SEC" />
+      <div className="mx-auto max-w-7xl space-y-4 px-4 md:px-6">
+
+        {/* Category boxes — Amazon style */}
+        <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
+          {categories.map((cat) => (
+            <Link key={cat.id} to={`/shop?category=${encodeURIComponent(cat.name)}`} className="rounded-sm bg-white p-5 shadow-sm transition hover:shadow-md">
+              <p className="text-2xl">{cat.icon}</p>
+              <p className="mt-2 font-bold text-slate-900">{cat.name}</p>
+              <p className="mt-1 text-xs text-slate-500 line-clamp-2">{cat.description}</p>
+              <p className="mt-3 text-xs font-semibold text-[#C7511F] hover:underline">Shop now →</p>
+            </Link>
+          ))}
+        </div>
+
+        {/* Today's Deals with countdown */}
+        <div className="rounded-sm bg-white p-5 shadow-sm">
+          <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <h2 className="text-xl font-extrabold text-slate-900">Today's Deals</h2>
+              <div className="flex items-center gap-1 text-sm">
+                <span className="font-semibold text-slate-600">Ends in</span>
+                {[{ v: h, l: 'h' }, { v: m, l: 'm' }, { v: s, l: 's' }].map(({ v, l }, i) => (
+                  <span key={l} className="inline-flex items-center gap-0.5">
+                    {i > 0 && <span className="font-bold text-red-600">:</span>}
+                    <span className="rounded bg-[#131921] px-2 py-0.5 text-xs font-bold text-white">{String(v).padStart(2, '0')}{l}</span>
+                  </span>
+                ))}
               </div>
             </div>
-            <Link to="/shop?sort=popular" className="ml-auto text-sm font-semibold text-red-600 hover:underline">
-              See All →
-            </Link>
+            <Link to="/shop?sort=popular" className="text-sm font-semibold text-[#C7511F] hover:underline">See all deals →</Link>
           </div>
-          <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
-            {featured.slice(0, 4).map((product) => (
-              <ProductCard key={product._id || product.id} product={{ ...product, discount: product.discount || 10 }} />
+          <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-4">
+            {featured.filter((p) => p.discount > 0).slice(0, 4).map((p) => (
+              <ProductCard key={p.id} product={p} />
             ))}
           </div>
         </div>
-      </section>
 
-      {/* Categories */}
-      <section className="mx-auto max-w-7xl px-4 md:px-8">
-        <div className="mb-6 flex items-end justify-between">
-          <div>
-            <p className="text-xs font-bold uppercase tracking-widest text-brand-gold">Browse</p>
-            <h2 className="mt-1 text-2xl font-extrabold text-slate-900">Shop by Category</h2>
-          </div>
-          <Link to="/shop" className="text-sm font-semibold text-brand-dark hover:text-brand-gold">View all →</Link>
-        </div>
-        <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-4">
-          {categories.map((category) => (
-            <CategoryCard key={category.id} category={category} />
-          ))}
-        </div>
-      </section>
-
-      {/* Best Sellers */}
-      <section className="mx-auto max-w-7xl px-4 md:px-8">
-        <div className="mb-6 flex items-end justify-between">
-          <div>
-            <p className="text-xs font-bold uppercase tracking-widest text-brand-gold">Top Picks</p>
-            <h2 className="mt-1 text-2xl font-extrabold text-slate-900">Best Selling Appliances</h2>
-          </div>
-          <Link to="/shop" className="text-sm font-semibold text-brand-dark hover:text-brand-gold">View all →</Link>
-        </div>
-        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-          {featured.map((product) => (
-            <ProductCard key={product._id || product.id} product={product} />
-          ))}
-        </div>
-      </section>
-
-      {/* About Banner */}
-      <section className="mx-auto max-w-7xl px-4 md:px-8">
-        <div className="rounded-2xl bg-brand-dark px-8 py-10 text-white md:px-14">
-          <div className="grid gap-8 md:grid-cols-2 md:items-center">
-            <div>
-              <h2 className="text-3xl font-extrabold">About Cindy Nat Enterprise</h2>
-              <p className="mt-4 leading-8 text-slate-300">
-                Your trusted home appliance store in Ghana. We stock premium blenders, rice cookers, cookware, drink dispensers and more — selected for modern Ghanaian homes.
-              </p>
-              <Link to="/shop" className="mt-6 inline-flex rounded-full bg-brand-gold px-6 py-3 text-sm font-bold text-black transition hover:bg-yellow-400">
-                Shop Now
-              </Link>
+        {/* Blenders row */}
+        {blenders.length > 0 && (
+          <div className="rounded-sm bg-white p-5 shadow-sm">
+            <div className="mb-4 flex items-center justify-between">
+              <h2 className="text-xl font-extrabold text-slate-900">🧃 Blenders</h2>
+              <Link to="/shop?category=Blenders" className="text-sm font-semibold text-[#C7511F] hover:underline">See all →</Link>
             </div>
-            <div className="grid grid-cols-2 gap-4">
-              {[['500+', 'Happy Customers'], ['50+', 'Products'], ['Fast', 'Delivery'], ['24/7', 'Support']].map(([val, label]) => (
-                <div key={label} className="rounded-2xl bg-white/10 p-5 text-center">
-                  <p className="text-2xl font-extrabold text-brand-gold">{val}</p>
-                  <p className="mt-1 text-sm text-slate-300">{label}</p>
-                </div>
-              ))}
+            <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3">
+              {blenders.map((p) => <ProductCard key={p.id} product={p} />)}
             </div>
           </div>
-        </div>
-      </section>
+        )}
 
-      {/* Testimonials */}
-      <section className="mx-auto max-w-7xl px-4 md:px-8">
-        <div className="mb-6">
-          <p className="text-xs font-bold uppercase tracking-widest text-brand-gold">Reviews</p>
-          <h2 className="mt-1 text-2xl font-extrabold text-slate-900">What Our Customers Say</h2>
+        {/* Rice Cookers row */}
+        {riceCookers.length > 0 && (
+          <div className="rounded-sm bg-white p-5 shadow-sm">
+            <div className="mb-4 flex items-center justify-between">
+              <h2 className="text-xl font-extrabold text-slate-900">🍚 Rice Cookers</h2>
+              <Link to="/shop?category=Rice+Cookers" className="text-sm font-semibold text-[#C7511F] hover:underline">See all →</Link>
+            </div>
+            <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3">
+              {riceCookers.map((p) => <ProductCard key={p.id} product={p} />)}
+            </div>
+          </div>
+        )}
+
+        {/* Two column: Pots + Dispensers */}
+        <div className="grid gap-4 md:grid-cols-2">
+          {potsAndPans.length > 0 && (
+            <div className="rounded-sm bg-white p-5 shadow-sm">
+              <div className="mb-4 flex items-center justify-between">
+                <h2 className="text-lg font-extrabold text-slate-900">🍳 Pots & Pans</h2>
+                <Link to="/shop?category=Pots+%26+Pans" className="text-xs font-semibold text-[#C7511F] hover:underline">See all →</Link>
+              </div>
+              <div className="grid gap-3 grid-cols-2">
+                {potsAndPans.slice(0, 2).map((p) => <ProductCard key={p.id} product={p} />)}
+              </div>
+            </div>
+          )}
+          {dispensers.length > 0 && (
+            <div className="rounded-sm bg-white p-5 shadow-sm">
+              <div className="mb-4 flex items-center justify-between">
+                <h2 className="text-lg font-extrabold text-slate-900">🫖 Tea Dispensers</h2>
+                <Link to="/shop?category=Tea+Dispensers" className="text-xs font-semibold text-[#C7511F] hover:underline">See all →</Link>
+              </div>
+              <div className="grid gap-3 grid-cols-2">
+                {dispensers.slice(0, 2).map((p) => <ProductCard key={p.id} product={p} />)}
+              </div>
+            </div>
+          )}
         </div>
-        <div className="grid gap-5 md:grid-cols-3">
-          {testimonials.map((item) => (
-            <TestimonialCard key={item.name} quote={item.quote} name={item.name} role={item.role} />
+
+        {/* Sign in prompt — Amazon style */}
+        <div className="rounded-sm bg-white p-8 text-center shadow-sm">
+          <h2 className="text-xl font-bold text-slate-900">See personalised recommendations</h2>
+          <Link to="/login" className="mt-4 inline-flex rounded-full bg-brand-gold px-8 py-2.5 text-sm font-bold text-black hover:bg-yellow-400">
+            Sign in
+          </Link>
+          <p className="mt-3 text-sm text-slate-500">
+            New customer? <Link to="/register" className="font-semibold text-[#C7511F] hover:underline">Start here</Link>
+          </p>
+        </div>
+
+        {/* Trust bar */}
+        <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+          {[['🚚', 'Fast Delivery', 'Free on orders over ₵100'], ['↩️', 'Easy Returns', '30-day return policy'], ['🔒', 'Secure Checkout', '100% safe & encrypted'], ['📞', 'Support', '0257543723 — Kumasi']].map(([icon, title, sub]) => (
+            <div key={title} className="flex items-center gap-3 rounded-sm bg-white p-4 shadow-sm">
+              <span className="text-2xl">{icon}</span>
+              <div>
+                <p className="text-sm font-bold text-slate-900">{title}</p>
+                <p className="text-xs text-slate-500">{sub}</p>
+              </div>
+            </div>
           ))}
         </div>
-      </section>
 
-      {/* Contact CTA */}
-      <section className="mx-auto max-w-7xl px-4 pb-10 md:px-8">
-        <div className="rounded-2xl bg-brand-green px-8 py-10 text-white md:px-14">
-          <h2 className="text-2xl font-extrabold">Need help choosing the right appliance?</h2>
-          <p className="mt-3 text-slate-200">Our experts are ready to help you find the perfect product for your home.</p>
-          <div className="mt-6 flex flex-wrap gap-3">
-            <a href="mailto:baidooanthony562@gmail.com" className="rounded-full bg-white px-6 py-3 text-sm font-bold text-brand-dark transition hover:bg-slate-100">
-              Email Us
-            </a>
-            <a href="https://wa.me/233257543723" target="_blank" rel="noreferrer" className="rounded-full border border-white px-6 py-3 text-sm font-bold text-white transition hover:bg-white/10">
-              WhatsApp
-            </a>
-          </div>
-        </div>
-      </section>
+      </div>
     </div>
   );
 }

@@ -19,7 +19,7 @@ export default function NavBar() {
 
   const updateCart = () => {
     const cart = JSON.parse(localStorage.getItem('cart') || '[]');
-    setCartCount(cart.reduce((sum, item) => sum + item.quantity, 0));
+    setCartCount(cart.reduce((sum, i) => sum + i.quantity, 0));
   };
 
   useEffect(() => {
@@ -50,113 +50,145 @@ export default function NavBar() {
   };
 
   return (
-    <header className="fixed inset-x-0 top-0 z-40 shadow-md">
-      {/* Top bar */}
-      <div className="bg-brand-dark px-4 py-2 md:px-8">
-        <div className="mx-auto flex max-w-7xl items-center justify-between">
-          <span className="text-xs text-slate-300">Free delivery on orders over ₵100</span>
-          <div className="flex items-center gap-4 text-xs text-slate-300">
-            {adminMode && (
-              <Link to="/admin" className="hover:text-brand-gold">Admin Panel</Link>
-            )}
-            {authenticated ? (
-              <>
-                <Link to="/dashboard" className="hover:text-brand-gold">My Account</Link>
-                <button onClick={handleLogout} className="hover:text-brand-gold">Logout</button>
-              </>
-            ) : (
-              <>
-                <Link to="/login" className="hover:text-brand-gold">Login</Link>
-                <Link to="/register" className="hover:text-brand-gold">Register</Link>
-              </>
-            )}
-          </div>
-        </div>
-      </div>
+    <header className="fixed inset-x-0 top-0 z-40">
+      {/* Main bar */}
+      <div className="bg-[#131921] px-4 py-2 md:px-6">
+        <div className="mx-auto flex max-w-7xl items-center gap-3">
 
-      {/* Main navbar */}
-      <div className="bg-brand-gold px-4 py-3 md:px-8">
-        <div className="mx-auto flex max-w-7xl items-center gap-4">
           {/* Logo */}
-          <Link to="/" className="flex shrink-0 items-center gap-2 text-black">
-            <span className="inline-flex h-9 w-9 items-center justify-center rounded-xl bg-black text-sm font-bold text-brand-gold">CN</span>
-            <span className="hidden text-base font-bold md:block">Cindy Nat</span>
+          <Link to="/" className="flex shrink-0 items-center gap-1.5 rounded border-2 border-transparent px-1 py-1 hover:border-white">
+            <span className="flex h-8 w-8 items-center justify-center rounded bg-brand-gold text-xs font-extrabold text-black">CN</span>
+            <div className="hidden sm:block">
+              <p className="text-sm font-bold leading-none text-white">Cindy Nat</p>
+              <p className="text-xs leading-none text-slate-400">Enterprise</p>
+            </div>
+          </Link>
+
+          {/* Deliver to */}
+          <Link to="/dashboard" className="hidden shrink-0 items-center gap-1 rounded border-2 border-transparent px-1 hover:border-white lg:flex">
+            <span className="text-lg">📍</span>
+            <div>
+              <p className="text-xs text-slate-400">Deliver to</p>
+              <p className="text-sm font-bold text-white">Kumasi, GH</p>
+            </div>
           </Link>
 
           {/* Search bar */}
-          <form onSubmit={handleSearch} className="flex flex-1 items-center overflow-hidden rounded-full bg-white shadow-sm">
+          <form onSubmit={handleSearch} className="flex flex-1 overflow-hidden rounded-lg">
+            <select className="shrink-0 border-r border-slate-300 bg-slate-200 px-3 py-2 text-xs text-slate-700 outline-none">
+              <option>All</option>
+              <option>Blenders</option>
+              <option>Rice Cookers</option>
+              <option>Pots & Pans</option>
+              <option>Tea Dispensers</option>
+            </select>
             <input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search for products, brands and categories..."
-              className="flex-1 px-5 py-2.5 text-sm text-slate-900 outline-none"
+              placeholder="Search Cindy Nat Enterprise..."
+              className="flex-1 px-4 py-2 text-sm text-slate-900 outline-none"
             />
-            <button type="submit" className="flex h-full items-center bg-brand-dark px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-slate-800">
-              Search
+            <button type="submit" className="flex items-center bg-brand-gold px-4 text-slate-900 transition hover:bg-yellow-400">
+              <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-4.35-4.35m0 0A7.5 7.5 0 104.5 4.5a7.5 7.5 0 0012.15 12.15z" />
+              </svg>
             </button>
           </form>
 
-          {/* Cart */}
-          <Link to="/cart" className="relative flex shrink-0 flex-col items-center text-black">
-            <div className="relative">
-              <svg className="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
-              </svg>
-              {cartCount > 0 && (
-                <span className="absolute -right-2 -top-2 flex h-5 w-5 items-center justify-center rounded-full bg-red-600 text-xs font-bold text-white">
-                  {cartCount > 9 ? '9+' : cartCount}
-                </span>
+          {/* Account */}
+          <div className="group relative hidden shrink-0 cursor-pointer rounded border-2 border-transparent px-2 py-1 hover:border-white md:block">
+            <p className="text-xs text-slate-400">{authenticated ? `Hello, ${user?.name?.split(' ')[0] || 'User'}` : 'Hello, sign in'}</p>
+            <p className="text-sm font-bold text-white">Account & Lists</p>
+            <div className="absolute right-0 top-full hidden min-w-[180px] rounded-lg border border-slate-200 bg-white py-2 shadow-xl group-hover:block">
+              {authenticated ? (
+                <>
+                  <Link to="/dashboard" className="block px-4 py-2 text-sm text-slate-700 hover:bg-slate-50">My Account</Link>
+                  <Link to="/orders" className="block px-4 py-2 text-sm text-slate-700 hover:bg-slate-50">My Orders</Link>
+                  {adminMode && <Link to="/admin" className="block px-4 py-2 text-sm text-slate-700 hover:bg-slate-50">Admin Panel</Link>}
+                  <button onClick={handleLogout} className="w-full px-4 py-2 text-left text-sm text-slate-700 hover:bg-slate-50">Sign Out</button>
+                </>
+              ) : (
+                <>
+                  <Link to="/login" className="block px-4 py-2 text-sm text-slate-700 hover:bg-slate-50">Sign In</Link>
+                  <Link to="/register" className="block px-4 py-2 text-sm text-slate-700 hover:bg-slate-50">Create Account</Link>
+                </>
               )}
             </div>
-            <span className="text-xs font-semibold">Cart</span>
+          </div>
+
+          {/* Orders */}
+          <Link to="/orders" className="hidden shrink-0 items-center rounded border-2 border-transparent px-2 py-1 hover:border-white md:block">
+            <p className="text-xs text-slate-400">Returns</p>
+            <p className="text-sm font-bold text-white">& Orders</p>
           </Link>
 
-          {/* Mobile menu button */}
-          <button className="shrink-0 rounded-full border border-black/20 p-2 text-black md:hidden" onClick={() => setOpen(!open)}>
-            <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          {/* Cart */}
+          <Link to="/cart" className="relative flex shrink-0 items-center gap-1 rounded border-2 border-transparent px-2 py-1 hover:border-white">
+            <div className="relative">
+              <svg className="h-8 w-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
+              </svg>
+              <span className="absolute -top-1 left-4 min-w-[20px] rounded-full bg-brand-gold px-1 text-center text-xs font-extrabold text-black">
+                {cartCount}
+              </span>
+            </div>
+            <span className="hidden text-sm font-bold text-white sm:block">Cart</span>
+          </Link>
+
+          {/* Mobile menu toggle */}
+          <button onClick={() => setOpen(!open)} className="shrink-0 rounded border-2 border-transparent p-1 text-white hover:border-white md:hidden">
+            <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={open ? 'M6 18L18 6M6 6l12 12' : 'M4 6h16M4 12h16M4 18h16'} />
             </svg>
           </button>
         </div>
       </div>
 
-      {/* Category nav bar */}
-      <div className="hidden bg-white px-4 shadow-sm md:block md:px-8">
-        <div className="mx-auto flex max-w-7xl items-center gap-6 py-2">
-          <Link to="/shop" className="text-sm font-semibold text-brand-dark hover:text-brand-gold">All Categories</Link>
-          <Link to="/shop?category=blenders" className="text-sm text-slate-600 hover:text-brand-gold">Blenders</Link>
-          <Link to="/shop?category=rice-cookers" className="text-sm text-slate-600 hover:text-brand-gold">Rice Cookers</Link>
-          <Link to="/shop?category=cookware" className="text-sm text-slate-600 hover:text-brand-gold">Cookware</Link>
-          <Link to="/shop?category=electronics" className="text-sm text-slate-600 hover:text-brand-gold">Electronics</Link>
-          <Link to="/shop?sort=popular" className="ml-auto text-sm font-semibold text-red-600 hover:text-red-700">🔥 Flash Deals</Link>
+      {/* Secondary nav */}
+      <div className="hidden bg-[#232F3E] px-4 md:block md:px-6">
+        <div className="mx-auto flex max-w-7xl items-center gap-1 overflow-x-auto py-1.5">
+          <Link to="/shop" className="flex shrink-0 items-center gap-1 rounded border-2 border-transparent px-3 py-1 text-sm font-semibold text-white hover:border-white">
+            ☰ All
+          </Link>
+          {[
+            ['Blenders', 'Blenders'],
+            ['Rice Cookers', 'Rice Cookers'],
+            ['Pots & Pans', 'Pots & Pans'],
+            ['Tea Dispensers', 'Tea Dispensers'],
+          ].map(([label, cat]) => (
+            <Link key={cat} to={`/shop?category=${encodeURIComponent(cat)}`} className="shrink-0 rounded border-2 border-transparent px-3 py-1 text-sm text-white hover:border-white">
+              {label}
+            </Link>
+          ))}
+          <Link to="/shop?sort=popular" className="shrink-0 rounded border-2 border-transparent px-3 py-1 text-sm font-semibold text-brand-gold hover:border-white">
+            🔥 Today's Deals
+          </Link>
+          <Link to="/shop?sort=newest" className="shrink-0 rounded border-2 border-transparent px-3 py-1 text-sm text-white hover:border-white">
+            New Arrivals
+          </Link>
         </div>
       </div>
 
       {/* Mobile menu */}
       {open && (
-        <div className="border-t border-slate-200 bg-white px-4 py-4 md:hidden">
-          <form onSubmit={handleSearch} className="mb-4 flex overflow-hidden rounded-full border border-slate-200">
-            <input
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search products..."
-              className="flex-1 px-4 py-2 text-sm outline-none"
-            />
-            <button type="submit" className="bg-brand-dark px-4 text-sm text-white">Go</button>
+        <div className="border-t border-slate-700 bg-[#131921] px-4 py-4 md:hidden">
+          <form onSubmit={handleSearch} className="mb-4 flex overflow-hidden rounded-lg">
+            <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search..." className="flex-1 px-4 py-2 text-sm outline-none" />
+            <button type="submit" className="bg-brand-gold px-4 text-sm font-bold">Go</button>
           </form>
-          <div className="flex flex-col gap-3">
-            <Link to="/" className="text-sm font-medium text-slate-700" onClick={() => setOpen(false)}>Home</Link>
-            <Link to="/shop" className="text-sm font-medium text-slate-700" onClick={() => setOpen(false)}>Shop</Link>
-            <Link to="/cart" className="text-sm font-medium text-slate-700" onClick={() => setOpen(false)}>Cart {cartCount > 0 && `(${cartCount})`}</Link>
+          <div className="space-y-1">
+            {[['Home', '/'], ['Shop All', '/shop'], ['Blenders', '/shop?category=Blenders'], ['Rice Cookers', '/shop?category=Rice+Cookers'], ['Pots & Pans', '/shop?category=Pots+%26+Pans'], ['Cart', '/cart'], ['My Orders', '/orders']].map(([label, path]) => (
+              <Link key={label} to={path} onClick={() => setOpen(false)} className="block rounded px-3 py-2 text-sm text-white hover:bg-white/10">{label}</Link>
+            ))}
             {authenticated ? (
               <>
-                <Link to="/dashboard" className="text-sm font-medium text-slate-700" onClick={() => setOpen(false)}>My Account</Link>
-                <button onClick={() => { handleLogout(); setOpen(false); }} className="text-left text-sm font-medium text-slate-700">Logout</button>
+                <Link to="/dashboard" onClick={() => setOpen(false)} className="block rounded px-3 py-2 text-sm text-white hover:bg-white/10">My Account</Link>
+                <button onClick={() => { handleLogout(); setOpen(false); }} className="w-full rounded px-3 py-2 text-left text-sm text-white hover:bg-white/10">Sign Out</button>
               </>
             ) : (
               <>
-                <Link to="/login" className="text-sm font-medium text-slate-700" onClick={() => setOpen(false)}>Login</Link>
-                <Link to="/register" className="text-sm font-medium text-slate-700" onClick={() => setOpen(false)}>Register</Link>
+                <Link to="/login" onClick={() => setOpen(false)} className="block rounded px-3 py-2 text-sm text-white hover:bg-white/10">Sign In</Link>
+                <Link to="/register" onClick={() => setOpen(false)} className="block rounded px-3 py-2 text-sm text-white hover:bg-white/10">Create Account</Link>
               </>
             )}
           </div>
