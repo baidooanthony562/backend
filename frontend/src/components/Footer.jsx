@@ -15,10 +15,10 @@ export default function Footer() {
               Ghana's trusted home appliance store. Quality products, fast delivery, and exceptional customer service.
             </p>
             <div className="mt-4 flex gap-3">
-              <a href="https://wa.me/233800123456" target="_blank" rel="noreferrer" className="rounded-full bg-green-600 px-4 py-2 text-xs font-semibold text-white hover:bg-green-700">
+              <a href="https://wa.me/233257543723" target="_blank" rel="noreferrer" className="rounded-full bg-green-600 px-4 py-2 text-xs font-semibold text-white hover:bg-green-700">
                 WhatsApp
               </a>
-              <a href="mailto:support@cindynat.com" className="rounded-full border border-slate-700 px-4 py-2 text-xs font-semibold text-slate-300 hover:border-brand-gold hover:text-brand-gold">
+              <a href="mailto:baidooanthony562@gmail.com" className="rounded-full border border-slate-700 px-4 py-2 text-xs font-semibold text-slate-300 hover:border-brand-gold hover:text-brand-gold">
                 Email Us
               </a>
             </div>
@@ -51,13 +51,14 @@ export default function Footer() {
             <h4 className="mb-4 font-bold uppercase tracking-wider text-white">Contact</h4>
             <ul className="space-y-3 text-sm">
               <li className="flex items-center gap-2">
-                <span>📧</span> support@cindynat.com
+                <span>📧</span> baidooanthony562@gmail.com
               </li>
               <li className="flex items-center gap-2">
-                <span>📱</span> +233 800 123 456
+                <span>📱</span> 0257543723
               </li>
-              <li className="flex items-center gap-2">
-                <span>📍</span> Accra, Ghana
+              <li className="flex items-start gap-2">
+                <span>📍</span>
+                <span>Adum, Kumasi &amp; Alabar, Kumasi</span>
               </li>
             </ul>
             <div className="mt-5">

@@ -226,10 +226,10 @@ export default function Home() {
           <h2 className="text-2xl font-extrabold">Need help choosing the right appliance?</h2>
           <p className="mt-3 text-slate-200">Our experts are ready to help you find the perfect product for your home.</p>
           <div className="mt-6 flex flex-wrap gap-3">
-            <a href="mailto:support@cindynat.com" className="rounded-full bg-white px-6 py-3 text-sm font-bold text-brand-dark transition hover:bg-slate-100">
+            <a href="mailto:baidooanthony562@gmail.com" className="rounded-full bg-white px-6 py-3 text-sm font-bold text-brand-dark transition hover:bg-slate-100">
               Email Us
             </a>
-            <a href="https://wa.me/233800123456" target="_blank" rel="noreferrer" className="rounded-full border border-white px-6 py-3 text-sm font-bold text-white transition hover:bg-white/10">
+            <a href="https://wa.me/233257543723" target="_blank" rel="noreferrer" className="rounded-full border border-white px-6 py-3 text-sm font-bold text-white transition hover:bg-white/10">
               WhatsApp
             </a>
           </div>
