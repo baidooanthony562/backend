@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { featuredProducts as defaultFeatured } from '../data/products';
 import { categories } from '../data/categories';
 import { fetchFeaturedProducts } from '../utils/api';
+import { getProducts, onProductsChange } from '../utils/productStore';
 import ProductCard from '../components/ProductCard';
 
 const banners = [
@@ -34,12 +34,13 @@ function useCountdown(hours = 8) {
 }
 
 export default function Home() {
-  const [featured, setFeatured] = useState(defaultFeatured);
+  const [featured, setFeatured] = useState(getProducts);
   const [idx, setIdx] = useCycle(banners.length);
   const { h, m, s } = useCountdown(8);
 
   useEffect(() => {
-    fetchFeaturedProducts().then((r) => setFeatured(r.data)).catch(() => setFeatured(defaultFeatured));
+    fetchFeaturedProducts().then((r) => setFeatured(r.data)).catch(() => setFeatured(getProducts()));
+    return onProductsChange(() => setFeatured(getProducts()));
   }, []);
 
   const banner = banners[idx];

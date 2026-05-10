@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import ProductCard from '../components/ProductCard';
-import { featuredProducts } from '../data/products';
 import { categories } from '../data/categories';
+import { getProducts, onProductsChange } from '../utils/productStore';
 
 const sortOptions = [
   { label: 'Newest', value: 'newest' },
@@ -23,6 +23,7 @@ export default function Shop() {
   const [selectedCategory, setSelectedCategory] = useState(searchParams.get('category') || 'All');
   const [priceRange, setPriceRange] = useState('all');
   const [sort, setSort] = useState(searchParams.get('sort') || 'newest');
+  const [allProducts, setAllProducts] = useState(getProducts);
 
   useEffect(() => {
     const cat = searchParams.get('category');
@@ -33,6 +34,10 @@ export default function Shop() {
     if (s) setSort(s);
   }, [searchParams]);
 
+  useEffect(() => {
+    return onProductsChange(() => setAllProducts(getProducts()));
+  }, []);
+
   const pageTitle = selectedCategory !== 'All'
     ? selectedCategory
     : search
@@ -40,7 +45,7 @@ export default function Shop() {
     : 'All Products';
 
   const filteredProducts = useMemo(() => {
-    return featuredProducts
+    return allProducts
       .filter((p) => p.name.toLowerCase().includes(search.toLowerCase()))
       .filter((p) => {
         if (selectedCategory === 'All') return true;
@@ -58,7 +63,7 @@ export default function Shop() {
         if (sort === 'popular') return (b.rating || 0) - (a.rating || 0);
         return 0;
       });
-  }, [search, selectedCategory, priceRange, sort]);
+  }, [search, selectedCategory, priceRange, sort, allProducts]);
 
   const handleCategorySelect = (cat) => {
     setSelectedCategory(cat);
