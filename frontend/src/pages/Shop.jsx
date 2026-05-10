@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+﻿import { useMemo, useState } from 'react';
 import ProductCard from '../components/ProductCard';
 import { featuredProducts } from '../data/products';
 import { categories } from '../data/categories';
@@ -77,7 +77,7 @@ export default function Shop() {
             <div className="mt-4 space-y-3 text-sm text-slate-700">
               <button className={`w-full rounded-3xl px-4 py-3 text-left ${priceRange === 'all' ? 'bg-brand-dark text-white' : 'bg-slate-50'}`} onClick={() => setPriceRange('all')}>All Prices</button>
               <button className={`w-full rounded-3xl px-4 py-3 text-left ${priceRange === 'under50' ? 'bg-brand-dark text-white' : 'bg-slate-50'}`} onClick={() => setPriceRange('under50')}>Under $50</button>
-              <button className={`w-full rounded-3xl px-4 py-3 text-left ${priceRange === '50-100' ? 'bg-brand-dark text-white' : 'bg-slate-50'}`} onClick={() => setPriceRange('50-100')}>$50 - $100</button>
+              <button className={`w-full rounded-3xl px-4 py-3 text-left ${priceRange === '50-100' ? 'bg-brand-dark text-white' : 'bg-slate-50'}`} onClick={() => setPriceRange('50-100')}>₵50 - $100</button>
               <button className={`w-full rounded-3xl px-4 py-3 text-left ${priceRange === 'over100' ? 'bg-brand-dark text-white' : 'bg-slate-50'}`} onClick={() => setPriceRange('over100')}>Above $100</button>
             </div>
           </div>

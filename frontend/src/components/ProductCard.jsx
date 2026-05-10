@@ -1,4 +1,4 @@
-import { Link } from 'react-router-dom';
+﻿import { Link } from 'react-router-dom';
 
 export default function ProductCard({ product }) {
   return (
@@ -11,14 +11,14 @@ export default function ProductCard({ product }) {
           <span className="rounded-full bg-brand-gold px-3 py-1 text-xs font-semibold uppercase tracking-wide text-black">
             {product.category}
           </span>
-          <span className="text-sm font-semibold text-brand-dark">{product.rating}★</span>
+          <span className="text-sm font-semibold text-brand-dark">{product.rating}â˜…</span>
         </div>
         <div>
           <h3 className="text-lg font-semibold text-slate-900">{product.name}</h3>
           <p className="mt-2 text-sm text-slate-500 line-clamp-2">{product.description}</p>
         </div>
         <div className="flex items-center justify-between gap-3">
-          <span className="text-xl font-semibold text-brand-dark">${product.price.toFixed(2)}</span>
+          <span className="text-xl font-semibold text-brand-dark">₵{product.price.toFixed(2)}</span>
           <Link to={`/product/${product.id}`} className="rounded-full bg-brand-dark px-4 py-2 text-sm font-semibold text-white transition hover:bg-slate-800">
             View
           </Link>

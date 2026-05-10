@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+﻿import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { getAuthUser, getToken, isAuthenticated } from '../utils/auth';
 import { fetchUserOrders, fetchWishlist, fetchUserProfile, removeWishlistItem } from '../utils/api';
@@ -117,7 +117,7 @@ export default function UserDashboard() {
                     <div className="flex items-center justify-between gap-4">
                       <div>
                         <p className="font-semibold text-slate-900">{product.name}</p>
-                        <p className="text-sm text-slate-500">${product.price.toFixed(2)}</p>
+                        <p className="text-sm text-slate-500">₵{product.price.toFixed(2)}</p>
                       </div>
                       <button onClick={() => handleRemoveWishlist(product._id)} className="rounded-full bg-rose-100 px-4 py-2 text-sm text-rose-700 transition hover:bg-rose-200">
                         Remove

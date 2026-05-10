@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+﻿import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { fetchOrderDetail } from '../utils/api';
 import { getToken } from '../utils/auth';
@@ -64,7 +64,7 @@ export default function OrderConfirmation() {
                     <p>Total items: {order.orderItems.length}</p>
                     <p>Payment method: {order.paymentMethod}</p>
                     <p>Status: {order.status}</p>
-                    <p>Order total: ${order.totalPrice.toFixed(2)}</p>
+                    <p>Order total: ₵{order.totalPrice.toFixed(2)}</p>
                   </div>
                 </div>
               </div>
@@ -78,7 +78,7 @@ export default function OrderConfirmation() {
                         <p className="font-semibold text-slate-900">{item.name}</p>
                         <p className="text-sm text-slate-600">Qty: {item.quantity}</p>
                       </div>
-                      <span className="ml-auto text-sm font-semibold text-slate-900">${(item.price * item.quantity).toFixed(2)}</span>
+                      <span className="ml-auto text-sm font-semibold text-slate-900">₵{(item.price * item.quantity).toFixed(2)}</span>
                     </div>
                   ))}
                 </div>

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+﻿import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { createOrder, validatePromo } from '../utils/api';
 import { getAuthUser, getToken, isAuthenticated } from '../utils/auth';
@@ -131,7 +131,7 @@ export default function Cart() {
                 <div className="flex-1">
                   <h2 className="text-xl font-semibold text-slate-900">{item.name}</h2>
                   <p className="mt-2 text-sm text-slate-500">{item.category || 'Product'}</p>
-                  <p className="mt-3 text-lg font-semibold text-brand-dark">${item.price.toFixed(2)}</p>
+                  <p className="mt-3 text-lg font-semibold text-brand-dark">₵{item.price.toFixed(2)}</p>
                 </div>
                 <div className="flex flex-col gap-3">
                   <div className="flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50 p-2">
@@ -151,21 +151,21 @@ export default function Cart() {
           <div className="mt-6 space-y-4">
             <div className="flex items-center justify-between text-sm text-slate-600">
               <span>Subtotal</span>
-              <span>${total.toFixed(2)}</span>
+              <span>₵{total.toFixed(2)}</span>
             </div>
             {promoResult && (
               <div className="flex items-center justify-between text-sm text-emerald-600">
                 <span>Promo savings</span>
-                <span>- ${promoResult.discountAmount.toFixed(2)}</span>
+                <span>- ₵{promoResult.discountAmount.toFixed(2)}</span>
               </div>
             )}
             <div className="flex items-center justify-between text-sm text-slate-600">
               <span>Delivery</span>
-              <span>Free over $100</span>
+              <span>Free over ₵100</span>
             </div>
             <div className="border-t border-slate-200 pt-4 text-lg font-semibold text-slate-900">
               <span>Total</span>
-              <span className="float-right">${finalTotal.toFixed(2)}</span>
+              <span className="float-right">₵{finalTotal.toFixed(2)}</span>
             </div>
           </div>
 

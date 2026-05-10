@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+﻿import { useEffect, useState } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { fetchProduct, submitReview, addWishlistItem } from '../utils/api';
 import { getToken, isAuthenticated } from '../utils/auth';
@@ -106,7 +106,7 @@ export default function ProductDetail() {
                 <h1 className="text-4xl font-bold text-slate-900">{product.name}</h1>
                 <p className="mt-2 text-sm uppercase tracking-[0.3em] text-brand-gold">{productCategory}</p>
               </div>
-              <span className="text-3xl font-semibold text-brand-dark">${Number(product.price).toFixed(2)}</span>
+              <span className="text-3xl font-semibold text-brand-dark">₵{Number(product.price).toFixed(2)}</span>
             </div>
             <p className="text-slate-600">{product.description}</p>
             <div className="grid gap-4 sm:grid-cols-2">

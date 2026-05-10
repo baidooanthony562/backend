@@ -8,7 +8,7 @@ import ProductCard from '../components/ProductCard';
 import TestimonialCard from '../components/TestimonialCard';
 
 const promos = [
-  { title: 'Free delivery', detail: 'On orders over $100' },
+  { title: 'Free delivery', detail: 'On orders over ₵100' },
   { title: 'Easy returns', detail: '30-day money-back guarantee' },
   { title: 'Secure payments', detail: 'Stripe and Paystack ready' },
 ];

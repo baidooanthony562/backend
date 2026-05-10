@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+﻿import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { fetchUserOrders } from '../utils/api';
 import { getToken, isAuthenticated } from '../utils/auth';
@@ -61,7 +61,7 @@ export default function OrderHistory() {
                   </div>
                   <div className="flex items-center gap-3">
                     <span className="rounded-full bg-brand-gold px-3 py-1 text-sm font-semibold text-black">{order.status}</span>
-                    <p className="text-sm text-slate-600">${order.totalPrice.toFixed(2)}</p>
+                    <p className="text-sm text-slate-600">₵{order.totalPrice.toFixed(2)}</p>
                   </div>
                 </div>
                 <div className="mt-4 grid gap-3 sm:grid-cols-2 text-sm text-slate-600">

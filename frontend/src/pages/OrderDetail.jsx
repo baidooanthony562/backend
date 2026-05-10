@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+﻿import { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { fetchOrderDetail } from '../utils/api';
 import { getToken } from '../utils/auth';
@@ -63,7 +63,7 @@ export default function OrderDetail() {
           <div className="rounded-3xl border border-slate-200 bg-slate-50 p-6">
             <h2 className="text-lg font-semibold text-slate-900">Payment</h2>
             <p className="mt-4 text-sm text-slate-600">Method: {order.paymentMethod}</p>
-            <p className="mt-1 text-sm text-slate-600">Total: ${order.totalPrice.toFixed(2)}</p>
+            <p className="mt-1 text-sm text-slate-600">Total: ₵{order.totalPrice.toFixed(2)}</p>
             {order.promoCode && <p className="mt-1 text-sm text-slate-600">Promo: {order.promoCode}</p>}
           </div>
           <div className="rounded-3xl border border-slate-200 bg-slate-50 p-6">
@@ -83,7 +83,7 @@ export default function OrderDetail() {
                   <p className="font-semibold text-slate-900">{item.name}</p>
                   <p className="text-sm text-slate-600">Quantity: {item.quantity}</p>
                 </div>
-                <span className="ml-auto text-sm font-semibold text-slate-900">${(item.quantity * item.price).toFixed(2)}</span>
+                <span className="ml-auto text-sm font-semibold text-slate-900">₵{(item.quantity * item.price).toFixed(2)}</span>
               </div>
             ))}
           </div>
