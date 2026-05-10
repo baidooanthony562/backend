@@ -1,8 +1,12 @@
 import { Link } from 'react-router-dom';
+import { showToast } from './Toast';
 
-function StarRating({ rating, count }) {
+const PLACEHOLDER = 'https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?auto=format&fit=crop&w=800&q=80';
+
+function StarRating({ rating }) {
   const full = Math.floor(rating || 0);
   const half = (rating || 0) - full >= 0.5;
+  const count = Math.floor(Math.random() * 900 + 100);
   return (
     <div className="flex items-center gap-1">
       <div className="flex">
@@ -12,33 +16,36 @@ function StarRating({ rating, count }) {
           </svg>
         ))}
       </div>
-      <span className="text-xs text-[#007185] hover:text-[#C7511F] hover:underline cursor-pointer">
-        {count || Math.floor(Math.random() * 900 + 100)}
-      </span>
+      <span className="text-xs text-[#007185]">{count}</span>
     </div>
   );
 }
 
 export default function ProductCard({ product }) {
   const productId = product._id || product.id;
-  const productImage = product.images?.[0] || product.image;
+  const productImage = product.images?.[0] || product.image || PLACEHOLDER;
   const discount = product.discount || 0;
   const originalPrice = discount > 0 ? (product.price / (1 - discount / 100)) : null;
+  const inStock = product.stock === undefined || Number(product.stock) > 0;
 
   const addToCart = (e) => {
     e.preventDefault();
+    if (!inStock) return;
     const cart = JSON.parse(localStorage.getItem('cart') || '[]');
     const existing = cart.find((item) => (item.id || item._id) === productId);
-    if (existing) existing.quantity += 1;
-    else cart.push({ ...product, id: productId, image: productImage, quantity: 1 });
+    if (existing) {
+      existing.quantity += 1;
+    } else {
+      cart.push({ ...product, id: productId, image: productImage, quantity: 1 });
+    }
     localStorage.setItem('cart', JSON.stringify(cart));
     window.dispatchEvent(new Event('storage'));
-    alert('Added to cart!');
+    showToast(`${product.name} added to cart`);
   };
 
   return (
     <div className="group flex flex-col bg-white border border-slate-200 hover:shadow-lg transition rounded-sm overflow-hidden">
-      {/* Image area */}
+      {/* Image */}
       <Link to={`/product/${productId}`} className="relative block bg-slate-50 p-4">
         {discount > 0 && (
           <span className="absolute left-2 top-2 z-10 rounded-sm bg-red-600 px-1.5 py-0.5 text-xs font-bold text-white">
@@ -55,6 +62,7 @@ export default function ProductCard({ product }) {
             src={productImage}
             alt={product.name}
             className="h-full w-full object-contain transition duration-300 group-hover:scale-105"
+            onError={(e) => { e.target.src = PLACEHOLDER; }}
           />
         </div>
       </Link>
@@ -82,13 +90,16 @@ export default function ProductCard({ product }) {
           )}
         </div>
 
-        <p className="text-xs text-[#007185]">✓ In Stock — Ships from Kumasi</p>
+        <p className={`text-xs ${inStock ? 'text-[#007185]' : 'text-red-500'}`}>
+          {inStock ? '✓ In Stock — Ships from Kumasi' : '✗ Out of stock'}
+        </p>
 
         <button
           onClick={addToCart}
-          className="mt-auto w-full rounded-full bg-brand-gold py-2 text-sm font-semibold text-slate-900 transition hover:bg-yellow-400 active:scale-95"
+          disabled={!inStock}
+          className="mt-auto w-full rounded-full bg-brand-gold py-2 text-sm font-semibold text-slate-900 transition hover:bg-yellow-400 active:scale-95 disabled:cursor-not-allowed disabled:opacity-50"
         >
-          Add to Cart
+          {inStock ? 'Add to Cart' : 'Out of Stock'}
         </button>
       </div>
     </div>

@@ -2,7 +2,8 @@
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { fetchProduct, submitReview, addWishlistItem } from '../utils/api';
 import { getToken, isAuthenticated } from '../utils/auth';
-import { featuredProducts } from '../data/products';
+import { getProducts } from '../utils/productStore';
+import { showToast } from '../components/Toast';
 
 export default function ProductDetail() {
   const { id } = useParams();
@@ -21,11 +22,10 @@ export default function ProductDetail() {
   useEffect(() => {
     setLoading(true);
     fetchProduct(id)
-      .then((response) => {
-        setProduct(response.data);
-      })
+      .then((response) => setProduct(response.data))
       .catch(() => {
-        setProduct(featuredProducts.find((item) => item.id === id) || featuredProducts[0]);
+        const local = getProducts();
+        setProduct(local.find((item) => item.id === id || item._id === id) || local[0]);
       })
       .finally(() => setLoading(false));
   }, [id]);
@@ -48,12 +48,13 @@ export default function ProductDetail() {
     if (existing) existing.quantity += quantity;
     else cart.push({ ...product, id: productId, image: productImage, quantity });
     localStorage.setItem('cart', JSON.stringify(cart));
-    alert('Added to cart');
+    window.dispatchEvent(new Event('storage'));
+    showToast(`${product.name} added to cart`);
   };
 
   const buyNow = () => {
     addToCart();
-    window.location.href = '/cart';
+    navigate('/cart');
   };
 
   const handleReviewSubmit = async (event) => {
@@ -87,8 +88,10 @@ export default function ProductDetail() {
     setWishlistMessage('');
     try {
       await addWishlistItem(productId, token);
+      showToast('Added to your wishlist ❤️');
       setWishlistMessage('Added to your wishlist.');
     } catch (err) {
+      showToast(err.response?.data?.message || 'Unable to add to wishlist.', 'error');
       setWishlistMessage(err.response?.data?.message || 'Unable to add to wishlist.');
     } finally {
       setAddingWishlist(false);

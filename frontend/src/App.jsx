@@ -2,6 +2,7 @@ import { Routes, Route } from 'react-router-dom';
 import NavBar from './components/NavBar';
 import Footer from './components/Footer';
 import LiveChat from './components/LiveChat';
+import Toast from './components/Toast';
 import Home from './pages/Home';
 import Shop from './pages/Shop';
 import ProductDetail from './pages/ProductDetail';
@@ -37,6 +38,7 @@ function App() {
       </main>
       <Footer />
       <LiveChat />
+      <Toast />
     </div>
   );
 }
