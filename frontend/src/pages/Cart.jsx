@@ -9,7 +9,7 @@ export default function Cart() {
   const [cartItems, setCartItems] = useState([]);
   const [promoCode, setPromoCode] = useState('');
   const [promoResult, setPromoResult] = useState(null);
-  const [promoError, setPromoError] = useState('');
+  const [promoMessage, setPromoMessage] = useState({ text: '', success: false });
   const [applying, setApplying] = useState(false);
   const [checkoutMessage, setCheckoutMessage] = useState('');
   const [shipping, setShipping] = useState({ address: '', city: '', phone: '' });
@@ -36,25 +36,26 @@ export default function Cart() {
   };
 
   const removeItem = (id) => {
-    const next = cartItems.filter((item) => item.id !== id);
+    const next = cartItems.filter((item) => (item.id || item._id) !== id);
     setCartItems(next);
     localStorage.setItem('cart', JSON.stringify(next));
+    window.dispatchEvent(new Event('storage'));
   };
 
   const applyPromo = async () => {
     if (!promoCode.trim()) {
-      setPromoError('Enter a promo code to apply.');
+      setPromoMessage({ text: 'Enter a promo code to apply.', success: false });
       return;
     }
-    setPromoError('');
+    setPromoMessage({ text: '', success: false });
     setApplying(true);
     try {
       const { data } = await validatePromo(promoCode.trim(), total);
       setPromoResult(data);
-      setPromoError('Promo code applied!');
+      setPromoMessage({ text: `Promo applied! You save ₵${data.discountAmount?.toFixed(2) || '0.00'}.`, success: true });
     } catch (err) {
       setPromoResult(null);
-      setPromoError(err.response?.data?.message || 'Unable to apply promo code.');
+      setPromoMessage({ text: err.response?.data?.message || 'Invalid or expired promo code.', success: false });
     } finally {
       setApplying(false);
     }
@@ -218,7 +219,11 @@ export default function Cart() {
                   Apply
                 </button>
               </div>
-              {promoError && <p className="mt-3 text-sm text-slate-600">{promoError}</p>}
+              {promoMessage.text && (
+                <p className={`mt-3 text-sm font-medium ${promoMessage.success ? 'text-emerald-600' : 'text-red-600'}`}>
+                  {promoMessage.text}
+                </p>
+              )}
             </div>
 
             <button onClick={handleCheckout} disabled={placingOrder} className="w-full rounded-full bg-brand-dark px-6 py-4 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:opacity-60">

@@ -3,10 +3,15 @@ import { showToast } from './Toast';
 
 const PLACEHOLDER = 'https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?auto=format&fit=crop&w=800&q=80';
 
+function starCount(rating) {
+  const seed = Math.round((rating || 4.5) * 37);
+  return 100 + (seed * 17 + 43) % 900;
+}
+
 function StarRating({ rating }) {
   const full = Math.floor(rating || 0);
   const half = (rating || 0) - full >= 0.5;
-  const count = Math.floor(Math.random() * 900 + 100);
+  const count = starCount(rating);
   return (
     <div className="flex items-center gap-1">
       <div className="flex">

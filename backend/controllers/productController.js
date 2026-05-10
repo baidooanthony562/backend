@@ -5,7 +5,10 @@ const Category = require('../models/Category');
 const getProducts = asyncHandler(async (req, res) => {
   const { search, category, minPrice, maxPrice, sort, featured, limit } = req.query;
   let filter = { active: true };
-  if (search) filter.name = { $regex: search, $options: 'i' };
+  if (search) {
+    const escaped = search.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    filter.name = { $regex: escaped, $options: 'i' };
+  }
   if (category) {
     if (category.match(/^[0-9a-fA-F]{24}$/)) {
       filter.category = category;
@@ -41,16 +44,23 @@ const getProductById = asyncHandler(async (req, res) => {
 });
 
 const createProduct = asyncHandler(async (req, res) => {
+  const { name, description, category, images, image, price, stock, discount, featured, bestseller } = req.body;
+  if (!name || !price || !stock) {
+    res.status(400);
+    throw new Error('Name, price and stock are required');
+  }
+  const productImages = images?.length ? images : image ? [image] : [];
   const product = new Product({
-    name: 'New Appliance',
-    description: 'Add a new premium appliance',
-    category: req.body.category,
-    images: req.body.images || ['/assets/product-placeholder.png'],
-    price: req.body.price || 99,
-    stock: req.body.stock || 10,
-    discount: req.body.discount || 0,
-    featured: req.body.featured || false,
-    bestseller: req.body.bestseller || false,
+    name,
+    description: description || '',
+    category: category || undefined,
+    images: productImages,
+    price: Number(price),
+    stock: Number(stock),
+    discount: Number(discount) || 0,
+    featured: Boolean(featured),
+    bestseller: Boolean(bestseller),
+    active: true,
   });
   const created = await product.save();
   res.status(201).json(created);

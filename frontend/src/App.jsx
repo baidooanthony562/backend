@@ -15,6 +15,7 @@ import UserDashboard from './pages/UserDashboard';
 import OrderConfirmation from './pages/OrderConfirmation';
 import OrderDetail from './pages/OrderDetail';
 import OrderHistory from './pages/OrderHistory';
+import NotFound from './pages/NotFound';
 
 function App() {
   return (
@@ -34,6 +35,7 @@ function App() {
           <Route path="/orders/:id" element={<OrderDetail />} />
           <Route path="/admin/login" element={<AdminLogin />} />
           <Route path="/admin" element={<AdminDashboard />} />
+          <Route path="*" element={<NotFound />} />
         </Routes>
       </main>
       <Footer />

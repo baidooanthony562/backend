@@ -39,6 +39,8 @@ export default function OrderConfirmation() {
       <div className="rounded-[2rem] border border-slate-200 bg-white p-10 shadow-sm">
         {error ? (
           <div className="rounded-3xl bg-rose-50 p-8 text-center text-rose-700">{error}</div>
+        ) : !order ? (
+          <div className="rounded-3xl bg-slate-50 p-8 text-center text-slate-500">Loading order details...</div>
         ) : (
           <>
             <h1 className="text-3xl font-bold text-slate-900">Thank you for your order!</h1>

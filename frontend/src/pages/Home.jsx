@@ -1,5 +1,5 @@
-import { useEffect, useRef, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { categories } from '../data/categories';
 import { fetchFeaturedProducts } from '../utils/api';
 import { getProducts, onProductsChange } from '../utils/productStore';
@@ -112,7 +112,6 @@ function Countdown({ h, m, s }) {
 
 // ── Main component ─────────────────────────────────────────────────────────
 export default function Home() {
-  const navigate = useNavigate();
   const [featured, setFeatured] = useState(getProducts);
   const [slideIdx, setSlideIdx] = useCycle(SLIDES.length);
   const [email, setEmail] = useState('');

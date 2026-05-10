@@ -95,8 +95,8 @@ export default function UserDashboard() {
                         </div>
                         <span className="rounded-full bg-brand-gold px-3 py-1 text-sm font-semibold text-black">{order.status}</span>
                       </div>
-                      <p className="mt-3 text-sm text-slate-600">Total: ${order.totalPrice.toFixed(2)}</p>
-                      {order.promoCode && <p className="mt-1 text-sm text-slate-600">Promo: {order.promoCode} (-${order.discountPrice.toFixed(2)})</p>}
+                      <p className="mt-3 text-sm text-slate-600">Total: ₵{order.totalPrice.toFixed(2)}</p>
+                      {order.promoCode && <p className="mt-1 text-sm text-slate-600">Promo: {order.promoCode} (-₵{(order.discountPrice || 0).toFixed(2)})</p>}
                     </Link>
                   ))
                 )}
