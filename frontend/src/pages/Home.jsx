@@ -43,10 +43,12 @@ export default function Home() {
   }, []);
 
   const banner = banners[idx];
-  const blenders = featured.filter((p) => p.category === 'Blenders');
+  const blenders = featured.filter((p) => p.category === 'Blenders & Juicers');
   const riceCookers = featured.filter((p) => p.category === 'Rice Cookers');
   const potsAndPans = featured.filter((p) => p.category === 'Pots & Pans');
-  const dispensers = featured.filter((p) => p.category === 'Tea Dispensers');
+  const dispensers = featured.filter((p) => p.category === 'Water Dispensers');
+  const fans = featured.filter((p) => p.category === 'Fans & Coolers');
+  const foodProcessors = featured.filter((p) => p.category === 'Food Processors');
 
   return (
     <div className="bg-[#EAEDED] min-h-screen space-y-4 pb-10">
@@ -111,8 +113,8 @@ export default function Home() {
         {blenders.length > 0 && (
           <div className="rounded-sm bg-white p-5 shadow-sm">
             <div className="mb-4 flex items-center justify-between">
-              <h2 className="text-xl font-extrabold text-slate-900">🧃 Blenders</h2>
-              <Link to="/shop?category=Blenders" className="text-sm font-semibold text-[#C7511F] hover:underline">See all →</Link>
+              <h2 className="text-xl font-extrabold text-slate-900">🧃 Blenders & Juicers</h2>
+              <Link to="/shop?category=Blenders+%26+Juicers" className="text-sm font-semibold text-[#C7511F] hover:underline">See all →</Link>
             </div>
             <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3">
               {blenders.map((p) => <ProductCard key={p.id} product={p} />)}
@@ -133,7 +135,7 @@ export default function Home() {
           </div>
         )}
 
-        {/* Two column: Pots + Dispensers */}
+        {/* Two column: Pots + Water Dispensers */}
         <div className="grid gap-4 md:grid-cols-2">
           {potsAndPans.length > 0 && (
             <div className="rounded-sm bg-white p-5 shadow-sm">
@@ -149,11 +151,37 @@ export default function Home() {
           {dispensers.length > 0 && (
             <div className="rounded-sm bg-white p-5 shadow-sm">
               <div className="mb-4 flex items-center justify-between">
-                <h2 className="text-lg font-extrabold text-slate-900">🫖 Tea Dispensers</h2>
-                <Link to="/shop?category=Tea+Dispensers" className="text-xs font-semibold text-[#C7511F] hover:underline">See all →</Link>
+                <h2 className="text-lg font-extrabold text-slate-900">💧 Water Dispensers</h2>
+                <Link to="/shop?category=Water+Dispensers" className="text-xs font-semibold text-[#C7511F] hover:underline">See all →</Link>
               </div>
               <div className="grid gap-3 grid-cols-2">
                 {dispensers.slice(0, 2).map((p) => <ProductCard key={p.id} product={p} />)}
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Two column: Fans + Food Processors */}
+        <div className="grid gap-4 md:grid-cols-2">
+          {fans.length > 0 && (
+            <div className="rounded-sm bg-white p-5 shadow-sm">
+              <div className="mb-4 flex items-center justify-between">
+                <h2 className="text-lg font-extrabold text-slate-900">💨 Fans & Coolers</h2>
+                <Link to="/shop?category=Fans+%26+Coolers" className="text-xs font-semibold text-[#C7511F] hover:underline">See all →</Link>
+              </div>
+              <div className="grid gap-3 grid-cols-2">
+                {fans.slice(0, 2).map((p) => <ProductCard key={p.id} product={p} />)}
+              </div>
+            </div>
+          )}
+          {foodProcessors.length > 0 && (
+            <div className="rounded-sm bg-white p-5 shadow-sm">
+              <div className="mb-4 flex items-center justify-between">
+                <h2 className="text-lg font-extrabold text-slate-900">⚙️ Food Processors</h2>
+                <Link to="/shop?category=Food+Processors" className="text-xs font-semibold text-[#C7511F] hover:underline">See all →</Link>
+              </div>
+              <div className="grid gap-3 grid-cols-2">
+                {foodProcessors.slice(0, 2).map((p) => <ProductCard key={p.id} product={p} />)}
               </div>
             </div>
           )}

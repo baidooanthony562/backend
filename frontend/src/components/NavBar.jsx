@@ -77,10 +77,14 @@ export default function NavBar() {
           <form onSubmit={handleSearch} className="flex flex-1 overflow-hidden rounded-lg">
             <select className="shrink-0 border-r border-slate-300 bg-slate-200 px-3 py-2 text-xs text-slate-700 outline-none">
               <option>All</option>
-              <option>Blenders</option>
+              <option>Blenders & Juicers</option>
               <option>Rice Cookers</option>
               <option>Pots & Pans</option>
-              <option>Tea Dispensers</option>
+              <option>Water Dispensers</option>
+              <option>Irons & Steamers</option>
+              <option>Toasters & Grills</option>
+              <option>Fans & Coolers</option>
+              <option>Food Processors</option>
             </select>
             <input
               value={search}
@@ -151,10 +155,14 @@ export default function NavBar() {
             ☰ All
           </Link>
           {[
-            ['Blenders', 'Blenders'],
+            ['Blenders & Juicers', 'Blenders & Juicers'],
             ['Rice Cookers', 'Rice Cookers'],
             ['Pots & Pans', 'Pots & Pans'],
-            ['Tea Dispensers', 'Tea Dispensers'],
+            ['Water Dispensers', 'Water Dispensers'],
+            ['Irons & Steamers', 'Irons & Steamers'],
+            ['Toasters & Grills', 'Toasters & Grills'],
+            ['Fans & Coolers', 'Fans & Coolers'],
+            ['Food Processors', 'Food Processors'],
           ].map(([label, cat]) => (
             <Link key={cat} to={`/shop?category=${encodeURIComponent(cat)}`} className="shrink-0 rounded border-2 border-transparent px-3 py-1 text-sm text-white hover:border-white">
               {label}
@@ -177,7 +185,20 @@ export default function NavBar() {
             <button type="submit" className="bg-brand-gold px-4 text-sm font-bold">Go</button>
           </form>
           <div className="space-y-1">
-            {[['Home', '/'], ['Shop All', '/shop'], ['Blenders', '/shop?category=Blenders'], ['Rice Cookers', '/shop?category=Rice+Cookers'], ['Pots & Pans', '/shop?category=Pots+%26+Pans'], ['Cart', '/cart'], ['My Orders', '/orders']].map(([label, path]) => (
+            {[
+              ['Home', '/'],
+              ['Shop All', '/shop'],
+              ['Blenders & Juicers', '/shop?category=Blenders+%26+Juicers'],
+              ['Rice Cookers', '/shop?category=Rice+Cookers'],
+              ['Pots & Pans', '/shop?category=Pots+%26+Pans'],
+              ['Water Dispensers', '/shop?category=Water+Dispensers'],
+              ['Irons & Steamers', '/shop?category=Irons+%26+Steamers'],
+              ['Toasters & Grills', '/shop?category=Toasters+%26+Grills'],
+              ['Fans & Coolers', '/shop?category=Fans+%26+Coolers'],
+              ['Food Processors', '/shop?category=Food+Processors'],
+              ['Cart', '/cart'],
+              ['My Orders', '/orders'],
+            ].map(([label, path]) => (
               <Link key={label} to={path} onClick={() => setOpen(false)} className="block rounded px-3 py-2 text-sm text-white hover:bg-white/10">{label}</Link>
             ))}
             {authenticated ? (
