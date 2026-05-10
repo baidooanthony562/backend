@@ -2,6 +2,7 @@
   - type: web
     name: cindy-nut-backend
     runtime: node
+    rootDir: backend
     buildCommand: npm install
     startCommand: node server.js
     envVars:
