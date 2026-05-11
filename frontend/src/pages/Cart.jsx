@@ -26,7 +26,14 @@ export default function Cart() {
 
   useEffect(() => {
     const stored = JSON.parse(localStorage.getItem('cart') || '[]');
-    setCartItems(stored.map((item) => ({ ...item, unitPrice: resolveUnitPrice(item) })));
+    const isValidId = (id) => /^[a-f\d]{24}$/i.test(id);
+    const valid = stored.filter((item) => isValidId(item._id || item.id));
+    const removed = stored.length - valid.length;
+    if (removed > 0) {
+      localStorage.setItem('cart', JSON.stringify(valid));
+      setCheckoutMessage(`${removed} item${removed > 1 ? 's were' : ' was'} removed from your cart (no longer available). Please re-add from the shop.`);
+    }
+    setCartItems(valid.map((item) => ({ ...item, unitPrice: resolveUnitPrice(item) })));
   }, []);
 
   const total = useMemo(

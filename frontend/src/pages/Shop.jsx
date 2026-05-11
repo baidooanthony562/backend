@@ -2,7 +2,8 @@ import { useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import ProductCard from '../components/ProductCard';
 import { categories } from '../data/categories';
-import { getProducts, onProductsChange } from '../utils/productStore';
+import { fetchProducts } from '../utils/api';
+import { getProducts, saveProducts } from '../utils/productStore';
 
 const sortOptions = [
   { label: 'Newest First', value: 'newest' },
@@ -27,6 +28,7 @@ export default function Shop() {
   const [priceRange, setPriceRange] = useState('all');
   const [sort, setSort] = useState(searchParams.get('sort') || 'newest');
   const [allProducts, setAllProducts] = useState(getProducts);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const cat = searchParams.get('category');
@@ -38,7 +40,16 @@ export default function Shop() {
   }, [searchParams]);
 
   useEffect(() => {
-    return onProductsChange(() => setAllProducts(getProducts()));
+    fetchProducts()
+      .then(({ data }) => {
+        const products = data.products || data;
+        if (Array.isArray(products) && products.length > 0) {
+          setAllProducts(products);
+          saveProducts(products);
+        }
+      })
+      .catch(() => setAllProducts(getProducts()))
+      .finally(() => setLoading(false));
   }, []);
 
   const pageTitle = selectedCategory !== 'All'
@@ -161,7 +172,20 @@ export default function Shop() {
 
         {/* Product Grid */}
         <div>
-          {filteredProducts.length === 0 ? (
+          {loading ? (
+            <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
+              {Array.from({ length: 6 }).map((_, i) => (
+                <div key={i} className="animate-pulse rounded-sm border border-slate-200 bg-white overflow-hidden">
+                  <div className="aspect-square bg-slate-200" />
+                  <div className="p-3 space-y-2">
+                    <div className="h-4 bg-slate-200 rounded w-3/4" />
+                    <div className="h-3 bg-slate-200 rounded w-1/2" />
+                    <div className="h-8 bg-slate-200 rounded-full mt-3" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : filteredProducts.length === 0 ? (
             <div className="rounded-2xl border border-slate-200 bg-white p-12 text-center">
               <p className="text-4xl">🔍</p>
               <p className="mt-4 text-lg font-semibold text-slate-700">No products found</p>
