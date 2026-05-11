@@ -4,10 +4,10 @@ import { createOrder, validatePromo } from '../utils/api';
 import { getAuthUser, getToken, isAuthenticated } from '../utils/auth';
 
 function resolveUnitPrice(item) {
-  const qty = item.quantity;
+  const qty = item.quantity || 1;
   const hasWholesale = item.wholesalePrice && item.wholesaleMinQty;
-  if (hasWholesale && qty >= item.wholesaleMinQty) return item.wholesalePrice;
-  return item.retailPrice || item.price;
+  if (hasWholesale && qty >= item.wholesaleMinQty) return Number(item.wholesalePrice) || 0;
+  return Number(item.retailPrice || item.price || item.unitPrice || 0);
 }
 
 export default function Cart() {
@@ -25,15 +25,20 @@ export default function Cart() {
   const token = getToken();
 
   useEffect(() => {
-    const stored = JSON.parse(localStorage.getItem('cart') || '[]');
-    const isValidId = (id) => /^[a-f\d]{24}$/i.test(id);
-    const valid = stored.filter((item) => isValidId(item._id || item.id));
-    const removed = stored.length - valid.length;
-    if (removed > 0) {
-      localStorage.setItem('cart', JSON.stringify(valid));
-      setCheckoutMessage(`${removed} item${removed > 1 ? 's were' : ' was'} removed from your cart (no longer available). Please re-add from the shop.`);
+    try {
+      const stored = JSON.parse(localStorage.getItem('cart') || '[]');
+      if (!Array.isArray(stored)) { localStorage.removeItem('cart'); return; }
+      const isValidId = (id) => /^[a-f\d]{24}$/i.test(id);
+      const valid = stored.filter((item) => item && isValidId(item._id || item.id));
+      const removed = stored.length - valid.length;
+      if (removed > 0) {
+        localStorage.setItem('cart', JSON.stringify(valid));
+        setCheckoutMessage(`${removed} item${removed > 1 ? 's were' : ' was'} removed from your cart (outdated). Please re-add from the shop.`);
+      }
+      setCartItems(valid.map((item) => ({ ...item, unitPrice: resolveUnitPrice(item) })));
+    } catch {
+      localStorage.removeItem('cart');
     }
-    setCartItems(valid.map((item) => ({ ...item, unitPrice: resolveUnitPrice(item) })));
   }, []);
 
   const total = useMemo(
@@ -83,7 +88,7 @@ export default function Cart() {
   const whatsappOrder = () => {
     if (cartItems.length === 0) return;
     const lines = cartItems
-      .map((item) => `• ${item.quantity}x ${item.name} @ ₵${item.unitPrice.toFixed(2)}/unit = ₵${(item.unitPrice * item.quantity).toFixed(2)}`)
+      .map((item) => `• ${item.quantity}x ${item.name} @ ₵${(item.unitPrice || 0).toFixed(2)}/unit = ₵${((item.unitPrice || 0) * item.quantity).toFixed(2)}`)
       .join('\n');
     const msg = `Hi Cindy Nat! I'd like to place an order:\n\n${lines}\n\nSubtotal: ₵${total.toFixed(2)}${promoResult ? `\nPromo discount: -₵${promoResult.discountAmount.toFixed(2)}` : ''}\nTotal: ₵${finalTotal.toFixed(2)}\n\nPlease confirm availability and payment details. Thank you!`;
     window.open(`https://wa.me/233257543723?text=${encodeURIComponent(msg)}`, '_blank', 'noopener,noreferrer');
@@ -178,7 +183,7 @@ export default function Cart() {
 
                     <div className="mt-2 flex items-center gap-2">
                       <p className={`text-lg font-semibold ${isWholesale ? 'text-emerald-600' : 'text-brand-dark'}`}>
-                        ₵{item.unitPrice.toFixed(2)}/unit
+                        ₵{(item.unitPrice || 0).toFixed(2)}/unit
                       </p>
                       {isWholesale && (
                         <span className="rounded-full bg-emerald-100 px-2.5 py-0.5 text-xs font-bold text-emerald-700">
@@ -197,7 +202,7 @@ export default function Cart() {
                     )}
 
                     <p className="mt-1 text-sm font-semibold text-slate-700">
-                      Total: ₵{(item.unitPrice * item.quantity).toFixed(2)}
+                      Total: ₵{((item.unitPrice || 0) * item.quantity).toFixed(2)}
                     </p>
                   </div>
 
