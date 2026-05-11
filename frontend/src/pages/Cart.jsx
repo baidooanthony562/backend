@@ -106,8 +106,16 @@ export default function Cart() {
     setPlacingOrder(true);
     setCheckoutMessage('');
 
-    const orderItems = cartItems.map((item) => ({
-      product: item.id || item._id,
+    const isValidId = (id) => /^[a-f\d]{24}$/i.test(id);
+    const validItems = cartItems.filter((item) => isValidId(item._id || item.id));
+    if (validItems.length === 0) {
+      setCheckoutMessage('Your cart items are outdated. Please go to the shop and re-add products.');
+      setPlacingOrder(false);
+      return;
+    }
+
+    const orderItems = validItems.map((item) => ({
+      product: item._id || item.id,
       name: item.name,
       quantity: item.quantity,
       price: item.unitPrice,
