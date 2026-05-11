@@ -1,10 +1,12 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { registerUser } from '../utils/api';
+import { isAuthenticated } from '../utils/auth';
 import { showToast } from '../components/Toast';
 
 export default function Register() {
   const navigate = useNavigate();
+  useEffect(() => { if (isAuthenticated()) navigate('/'); }, [navigate]);
   const [form, setForm] = useState({ name: '', email: '', password: '', confirm: '' });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);

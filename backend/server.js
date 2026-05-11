@@ -53,6 +53,14 @@ const authLimiter = rateLimit({
   legacyHeaders: false,
 });
 
+const supportLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000,
+  max: 10,
+  message: { message: 'Too many support messages. Please try again later.' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
 app.use(express.json({ limit: '10mb' }));
 app.use(morgan('dev'));
 
@@ -66,7 +74,7 @@ app.use('/api/orders', orderRoutes);
 app.use('/api/cart', cartRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/promos', promoRoutes);
-app.use('/api/support', supportRoutes);
+app.use('/api/support', supportLimiter, supportRoutes);
 
 app.use(notFound);
 app.use(errorHandler);

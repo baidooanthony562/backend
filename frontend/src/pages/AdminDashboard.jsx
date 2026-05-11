@@ -3,12 +3,15 @@ import { useNavigate } from 'react-router-dom';
 import {
   fetchDashboard, fetchAllUsers, fetchAllOrders, fetchProducts,
   updateOrderStatus, createProduct, updateProduct, deleteProduct,
+  fetchPromos, createPromoAdmin, deletePromoAdmin,
 } from '../utils/api';
 import { isAdmin, getAdminToken } from '../utils/auth';
 import { getProducts, saveProducts, upsertProduct, removeProduct } from '../utils/productStore';
 import { showToast } from '../components/Toast';
 
-const TABS = ['Overview', 'Products', 'Orders', 'Users'];
+const TABS = ['Overview', 'Products', 'Orders', 'Users', 'Promos'];
+
+const PROMO_EMPTY = { code: '', discountType: 'percent', discountValue: '', minAmount: '', expiresAt: '', description: '' };
 
 const STATUS_COLORS = {
   Pending: 'bg-yellow-100 text-yellow-700',
@@ -58,6 +61,12 @@ export default function AdminDashboard() {
   // Order
   const [updatingOrder, setUpdatingOrder] = useState(null);
 
+  // Promos
+  const [promos, setPromos] = useState([]);
+  const [promoForm, setPromoForm] = useState(PROMO_EMPTY);
+  const [savingPromo, setSavingPromo] = useState(false);
+  const [promoError, setPromoError] = useState('');
+
   useEffect(() => {
     if (!isAdmin()) { navigate('/admin/login'); return; }
     loadAll();
@@ -67,18 +76,19 @@ export default function AdminDashboard() {
     setLoading(true);
     setError('');
     try {
-      const [dashRes, prodRes, orderRes, userRes] = await Promise.all([
+      const [dashRes, prodRes, orderRes, userRes, promoRes] = await Promise.all([
         fetchDashboard(token),
         fetchProducts(),
         fetchAllOrders(token),
         fetchAllUsers(token),
+        fetchPromos(token),
       ]);
       setStats(dashRes.data);
-      // Cache backend products locally
       saveProducts(prodRes.data);
       setProducts(prodRes.data);
       setOrders(orderRes.data);
       setUsers(userRes.data);
+      setPromos(promoRes.data);
     } catch {
       // Backend unavailable — use local product store silently
       setProducts(getProducts());
@@ -186,6 +196,41 @@ export default function AdminDashboard() {
       showToast('Failed to update order status.', 'error');
     } finally {
       setUpdatingOrder(null);
+    }
+  };
+
+  const handlePromoSave = async (e) => {
+    e.preventDefault();
+    if (!promoForm.code || !promoForm.discountValue) {
+      setPromoError('Code and discount value are required.');
+      return;
+    }
+    setSavingPromo(true);
+    setPromoError('');
+    try {
+      const res = await createPromoAdmin({
+        ...promoForm,
+        discountValue: Number(promoForm.discountValue),
+        minAmount: promoForm.minAmount ? Number(promoForm.minAmount) : 0,
+      }, token);
+      setPromos((prev) => [res.data, ...prev]);
+      setPromoForm(PROMO_EMPTY);
+      showToast(`Promo "${res.data.code}" created!`);
+    } catch (err) {
+      setPromoError(err.response?.data?.message || 'Failed to create promo.');
+    } finally {
+      setSavingPromo(false);
+    }
+  };
+
+  const handlePromoDelete = async (id, code) => {
+    if (!window.confirm(`Delete promo "${code}"?`)) return;
+    try {
+      await deletePromoAdmin(id, token);
+      setPromos((prev) => prev.filter((p) => p._id !== id));
+      showToast(`Promo "${code}" deleted.`);
+    } catch {
+      showToast('Failed to delete promo.', 'error');
     }
   };
 
@@ -533,6 +578,136 @@ export default function AdminDashboard() {
                             </td>
                           </tr>
                         ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+
+            {/* ── PROMOS ── */}
+            {tab === 'Promos' && (
+              <div className="space-y-6">
+                {/* Create form */}
+                <div className="rounded-lg bg-white p-6 shadow-sm">
+                  <h2 className="mb-4 text-lg font-bold text-slate-900">Create Promo Code</h2>
+                  {promoError && <p className="mb-4 rounded bg-red-50 p-3 text-sm text-red-700">{promoError}</p>}
+                  <form onSubmit={handlePromoSave} className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                    <div>
+                      <label className="mb-1 block text-xs font-semibold text-slate-600">Code *</label>
+                      <input
+                        value={promoForm.code}
+                        onChange={(e) => setPromoForm({ ...promoForm, code: e.target.value.toUpperCase() })}
+                        placeholder="e.g. SAVE20"
+                        className="w-full rounded-lg border px-3 py-2 text-sm font-mono outline-none focus:border-brand-gold"
+                      />
+                    </div>
+                    <div>
+                      <label className="mb-1 block text-xs font-semibold text-slate-600">Discount Type</label>
+                      <select
+                        value={promoForm.discountType}
+                        onChange={(e) => setPromoForm({ ...promoForm, discountType: e.target.value })}
+                        className="w-full rounded-lg border px-3 py-2 text-sm outline-none focus:border-brand-gold"
+                      >
+                        <option value="percent">Percentage (%)</option>
+                        <option value="fixed">Fixed amount (₵)</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="mb-1 block text-xs font-semibold text-slate-600">
+                        Discount Value * {promoForm.discountType === 'percent' ? '(%)' : '(₵)'}
+                      </label>
+                      <input
+                        type="number" min="0"
+                        value={promoForm.discountValue}
+                        onChange={(e) => setPromoForm({ ...promoForm, discountValue: e.target.value })}
+                        placeholder={promoForm.discountType === 'percent' ? 'e.g. 15' : 'e.g. 20'}
+                        className="w-full rounded-lg border px-3 py-2 text-sm outline-none focus:border-brand-gold"
+                      />
+                    </div>
+                    <div>
+                      <label className="mb-1 block text-xs font-semibold text-slate-600">Min. Order (₵)</label>
+                      <input
+                        type="number" min="0"
+                        value={promoForm.minAmount}
+                        onChange={(e) => setPromoForm({ ...promoForm, minAmount: e.target.value })}
+                        placeholder="e.g. 100 (optional)"
+                        className="w-full rounded-lg border px-3 py-2 text-sm outline-none focus:border-brand-gold"
+                      />
+                    </div>
+                    <div>
+                      <label className="mb-1 block text-xs font-semibold text-slate-600">Expiry Date</label>
+                      <input
+                        type="date"
+                        value={promoForm.expiresAt}
+                        onChange={(e) => setPromoForm({ ...promoForm, expiresAt: e.target.value })}
+                        className="w-full rounded-lg border px-3 py-2 text-sm outline-none focus:border-brand-gold"
+                      />
+                    </div>
+                    <div>
+                      <label className="mb-1 block text-xs font-semibold text-slate-600">Description</label>
+                      <input
+                        value={promoForm.description}
+                        onChange={(e) => setPromoForm({ ...promoForm, description: e.target.value })}
+                        placeholder="Internal note (optional)"
+                        className="w-full rounded-lg border px-3 py-2 text-sm outline-none focus:border-brand-gold"
+                      />
+                    </div>
+                    <div className="flex items-end sm:col-span-2 lg:col-span-3">
+                      <button
+                        type="submit"
+                        disabled={savingPromo}
+                        className="rounded-full bg-brand-gold px-6 py-2.5 text-sm font-bold text-black hover:bg-yellow-400 disabled:opacity-60"
+                      >
+                        {savingPromo ? 'Creating...' : '+ Create Promo'}
+                      </button>
+                    </div>
+                  </form>
+                </div>
+
+                {/* Existing promos */}
+                <div className="overflow-x-auto rounded-lg bg-white shadow-sm">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b bg-slate-50 text-left text-xs font-bold uppercase text-slate-500">
+                        <th className="px-4 py-3">Code</th>
+                        <th className="px-4 py-3">Discount</th>
+                        <th className="px-4 py-3">Min Order</th>
+                        <th className="px-4 py-3">Expires</th>
+                        <th className="px-4 py-3">Status</th>
+                        <th className="px-4 py-3">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y">
+                      {promos.length === 0
+                        ? <tr><td colSpan="6" className="px-4 py-8 text-center text-slate-500">No promo codes yet. Create one above.</td></tr>
+                        : promos.map((p) => {
+                          const expired = p.expiresAt && new Date(p.expiresAt) < new Date();
+                          return (
+                            <tr key={p._id} className="hover:bg-slate-50">
+                              <td className="px-4 py-3 font-mono font-bold text-slate-900">{p.code}</td>
+                              <td className="px-4 py-3 font-semibold text-emerald-700">
+                                {p.discountType === 'percent' ? `${p.discountValue}% off` : `₵${p.discountValue} off`}
+                              </td>
+                              <td className="px-4 py-3 text-slate-600">{p.minAmount ? `₵${p.minAmount}` : '—'}</td>
+                              <td className="px-4 py-3 text-slate-600">
+                                {p.expiresAt ? new Date(p.expiresAt).toLocaleDateString() : 'No expiry'}
+                              </td>
+                              <td className="px-4 py-3">
+                                <span className={`rounded-full px-2 py-1 text-xs font-semibold ${expired ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'}`}>
+                                  {expired ? 'Expired' : 'Active'}
+                                </span>
+                              </td>
+                              <td className="px-4 py-3">
+                                <button
+                                  onClick={() => handlePromoDelete(p._id, p.code)}
+                                  className="rounded-full bg-red-100 px-3 py-1 text-xs font-semibold text-red-700 hover:bg-red-200"
+                                >
+                                  Delete
+                                </button>
+                              </td>
+                            </tr>
+                          );
+                        })}
                     </tbody>
                   </table>
                 </div>

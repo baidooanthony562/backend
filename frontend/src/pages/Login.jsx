@@ -1,12 +1,16 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { loginUser } from '../utils/api';
+import { isAuthenticated } from '../utils/auth';
 import { showToast } from '../components/Toast';
 
 export default function Login() {
   const navigate = useNavigate();
   const location = useLocation();
   const redirectTo = new URLSearchParams(location.search).get('redirect') || '/';
+
+  useEffect(() => { if (isAuthenticated()) navigate('/'); }, [navigate]);
+
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');

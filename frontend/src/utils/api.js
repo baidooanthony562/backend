@@ -38,6 +38,9 @@ export const addWishlistItem = (productId, token) => api.post(`/users/wishlist/$
 export const removeWishlistItem = (productId, token) => api.delete(`/users/wishlist/${productId}`, authConfig(token));
 export const submitReview = (productId, payload, token) => api.post(`/products/${productId}/reviews`, payload, authConfig(token));
 export const validatePromo = (code, amount) => api.post('/promos/validate', { code, amount });
+export const fetchPromos = (token) => api.get('/promos', authConfig(token));
+export const createPromoAdmin = (payload, token) => api.post('/promos', payload, authConfig(token));
+export const deletePromoAdmin = (id, token) => api.delete(`/promos/${id}`, authConfig(token));
 export const createOrder = (payload, token) => api.post('/orders', payload, authConfig(token));
 export const fetchOrderDetail = (id, token) => api.get(`/orders/${id}`, authConfig(token));
 export const sendSupportMessage = (payload) => api.post('/support/message', payload);
