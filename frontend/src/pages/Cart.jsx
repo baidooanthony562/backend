@@ -1,6 +1,6 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { createOrder, validatePromo } from '../utils/api';
+import { createOrder, validatePromo, initiateMoMoPayment, checkMoMoStatus } from '../utils/api';
 import { getAuthUser, getToken, isAuthenticated } from '../utils/auth';
 
 function resolveUnitPrice(item) {
@@ -22,7 +22,12 @@ export default function Cart() {
   const [shipping, setShipping] = useState({ address: '', city: '', phone: '' });
   const [paymentMethod, setPaymentMethod] = useState('card');
   const [placingOrder, setPlacingOrder] = useState(false);
+  const [momoPhone, setMomoPhone] = useState('');
+  const [momoStatus, setMomoStatus] = useState(''); // '' | 'pending' | 'success' | 'failed'
+  const pollRef = useRef(null);
   const token = getToken();
+
+  useEffect(() => () => clearInterval(pollRef.current), []);
 
   useEffect(() => {
     try {
@@ -98,57 +103,94 @@ export default function Cart() {
     window.open(`https://wa.me/233257543723?text=${encodeURIComponent(msg)}`, '_blank', 'noopener,noreferrer');
   };
 
-  const handleCheckout = async () => {
-    if (!isAuthenticated()) {
-      navigate('/login?redirect=/cart');
-      return;
-    }
-    if (cartItems.length === 0) {
-      setCheckoutMessage('Add at least one item to complete checkout.');
-      return;
-    }
-    if (!shipping.address || !shipping.city || !shipping.phone) {
-      setCheckoutMessage('Please fill in your shipping address before checkout.');
-      return;
-    }
-
-    setPlacingOrder(true);
-    setCheckoutMessage('');
-
+  const buildOrderPayload = (method, momoRef = '') => {
     const isValidId = (id) => /^[a-f\d]{24}$/i.test(id);
     const validItems = cartItems.filter((item) => isValidId(item._id || item.id));
-    if (validItems.length === 0) {
-      setCheckoutMessage('Your cart items are outdated. Please go to the shop and re-add products.');
-      setPlacingOrder(false);
-      return;
-    }
-
-    const orderItems = validItems.map((item) => ({
-      product: item._id || item.id,
-      name: item.name,
-      quantity: item.quantity,
-      price: item.unitPrice,
-      image: item.image,
-    }));
-
-    const payload = {
-      orderItems,
+    return {
+      orderItems: validItems.map((item) => ({
+        product: item._id || item.id,
+        name: item.name,
+        quantity: item.quantity,
+        price: item.unitPrice || 0,
+        image: item.image,
+      })),
       shippingAddress: shipping,
-      paymentMethod,
+      paymentMethod: method,
       subtotalPrice: total,
       discountPrice: promoResult ? promoResult.discountAmount : 0,
       promoCode: promoResult ? promoResult.code : '',
       totalPrice: finalTotal,
+      momoReference: momoRef,
     };
+  };
 
+  const placeOrder = async (method, momoRef = '') => {
+    const { data } = await createOrder(buildOrderPayload(method, momoRef), token);
+    localStorage.removeItem('cart');
+    setCartItems([]);
+    setPromoResult(null);
+    setPromoCode('');
+    window.dispatchEvent(new Event('storage'));
+    navigate(`/order-confirmation/${data._id}`);
+  };
+
+  const handleCheckout = async () => {
+    if (!isAuthenticated()) { navigate('/login?redirect=/cart'); return; }
+    if (cartItems.length === 0) { setCheckoutMessage('Add at least one item to complete checkout.'); return; }
+    if (!shipping.address || !shipping.city || !shipping.phone) { setCheckoutMessage('Please fill in your shipping address before checkout.'); return; }
+
+    const isValidId = (id) => /^[a-f\d]{24}$/i.test(id);
+    if (!cartItems.some((item) => isValidId(item._id || item.id))) {
+      setCheckoutMessage('Your cart items are outdated. Please re-add products from the shop.');
+      return;
+    }
+
+    // MTN MoMo flow
+    if (paymentMethod === 'momo') {
+      if (!momoPhone.trim()) { setCheckoutMessage('Enter your MTN MoMo phone number.'); return; }
+      setPlacingOrder(true);
+      setCheckoutMessage('');
+      setMomoStatus('pending');
+      try {
+        const { data } = await initiateMoMoPayment({ phone: momoPhone, amount: finalTotal, externalId: Date.now().toString() });
+        const { referenceId } = data;
+        let attempts = 0;
+        pollRef.current = setInterval(async () => {
+          attempts++;
+          if (attempts > 20) {
+            clearInterval(pollRef.current);
+            setMomoStatus('failed');
+            setCheckoutMessage('Payment timed out. Please try again.');
+            setPlacingOrder(false);
+            return;
+          }
+          try {
+            const { data: s } = await checkMoMoStatus(referenceId);
+            if (s.status === 'SUCCESSFUL') {
+              clearInterval(pollRef.current);
+              setMomoStatus('success');
+              await placeOrder('momo', referenceId);
+            } else if (s.status === 'FAILED') {
+              clearInterval(pollRef.current);
+              setMomoStatus('failed');
+              setCheckoutMessage('Payment was declined. Please try again.');
+              setPlacingOrder(false);
+            }
+          } catch { /* keep polling */ }
+        }, 3000);
+      } catch (err) {
+        setMomoStatus('failed');
+        setCheckoutMessage(err.response?.data?.message || 'Could not initiate MoMo payment.');
+        setPlacingOrder(false);
+      }
+      return;
+    }
+
+    // Standard checkout (card / bank transfer / cash on delivery)
+    setPlacingOrder(true);
+    setCheckoutMessage('');
     try {
-      const { data } = await createOrder(payload, token);
-      localStorage.removeItem('cart');
-      setCartItems([]);
-      setPromoResult(null);
-      setPromoCode('');
-      window.dispatchEvent(new Event('storage'));
-      navigate(`/order-confirmation/${data._id}`);
+      await placeOrder(paymentMethod);
     } catch (err) {
       setCheckoutMessage(err.response?.data?.message || 'Unable to place order.');
     } finally {
@@ -274,13 +316,44 @@ export default function Cart() {
               <label className="block text-sm font-medium text-slate-700">Payment method</label>
               <select
                 value={paymentMethod}
-                onChange={(e) => setPaymentMethod(e.target.value)}
+                onChange={(e) => { setPaymentMethod(e.target.value); setMomoStatus(''); setCheckoutMessage(''); }}
                 className="mt-3 w-full rounded-3xl border border-slate-200 bg-white px-4 py-3 outline-none focus:border-brand-gold"
               >
-                <option value="card">Credit / Debit card</option>
-                <option value="bank-transfer">Bank transfer</option>
-                <option value="cash-on-delivery">Cash on delivery</option>
+                <option value="momo">📱 MTN Mobile Money</option>
+                <option value="card">Credit / Debit Card</option>
+                <option value="bank-transfer">Bank Transfer</option>
+                <option value="cash-on-delivery">Cash on Delivery</option>
               </select>
+
+              {paymentMethod === 'momo' && (
+                <div className="mt-3 space-y-2">
+                  <input
+                    value={momoPhone}
+                    onChange={(e) => setMomoPhone(e.target.value)}
+                    placeholder="MoMo number e.g. 0241234567"
+                    className="w-full rounded-3xl border border-slate-200 bg-white px-4 py-3 outline-none focus:border-brand-gold"
+                  />
+                  {momoStatus === 'pending' && (
+                    <div className="flex items-center gap-3 rounded-2xl bg-yellow-50 px-4 py-3 text-sm text-yellow-800">
+                      <svg className="h-5 w-5 animate-spin text-yellow-600" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/>
+                      </svg>
+                      <span>Waiting for MoMo approval on your phone...</span>
+                    </div>
+                  )}
+                  {momoStatus === 'success' && (
+                    <div className="rounded-2xl bg-green-50 px-4 py-3 text-sm font-semibold text-green-700">
+                      ✓ Payment confirmed! Creating your order...
+                    </div>
+                  )}
+                  {momoStatus === 'failed' && (
+                    <div className="rounded-2xl bg-red-50 px-4 py-3 text-sm text-red-700">
+                      Payment failed or was declined.
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
 
             <div className="rounded-3xl border border-slate-200 bg-slate-50 p-4">
@@ -303,8 +376,8 @@ export default function Cart() {
               )}
             </div>
 
-            <button onClick={handleCheckout} disabled={placingOrder} className="w-full rounded-full bg-brand-dark px-6 py-4 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:opacity-60">
-              {placingOrder ? 'Placing order...' : 'Proceed to checkout'}
+            <button onClick={handleCheckout} disabled={placingOrder || momoStatus === 'pending'} className="w-full rounded-full bg-brand-dark px-6 py-4 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:opacity-60">
+              {momoStatus === 'pending' ? 'Awaiting MoMo approval...' : placingOrder ? 'Placing order...' : paymentMethod === 'momo' ? '📱 Pay with MoMo' : 'Proceed to checkout'}
             </button>
             <button
               onClick={whatsappOrder}

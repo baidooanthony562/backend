@@ -13,6 +13,7 @@ const adminRoutes = require('./routes/admin');
 const userRoutes = require('./routes/users');
 const promoRoutes = require('./routes/promos');
 const supportRoutes = require('./routes/support');
+const paymentRoutes = require('./routes/payments');
 const { seedData } = require('./utils/seeder');
 const { notFound, errorHandler } = require('./middlewares/errorMiddleware');
 
@@ -76,6 +77,7 @@ app.use('/api/cart', cartRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/promos', promoRoutes);
 app.use('/api/support', supportLimiter, supportRoutes);
+app.use('/api/payments', paymentRoutes);
 
 app.use(notFound);
 app.use(errorHandler);
