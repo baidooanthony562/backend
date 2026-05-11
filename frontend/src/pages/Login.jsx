@@ -87,7 +87,7 @@ export default function Login() {
 
         <div className="mt-5 flex items-center justify-between text-sm">
           <Link to="/register" className="font-semibold text-[#C7511F] hover:underline">Create account</Link>
-          <Link to="/register" className="text-slate-500 hover:underline">Forgot password?</Link>
+          <Link to="/forgot-password" className="text-slate-500 hover:underline">Forgot password?</Link>
         </div>
       </div>
     </section>

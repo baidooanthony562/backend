@@ -1,5 +1,7 @@
+const crypto = require('crypto');
 const asyncHandler = require('express-async-handler');
 const bcrypt = require('bcryptjs');
+const nodemailer = require('nodemailer');
 const User = require('../models/User');
 const generateToken = require('../utils/generateToken');
 
@@ -65,12 +67,81 @@ const getUserProfile = asyncHandler(async (req, res) => {
 
 const forgotPassword = asyncHandler(async (req, res) => {
   const { email } = req.body;
+
+  // Always return the same message — never reveal whether email exists
+  const genericResponse = { message: 'If that email is registered, a reset link has been sent.' };
+
   const user = await User.findOne({ email });
-  if (!user) {
-    res.status(404);
-    throw new Error('User not found');
-  }
-  res.json({ message: 'Password reset link sent to your email (demo only)' });
+  if (!user) return res.json(genericResponse);
+
+  const rawToken = crypto.randomBytes(32).toString('hex');
+  const hashedToken = crypto.createHash('sha256').update(rawToken).digest('hex');
+
+  user.resetToken = hashedToken;
+  user.resetTokenExpiry = Date.now() + 60 * 60 * 1000; // 1 hour
+  await user.save();
+
+  const resetUrl = `${process.env.FRONTEND_URL || 'http://localhost:5173'}/reset-password/${rawToken}`;
+
+  const transporter = nodemailer.createTransport({
+    service: 'gmail',
+    auth: {
+      user: process.env.EMAIL_USER,
+      pass: process.env.EMAIL_PASS,
+    },
+  });
+
+  await transporter.sendMail({
+    from: `"Cindy Nat Enterprise" <${process.env.EMAIL_USER}>`,
+    to: user.email,
+    subject: 'Reset your Cindy Nat password',
+    html: `
+      <div style="font-family:Arial,sans-serif;max-width:520px;margin:0 auto;padding:32px 24px;background:#f8f8f8;border-radius:12px">
+        <div style="text-align:center;margin-bottom:24px">
+          <div style="display:inline-flex;align-items:center;justify-content:center;width:56px;height:56px;background:#D4AF37;border-radius:12px;font-size:22px;font-weight:900;color:#000">CN</div>
+          <h1 style="margin:12px 0 0;font-size:22px;color:#131921">Cindy Nat Enterprise</h1>
+        </div>
+        <div style="background:#fff;border-radius:10px;padding:28px;border:1px solid #e2e8f0">
+          <h2 style="margin:0 0 12px;font-size:18px;color:#0f172a">Password reset request</h2>
+          <p style="margin:0 0 20px;font-size:14px;color:#475569">Hi ${user.name},</p>
+          <p style="margin:0 0 20px;font-size:14px;color:#475569">We received a request to reset your password. Click the button below to choose a new one. This link expires in <strong>1 hour</strong>.</p>
+          <div style="text-align:center;margin:28px 0">
+            <a href="${resetUrl}" style="display:inline-block;background:#D4AF37;color:#000;font-weight:700;font-size:15px;padding:14px 32px;border-radius:100px;text-decoration:none">Reset my password</a>
+          </div>
+          <p style="margin:0;font-size:12px;color:#94a3b8">If you didn't request this, you can safely ignore this email — your password will not change.</p>
+        </div>
+        <p style="text-align:center;margin-top:20px;font-size:12px;color:#94a3b8">Cindy Nat Enterprise · Kumasi, Ghana</p>
+      </div>
+    `,
+  });
+
+  res.json(genericResponse);
 });
 
-module.exports = { registerUser, authUser, getUserProfile, forgotPassword };
+const resetPassword = asyncHandler(async (req, res) => {
+  const { token, password } = req.body;
+  if (!token || !password || password.length < 6) {
+    res.status(400);
+    throw new Error('Token and a password of at least 6 characters are required');
+  }
+
+  const hashedToken = crypto.createHash('sha256').update(token).digest('hex');
+  const user = await User.findOne({
+    resetToken: hashedToken,
+    resetTokenExpiry: { $gt: Date.now() },
+  });
+
+  if (!user) {
+    res.status(400);
+    throw new Error('Reset link is invalid or has expired');
+  }
+
+  user.password = await bcrypt.hash(password, 10);
+  user.resetToken = undefined;
+  user.resetTokenExpiry = undefined;
+  await user.save();
+
+  res.json({ message: 'Password reset successfully. You can now sign in.' });
+});
+
+module.exports = { registerUser, authUser, getUserProfile, forgotPassword, resetPassword };
