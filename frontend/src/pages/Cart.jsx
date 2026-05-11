@@ -35,7 +35,11 @@ export default function Cart() {
         localStorage.setItem('cart', JSON.stringify(valid));
         setCheckoutMessage(`${removed} item${removed > 1 ? 's were' : ' was'} removed from your cart (outdated). Please re-add from the shop.`);
       }
-      setCartItems(valid.map((item) => ({ ...item, unitPrice: resolveUnitPrice(item) })));
+      setCartItems(valid.map((item) => ({
+        ...item,
+        unitPrice: resolveUnitPrice(item),
+        category: typeof item.category === 'string' ? item.category : item.category?.name || '',
+      })));
     } catch {
       localStorage.removeItem('cart');
     }
