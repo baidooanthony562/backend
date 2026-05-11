@@ -65,6 +65,7 @@ export default function ProductCard({ product }) {
         wholesalePrice: product.wholesalePrice,
         wholesaleMinQty: product.wholesaleMinQty,
         isWholesale: isWholesaleQty,
+        category: typeof product.category === 'string' ? product.category : product.category?.name || '',
       });
     }
     localStorage.setItem('cart', JSON.stringify(cart));

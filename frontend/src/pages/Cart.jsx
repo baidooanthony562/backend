@@ -179,7 +179,7 @@ export default function Cart() {
                   <img src={item.image} alt={item.name} className="h-32 w-32 rounded-3xl object-cover" onError={(e) => { e.target.src = 'https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?auto=format&fit=crop&w=800&q=80'; }} />
                   <div className="flex-1">
                     <h2 className="text-xl font-semibold text-slate-900">{item.name}</h2>
-                    <p className="mt-1 text-sm text-slate-500">{item.category || 'Product'}</p>
+                    <p className="mt-1 text-sm text-slate-500">{typeof item.category === 'string' ? item.category : item.category?.name || 'Product'}</p>
 
                     <div className="mt-2 flex items-center gap-2">
                       <p className={`text-lg font-semibold ${isWholesale ? 'text-emerald-600' : 'text-brand-dark'}`}>
