@@ -25,6 +25,7 @@ const allowedOrigins = [
   'http://localhost:5173',
   'http://localhost:3000',
   'https://new-web-cindy.vercel.app',
+  'https://backend-alpha-seven-54.vercel.app',
   process.env.FRONTEND_URL,
 ].filter(Boolean);
 
