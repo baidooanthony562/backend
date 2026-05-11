@@ -43,6 +43,13 @@ const getProductById = asyncHandler(async (req, res) => {
   }
 });
 
+async function resolveCategory(input) {
+  if (!input) return undefined;
+  if (/^[a-f\d]{24}$/i.test(input)) return input;
+  const cat = await Category.findOne({ name: input }) || await Category.findOne({ slug: input });
+  return cat?._id;
+}
+
 const createProduct = asyncHandler(async (req, res) => {
   const { name, description, category, images, image, price, stock, discount, wholesalePrice, wholesaleMinQty, featured, bestseller } = req.body;
   if (!name || !price || !stock) {
@@ -50,10 +57,11 @@ const createProduct = asyncHandler(async (req, res) => {
     throw new Error('Name, price and stock are required');
   }
   const productImages = images?.length ? images : image ? [image] : [];
+  const categoryId = await resolveCategory(category);
   const product = new Product({
     name,
     description: description || '',
-    category: category || undefined,
+    category: categoryId,
     images: productImages,
     price: Number(price),
     stock: Number(stock),
@@ -76,7 +84,7 @@ const updateProduct = asyncHandler(async (req, res) => {
     product.price = req.body.price || product.price;
     product.stock = req.body.stock || product.stock;
     product.discount = req.body.discount || product.discount;
-    product.category = req.body.category || product.category;
+    product.category = req.body.category ? (await resolveCategory(req.body.category) || product.category) : product.category;
     product.images = req.body.images || product.images;
     product.wholesalePrice = req.body.wholesalePrice !== undefined ? Number(req.body.wholesalePrice) : product.wholesalePrice;
     product.wholesaleMinQty = req.body.wholesaleMinQty !== undefined ? Number(req.body.wholesaleMinQty) : product.wholesaleMinQty;
