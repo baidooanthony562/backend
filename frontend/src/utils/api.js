@@ -5,6 +5,20 @@ const api = axios.create({
   headers: { 'Content-Type': 'application/json' },
 });
 
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response?.status === 401) {
+      ['cindyNutToken', 'cindyNutUser', 'cindyNutAdminToken'].forEach((k) => localStorage.removeItem(k));
+      window.dispatchEvent(new Event('storage'));
+      if (!window.location.pathname.includes('/login')) {
+        window.location.href = '/login';
+      }
+    }
+    return Promise.reject(error);
+  }
+);
+
 const authConfig = (token) => ({ headers: { Authorization: `Bearer ${token}` } });
 
 export const fetchProducts = (params) => api.get('/products', { params });

@@ -80,7 +80,7 @@ export default function NavBar() {
           {/* Search bar */}
           <form onSubmit={handleSearch} className="flex flex-1 overflow-hidden rounded-lg">
             <select value={searchCat} onChange={(e) => setSearchCat(e.target.value)} className="shrink-0 border-r border-slate-300 bg-slate-200 px-3 py-2 text-xs text-slate-700 outline-none">
-              <option>All</option>
+              <option value="">All</option>
               <option>Blenders & Juicers</option>
               <option>Rice Cookers</option>
               <option>Pots & Pans</option>
