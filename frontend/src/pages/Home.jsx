@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { categories } from '../data/categories';
 import { fetchFeaturedProducts } from '../utils/api';
-import { getProducts, onProductsChange } from '../utils/productStore';
+import { getProducts } from '../utils/productStore';
 import ProductCard from '../components/ProductCard';
 
 // ── Hooks ──────────────────────────────────────────────────────────────────
@@ -119,21 +119,24 @@ export default function Home() {
   const { h, m, s } = useCountdown(6);
 
   useEffect(() => {
-    fetchFeaturedProducts().then((r) => setFeatured(r.data)).catch(() => setFeatured(getProducts()));
-    return onProductsChange(() => setFeatured(getProducts()));
+    fetchFeaturedProducts()
+      .then((r) => setFeatured(Array.isArray(r.data) ? r.data : r.data?.products || []))
+      .catch(() => setFeatured(getProducts()));
   }, []);
 
   const slide = SLIDES[slideIdx];
 
+  const getCat = (p) => (typeof p.category === 'string' ? p.category : p.category?.name || '');
+
   // Derived product lists
   const deals        = featured.filter((p) => p.discount > 0).slice(0, 4);
   const bestSellers  = featured.filter((p) => p.bestseller).slice(0, 4);
-  const blenders     = featured.filter((p) => p.category === 'Blenders & Juicers');
-  const riceCookers  = featured.filter((p) => p.category === 'Rice Cookers');
-  const potsAndPans  = featured.filter((p) => p.category === 'Pots & Pans');
-  const dispensers   = featured.filter((p) => p.category === 'Water Dispensers');
-  const fans         = featured.filter((p) => p.category === 'Fans & Coolers');
-  const processors   = featured.filter((p) => p.category === 'Food Processors');
+  const blenders     = featured.filter((p) => getCat(p) === 'Blenders & Juicers');
+  const riceCookers  = featured.filter((p) => getCat(p) === 'Rice Cookers');
+  const potsAndPans  = featured.filter((p) => getCat(p) === 'Pots & Pans');
+  const dispensers   = featured.filter((p) => getCat(p) === 'Water Dispensers');
+  const fans         = featured.filter((p) => getCat(p) === 'Fans & Coolers');
+  const processors   = featured.filter((p) => getCat(p) === 'Food Processors');
 
   const handleSubscribe = (e) => {
     e.preventDefault();
