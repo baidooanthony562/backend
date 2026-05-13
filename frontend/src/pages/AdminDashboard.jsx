@@ -268,7 +268,7 @@ export default function AdminDashboard() {
         {/* Tabs */}
         <div className="mb-6 flex overflow-x-auto rounded-lg bg-white shadow-sm">
           {TABS.map((t) => (
-            <button key={t} onClick={() => setTab(t)}
+            <button key={t} onClick={() => { setTab(t); if (t === 'Orders') loadAll(); }}
               className={`flex-1 whitespace-nowrap px-6 py-3 text-sm font-semibold transition ${tab === t ? 'border-b-2 border-brand-gold bg-white text-[#131921]' : 'text-slate-500 hover:text-slate-800'}`}>
               {t}
             </button>
