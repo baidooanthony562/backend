@@ -6,7 +6,7 @@ import {
   fetchPromos, createPromoAdmin, deletePromoAdmin,
 } from '../utils/api';
 import { isAdmin, getAdminToken } from '../utils/auth';
-import { getProducts, saveProducts, upsertProduct, removeProduct } from '../utils/productStore';
+import { getProducts, saveProducts } from '../utils/productStore';
 import { showToast } from '../components/Toast';
 
 const TABS = ['Overview', 'Products', 'Orders', 'Users', 'Promos'];
@@ -162,15 +162,15 @@ export default function AdminDashboard() {
         // Backend unavailable — save locally only
       }
 
-      const product = saved || {
-        ...payload,
-        id: editing || `p${Date.now()}`,
-        _id: editing || `p${Date.now()}`,
-      };
-
-      const updated = upsertProduct(product);
-      setProducts(updated);
+      if (!saved) {
+        setFormError('Failed to save product. Please try again.');
+        return;
+      }
+      const { data: freshProducts } = await fetchProducts();
+      setProducts(Array.isArray(freshProducts) ? freshProducts : freshProducts.products || []);
+      saveProducts(Array.isArray(freshProducts) ? freshProducts : freshProducts.products || []);
       setShowForm(false);
+      showToast(editing ? 'Product updated.' : 'Product created.');
     } catch {
       setFormError('Failed to save product. Please try again.');
     } finally {
@@ -182,9 +182,14 @@ export default function AdminDashboard() {
     if (!window.confirm('Delete this product? This cannot be undone.')) return;
     try {
       await deleteProduct(id, token);
-    } catch {}
-    const updated = removeProduct(id);
-    setProducts(updated);
+      const { data: freshProducts } = await fetchProducts();
+      const list = Array.isArray(freshProducts) ? freshProducts : freshProducts.products || [];
+      setProducts(list);
+      saveProducts(list);
+      showToast('Product deleted.');
+    } catch {
+      showToast('Failed to delete product.', 'error');
+    }
   };
 
   const handleOrderStatus = async (orderId, status) => {
