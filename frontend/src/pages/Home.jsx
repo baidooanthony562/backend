@@ -112,7 +112,7 @@ function Countdown({ h, m, s }) {
 
 // ── Main component ─────────────────────────────────────────────────────────
 export default function Home() {
-  const [featured, setFeatured] = useState(getProducts);
+  const [featured, setFeatured] = useState([]);
   const [slideIdx, setSlideIdx] = useCycle(SLIDES.length);
   const [email, setEmail] = useState('');
   const [subscribed, setSubscribed] = useState(false);

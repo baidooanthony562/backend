@@ -27,7 +27,7 @@ export default function Shop() {
   const [selectedCategory, setSelectedCategory] = useState(searchParams.get('category') || 'All');
   const [priceRange, setPriceRange] = useState('all');
   const [sort, setSort] = useState(searchParams.get('sort') || 'newest');
-  const [allProducts, setAllProducts] = useState(getProducts);
+  const [allProducts, setAllProducts] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -42,11 +42,9 @@ export default function Shop() {
   useEffect(() => {
     fetchProducts()
       .then(({ data }) => {
-        const products = data.products || data;
-        if (Array.isArray(products) && products.length > 0) {
-          setAllProducts(products);
-          saveProducts(products);
-        }
+        const products = Array.isArray(data) ? data : data.products || [];
+        setAllProducts(products);
+        saveProducts(products);
       })
       .catch(() => setAllProducts(getProducts()))
       .finally(() => setLoading(false));
