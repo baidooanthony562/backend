@@ -1,7 +1,6 @@
 const crypto = require('crypto');
 const asyncHandler = require('express-async-handler');
 const bcrypt = require('bcryptjs');
-const axios = require('axios');
 const User = require('../models/User');
 const generateToken = require('../utils/generateToken');
 
@@ -83,31 +82,8 @@ const forgotPassword = asyncHandler(async (req, res) => {
 
   const resetUrl = `${process.env.FRONTEND_URL || 'https://backend-alpha-seven-54.vercel.app'}/reset-password/${rawToken}`;
 
-  await axios.post('https://api.brevo.com/v3/smtp/email', {
-    sender: { name: 'Cindy Nat Enterprise', email: 'noreply@cindynat.com' },
-    to: [{ email: user.email, name: user.name }],
-    subject: 'Reset your Cindy Nat password',
-    htmlContent: `
-      <div style="font-family:Arial,sans-serif;max-width:520px;margin:0 auto;padding:32px 24px;background:#f8f8f8;border-radius:12px">
-        <div style="text-align:center;margin-bottom:24px">
-          <div style="display:inline-flex;align-items:center;justify-content:center;width:56px;height:56px;background:#D4AF37;border-radius:12px;font-size:22px;font-weight:900;color:#000">CN</div>
-          <h1 style="margin:12px 0 0;font-size:22px;color:#131921">Cindy Nat Enterprise</h1>
-        </div>
-        <div style="background:#fff;border-radius:10px;padding:28px;border:1px solid #e2e8f0">
-          <h2 style="margin:0 0 12px;font-size:18px;color:#0f172a">Password reset request</h2>
-          <p style="margin:0 0 20px;font-size:14px;color:#475569">Hi ${user.name},</p>
-          <p style="margin:0 0 20px;font-size:14px;color:#475569">We received a request to reset your password. Click the button below to choose a new one. This link expires in <strong>1 hour</strong>.</p>
-          <div style="text-align:center;margin:28px 0">
-            <a href="${resetUrl}" style="display:inline-block;background:#D4AF37;color:#000;font-weight:700;font-size:15px;padding:14px 32px;border-radius:100px;text-decoration:none">Reset my password</a>
-          </div>
-          <p style="margin:0;font-size:12px;color:#94a3b8">If you didn't request this, you can safely ignore this email — your password will not change.</p>
-        </div>
-        <p style="text-align:center;margin-top:20px;font-size:12px;color:#94a3b8">Cindy Nat Enterprise · Kumasi, Ghana</p>
-      </div>
-    `,
-  }, {
-    headers: { 'api-key': process.env.BREVO_API_KEY, 'Content-Type': 'application/json' },
-  });
+  // Email sending skipped — log reset link for manual testing
+  console.log(`[Password Reset] ${user.email} → ${resetUrl}`);
 
   res.json(genericResponse);
 });
