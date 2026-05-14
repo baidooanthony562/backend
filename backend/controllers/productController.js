@@ -26,7 +26,8 @@ const getProducts = asyncHandler(async (req, res) => {
   if (sort === 'cheapest') query = query.sort({ price: 1 });
   else if (sort === 'newest') query = query.sort({ createdAt: -1 });
   else if (sort === 'popular') query = query.sort({ rating: -1 });
-  if (limit) query = query.limit(Number(limit));
+  const safeLimit = Math.min(Number(limit) || 200, 200);
+  query = query.limit(safeLimit);
 
   const products = await query;
   res.json(products);
@@ -50,22 +51,53 @@ async function resolveCategory(input) {
   return cat?._id;
 }
 
+function validateProductFields(fields, res) {
+  const { price, stock, discount, wholesalePrice, wholesaleMinQty } = fields;
+  const priceNum = Number(price);
+  const stockNum = Number(stock);
+  const discountNum = Number(discount) || 0;
+
+  if (isNaN(priceNum) || priceNum <= 0) {
+    res.status(400);
+    throw new Error('Price must be greater than 0');
+  }
+  if (isNaN(stockNum) || stockNum < 0 || !Number.isInteger(stockNum)) {
+    res.status(400);
+    throw new Error('Stock must be a non-negative integer');
+  }
+  if (discountNum < 0 || discountNum > 100) {
+    res.status(400);
+    throw new Error('Discount must be between 0 and 100');
+  }
+  if (wholesalePrice !== undefined && Number(wholesalePrice) < 0) {
+    res.status(400);
+    throw new Error('Wholesale price cannot be negative');
+  }
+  if (wholesaleMinQty !== undefined && Number(wholesaleMinQty) < 0) {
+    res.status(400);
+    throw new Error('Wholesale minimum quantity cannot be negative');
+  }
+  return { priceNum, stockNum, discountNum };
+}
+
 const createProduct = asyncHandler(async (req, res) => {
   const { name, description, category, images, image, price, stock, discount, wholesalePrice, wholesaleMinQty, featured, bestseller } = req.body;
-  if (!name || !price || !stock) {
+  if (!name || !price || stock === undefined) {
     res.status(400);
     throw new Error('Name, price and stock are required');
   }
+  const { priceNum, stockNum, discountNum } = validateProductFields({ price, stock, discount, wholesalePrice, wholesaleMinQty }, res);
+
   const productImages = images?.length ? images : image ? [image] : [];
   const categoryId = await resolveCategory(category);
   const product = new Product({
-    name,
-    description: description || '',
+    name: String(name).trim().slice(0, 200),
+    description: description ? String(description).trim().slice(0, 5000) : '',
     category: categoryId,
     images: productImages,
-    price: Number(price),
-    stock: Number(stock),
-    discount: Number(discount) || 0,
+    price: priceNum,
+    stock: stockNum,
+    discount: discountNum,
     wholesalePrice: Number(wholesalePrice) || 0,
     wholesaleMinQty: Number(wholesaleMinQty) || 0,
     featured: Boolean(featured),
@@ -78,24 +110,35 @@ const createProduct = asyncHandler(async (req, res) => {
 
 const updateProduct = asyncHandler(async (req, res) => {
   const product = await Product.findById(req.params.id);
-  if (product) {
-    product.name = req.body.name || product.name;
-    product.description = req.body.description || product.description;
-    product.price = req.body.price || product.price;
-    product.stock = req.body.stock || product.stock;
-    product.discount = req.body.discount || product.discount;
-    product.category = req.body.category ? (await resolveCategory(req.body.category) || product.category) : product.category;
-    product.images = req.body.images || product.images;
-    product.wholesalePrice = req.body.wholesalePrice !== undefined ? Number(req.body.wholesalePrice) : product.wholesalePrice;
-    product.wholesaleMinQty = req.body.wholesaleMinQty !== undefined ? Number(req.body.wholesaleMinQty) : product.wholesaleMinQty;
-    product.featured = req.body.featured ?? product.featured;
-    product.bestseller = req.body.bestseller ?? product.bestseller;
-    const updated = await product.save();
-    res.json(updated);
-  } else {
+  if (!product) {
     res.status(404);
     throw new Error('Product not found');
   }
+
+  if (req.body.price !== undefined || req.body.stock !== undefined) {
+    validateProductFields({
+      price: req.body.price ?? product.price,
+      stock: req.body.stock ?? product.stock,
+      discount: req.body.discount ?? product.discount,
+      wholesalePrice: req.body.wholesalePrice,
+      wholesaleMinQty: req.body.wholesaleMinQty,
+    }, res);
+  }
+
+  if (req.body.name !== undefined) product.name = String(req.body.name).trim().slice(0, 200);
+  if (req.body.description !== undefined) product.description = String(req.body.description).trim().slice(0, 5000);
+  if (req.body.price !== undefined) product.price = Number(req.body.price);
+  if (req.body.stock !== undefined) product.stock = Number(req.body.stock);
+  if (req.body.discount !== undefined) product.discount = Number(req.body.discount);
+  if (req.body.category) product.category = await resolveCategory(req.body.category) || product.category;
+  if (req.body.images !== undefined) product.images = req.body.images;
+  if (req.body.wholesalePrice !== undefined) product.wholesalePrice = Number(req.body.wholesalePrice);
+  if (req.body.wholesaleMinQty !== undefined) product.wholesaleMinQty = Number(req.body.wholesaleMinQty);
+  if (req.body.featured !== undefined) product.featured = Boolean(req.body.featured);
+  if (req.body.bestseller !== undefined) product.bestseller = Boolean(req.body.bestseller);
+
+  const updated = await product.save();
+  res.json(updated);
 });
 
 const deleteProduct = asyncHandler(async (req, res) => {

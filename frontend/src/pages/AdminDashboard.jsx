@@ -372,7 +372,17 @@ export default function AdminDashboard() {
 
                             <input
                               value={form.image.startsWith('data:') ? '' : form.image}
-                              onChange={(e) => setForm({ ...form, image: e.target.value })}
+                              onChange={(e) => {
+                                const url = e.target.value;
+                                // Block dangerous protocols (javascript:, data:text/html, etc.)
+                                try {
+                                  if (url && !url.startsWith('data:image/')) {
+                                    const { protocol } = new URL(url);
+                                    if (protocol !== 'https:' && protocol !== 'http:') return;
+                                  }
+                                } catch { /* not a full URL yet, allow typing */ }
+                                setForm({ ...form, image: url });
+                              }}
                               placeholder="https://example.com/image.jpg"
                               className="w-full rounded-lg border px-3 py-2 text-sm outline-none focus:border-brand-gold"
                             />

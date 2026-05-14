@@ -1,9 +1,10 @@
-﻿const express = require('express');
+const express = require('express');
 const dotenv = require('dotenv');
 const cors = require('cors');
+const helmet = require('helmet');
 const morgan = require('morgan');
-const rateLimit = require('express-rate-limit');
 const connectDB = require('./config/db');
+const { authLimiter, supportLimiter } = require('./middlewares/limiters');
 const authRoutes = require('./routes/auth');
 const productRoutes = require('./routes/products');
 const categoryRoutes = require('./routes/categories');
@@ -22,6 +23,10 @@ const app = express();
 
 connectDB();
 
+// Security headers
+app.use(helmet());
+
+// Strict CORS — only explicitly listed origins, no *.vercel.app wildcard
 const allowedOrigins = [
   'http://localhost:5173',
   'http://localhost:3000',
@@ -32,42 +37,25 @@ const allowedOrigins = [
 
 app.use(cors({
   origin: (origin, callback) => {
-    // Allow requests with no origin (mobile apps, curl, Postman)
-    if (!origin) return callback(null, true);
-    // Allow localhost (any port) and any vercel.app subdomain
-    if (
-      origin.includes('localhost') ||
-      origin.endsWith('.vercel.app') ||
-      allowedOrigins.includes(origin)
-    ) {
-      return callback(null, true);
-    }
+    if (!origin) return callback(null, true); // allow curl / Postman / mobile
+    if (allowedOrigins.includes(origin)) return callback(null, true);
     callback(new Error('CORS: origin not allowed'));
   },
   credentials: true,
 }));
 
-const authLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: 20,
-  message: { message: 'Too many attempts, please try again in 15 minutes.' },
-  standardHeaders: true,
-  legacyHeaders: false,
-});
-
-const supportLimiter = rateLimit({
-  windowMs: 60 * 60 * 1000,
-  max: 10,
-  message: { message: 'Too many support messages. Please try again later.' },
-  standardHeaders: true,
-  legacyHeaders: false,
-});
-
 app.use(express.json({ limit: '10mb' }));
 app.use(morgan('dev'));
 
 app.get('/api/status', (req, res) => res.json({ status: 'ok', message: 'Cindy Nat backend running' }));
-app.get('/api/seed', seedData);
+
+// Seed disabled in production — prevents catastrophic database wipe
+if (process.env.NODE_ENV !== 'production') {
+  app.get('/api/seed', seedData);
+} else {
+  app.get('/api/seed', (req, res) => res.status(403).json({ message: 'Not available in production' }));
+}
+
 app.use('/api/auth', authLimiter, authRoutes);
 app.use('/api/admin', authLimiter, adminRoutes);
 app.use('/api/products', productRoutes);

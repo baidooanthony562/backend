@@ -7,7 +7,9 @@ import { showToast } from '../components/Toast';
 export default function Login() {
   const navigate = useNavigate();
   const location = useLocation();
-  const redirectTo = new URLSearchParams(location.search).get('redirect') || '/';
+  const rawRedirect = new URLSearchParams(location.search).get('redirect') || '/';
+  // Only allow relative paths — prevent open-redirect phishing
+  const redirectTo = /^\/[a-zA-Z0-9\-_/]*$/.test(rawRedirect) ? rawRedirect : '/';
 
   useEffect(() => { if (isAuthenticated()) navigate('/'); }, [navigate]);
 

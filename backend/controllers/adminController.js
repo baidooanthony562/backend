@@ -1,15 +1,33 @@
-﻿const asyncHandler = require('express-async-handler');
+const crypto = require('crypto');
+const asyncHandler = require('express-async-handler');
 const bcrypt = require('bcryptjs');
 const User = require('../models/User');
 const Product = require('../models/Product');
 const Order = require('../models/Order');
 const generateToken = require('../utils/generateToken');
 
+function safeEqual(a, b) {
+  const bufa = Buffer.from(String(a));
+  const bufb = Buffer.from(String(b));
+  if (bufa.length !== bufb.length) {
+    // Still run timingSafeEqual on equal-length buffers to avoid timing leak
+    crypto.timingSafeEqual(Buffer.alloc(1), Buffer.alloc(1));
+    return false;
+  }
+  return crypto.timingSafeEqual(bufa, bufb);
+}
+
 const adminLogin = asyncHandler(async (req, res) => {
   const { email, password } = req.body;
-  const adminEmail = process.env.ADMIN_EMAIL;
-  const adminPassword = process.env.ADMIN_PASSWORD;
-  if (email === adminEmail && password === adminPassword) {
+  if (!email || !password) {
+    res.status(400);
+    throw new Error('Email and password are required');
+  }
+
+  const adminEmail = process.env.ADMIN_EMAIL || '';
+  const adminPassword = process.env.ADMIN_PASSWORD || '';
+
+  if (safeEqual(email, adminEmail) && safeEqual(password, adminPassword)) {
     return res.json({
       token: generateToken('admin'),
       email,
@@ -17,6 +35,8 @@ const adminLogin = asyncHandler(async (req, res) => {
       isAdmin: true,
     });
   }
+
+  // Also allow database users with isAdmin flag
   const user = await User.findOne({ email });
   if (user && user.isAdmin && (await bcrypt.compare(password, user.password))) {
     return res.json({
@@ -26,6 +46,7 @@ const adminLogin = asyncHandler(async (req, res) => {
       isAdmin: true,
     });
   }
+
   res.status(401);
   throw new Error('Invalid admin credentials');
 });
@@ -49,7 +70,7 @@ const getDashboardStats = asyncHandler(async (req, res) => {
 });
 
 const getUsers = asyncHandler(async (req, res) => {
-  const users = await User.find({}).select('-password');
+  const users = await User.find({}).select('-password').sort({ createdAt: -1 }).limit(500);
   res.json(users);
 });
 

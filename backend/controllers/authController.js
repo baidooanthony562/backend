@@ -90,9 +90,9 @@ const forgotPassword = asyncHandler(async (req, res) => {
 
 const resetPassword = asyncHandler(async (req, res) => {
   const { token, password } = req.body;
-  if (!token || !password || password.length < 6) {
+  if (!token || !password || password.length < 8) {
     res.status(400);
-    throw new Error('Token and a password of at least 6 characters are required');
+    throw new Error('Token and a password of at least 8 characters are required');
   }
 
   const hashedToken = crypto.createHash('sha256').update(token).digest('hex');

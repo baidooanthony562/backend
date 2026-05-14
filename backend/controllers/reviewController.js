@@ -9,6 +9,17 @@ const getProductReviews = asyncHandler(async (req, res) => {
 
 const createProductReview = asyncHandler(async (req, res) => {
   const { rating, comment } = req.body;
+
+  const ratingNum = Number(rating);
+  if (!rating || !Number.isInteger(ratingNum) || ratingNum < 1 || ratingNum > 5) {
+    res.status(400);
+    throw new Error('Rating must be a whole number between 1 and 5');
+  }
+  if (comment && String(comment).length > 1000) {
+    res.status(400);
+    throw new Error('Comment must be under 1000 characters');
+  }
+
   const product = await Product.findById(req.params.id);
   if (!product) {
     res.status(404);
@@ -22,8 +33,8 @@ const createProductReview = asyncHandler(async (req, res) => {
   const review = new Review({
     user: req.user._id,
     product: product._id,
-    rating: Number(rating),
-    comment,
+    rating: ratingNum,
+    comment: comment ? String(comment).trim().slice(0, 1000) : '',
   });
   await review.save();
   product.reviews.push(review._id);
