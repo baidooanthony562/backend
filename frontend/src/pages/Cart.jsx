@@ -152,7 +152,7 @@ export default function Cart() {
       setCheckoutMessage('');
       setMomoStatus('pending');
       try {
-        const { data } = await initiateMoMoPayment({ phone: momoPhone, amount: finalTotal, externalId: Date.now().toString() });
+        const { data } = await initiateMoMoPayment({ phone: momoPhone, amount: finalTotal, externalId: Date.now().toString() }, token);
         const { referenceId } = data;
         let attempts = 0;
         pollRef.current = setInterval(async () => {
@@ -165,7 +165,7 @@ export default function Cart() {
             return;
           }
           try {
-            const { data: s } = await checkMoMoStatus(referenceId);
+            const { data: s } = await checkMoMoStatus(referenceId, token);
             if (s.status === 'SUCCESSFUL') {
               clearInterval(pollRef.current);
               setMomoStatus('success');

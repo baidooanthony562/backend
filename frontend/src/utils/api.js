@@ -52,6 +52,6 @@ export const updateOrderStatus = (id, status, token) => api.put(`/orders/${id}/s
 export const createProduct = (payload, token) => api.post('/products', payload, authConfig(token));
 export const updateProduct = (id, payload, token) => api.put(`/products/${id}`, payload, authConfig(token));
 export const deleteProduct = (id, token) => api.delete(`/products/${id}`, authConfig(token));
-export const initiateMoMoPayment = (payload) => api.post('/payments/momo/request', payload);
-export const checkMoMoStatus = (referenceId) => api.get(`/payments/momo/status/${referenceId}`);
+export const initiateMoMoPayment = (payload, token) => api.post('/payments/momo/request', payload, authConfig(token));
+export const checkMoMoStatus = (referenceId, token) => api.get(`/payments/momo/status/${referenceId}`, authConfig(token));
 export default api;
