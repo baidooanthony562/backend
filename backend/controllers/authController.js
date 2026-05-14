@@ -125,8 +125,41 @@ const forgotPassword = asyncHandler(async (req, res) => {
 
   const resetUrl = `${process.env.FRONTEND_URL || 'https://backend-alpha-seven-54.vercel.app'}/reset-password/${rawToken}`;
 
-  // Email sending not yet implemented — log for manual delivery
-  console.log(`[Password Reset] ${user.email} → ${resetUrl}`);
+  try {
+    const emailRes = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${process.env.RESEND_API_KEY}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        from: process.env.RESEND_FROM || 'onboarding@resend.dev',
+        to: user.email,
+        subject: 'Reset your Cindy Nat password',
+        html: `
+          <div style="font-family:sans-serif;max-width:480px;margin:0 auto;padding:32px">
+            <h2 style="color:#131921">Password Reset</h2>
+            <p>Hi ${user.name},</p>
+            <p>We received a request to reset your password. Click the button below — this link expires in <strong>1 hour</strong>.</p>
+            <a href="${resetUrl}" style="display:inline-block;margin:24px 0;padding:12px 28px;background:#D4AF37;color:#000;font-weight:700;border-radius:999px;text-decoration:none">
+              Reset Password
+            </a>
+            <p style="color:#666;font-size:13px">If you didn't request this, you can safely ignore this email.</p>
+            <hr style="border:none;border-top:1px solid #eee;margin:24px 0"/>
+            <p style="color:#999;font-size:12px">Cindy Nat Enterprise &mdash; Kumasi, Ghana</p>
+          </div>
+        `,
+      }),
+    });
+
+    if (!emailRes.ok) {
+      const errText = await emailRes.text();
+      console.error('[Resend] Failed to send reset email:', errText);
+    }
+  } catch (emailErr) {
+    // Log but don't fail the request — token is already saved
+    console.error('[Resend] Error sending reset email:', emailErr.message);
+  }
 
   res.json(genericResponse);
 });
