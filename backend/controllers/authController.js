@@ -1,7 +1,7 @@
 const crypto = require('crypto');
 const asyncHandler = require('express-async-handler');
 const bcrypt = require('bcryptjs');
-const nodemailer = require('nodemailer');
+const axios = require('axios');
 const User = require('../models/User');
 const generateToken = require('../utils/generateToken');
 
@@ -83,24 +83,11 @@ const forgotPassword = asyncHandler(async (req, res) => {
 
   const resetUrl = `${process.env.FRONTEND_URL || 'https://backend-alpha-seven-54.vercel.app'}/reset-password/${rawToken}`;
 
-  const transporter = nodemailer.createTransport({
-    host: 'smtp-relay.brevo.com',
-    port: 587,
-    secure: false,
-    connectionTimeout: 10000,
-    greetingTimeout: 10000,
-    socketTimeout: 10000,
-    auth: {
-      user: process.env.EMAIL_USER,
-      pass: process.env.EMAIL_PASS,
-    },
-  });
-
-  await transporter.sendMail({
-    from: `"Cindy Nat Enterprise" <${process.env.EMAIL_USER}>`,
-    to: user.email,
+  await axios.post('https://api.brevo.com/v3/smtp/email', {
+    sender: { name: 'Cindy Nat Enterprise', email: 'noreply@cindynat.com' },
+    to: [{ email: user.email, name: user.name }],
     subject: 'Reset your Cindy Nat password',
-    html: `
+    htmlContent: `
       <div style="font-family:Arial,sans-serif;max-width:520px;margin:0 auto;padding:32px 24px;background:#f8f8f8;border-radius:12px">
         <div style="text-align:center;margin-bottom:24px">
           <div style="display:inline-flex;align-items:center;justify-content:center;width:56px;height:56px;background:#D4AF37;border-radius:12px;font-size:22px;font-weight:900;color:#000">CN</div>
@@ -118,6 +105,8 @@ const forgotPassword = asyncHandler(async (req, res) => {
         <p style="text-align:center;margin-top:20px;font-size:12px;color:#94a3b8">Cindy Nat Enterprise · Kumasi, Ghana</p>
       </div>
     `,
+  }, {
+    headers: { 'api-key': process.env.BREVO_API_KEY, 'Content-Type': 'application/json' },
   });
 
   res.json(genericResponse);
