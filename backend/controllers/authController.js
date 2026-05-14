@@ -81,7 +81,7 @@ const forgotPassword = asyncHandler(async (req, res) => {
   user.resetTokenExpiry = Date.now() + 60 * 60 * 1000; // 1 hour
   await user.save();
 
-  const resetUrl = `${process.env.FRONTEND_URL || 'http://localhost:5173'}/reset-password/${rawToken}`;
+  const resetUrl = `${process.env.FRONTEND_URL || 'https://backend-alpha-seven-54.vercel.app'}/reset-password/${rawToken}`;
 
   const transporter = nodemailer.createTransport({
     service: 'gmail',

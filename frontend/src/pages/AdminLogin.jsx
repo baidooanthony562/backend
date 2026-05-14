@@ -92,6 +92,16 @@ export default function AdminLogin() {
           <p className="mt-6 text-center text-xs text-slate-400">
             This area is restricted to authorised administrators only.
           </p>
+          <p className="mt-3 text-center text-xs text-slate-400">
+            Forgot your admin password?{' '}
+            <button
+              type="button"
+              onClick={() => alert('To reset your admin password:\n\n1. Go to your Render dashboard\n2. Open your backend service → Environment\n3. Update ADMIN_PASSWORD to a new value\n4. Save Changes and wait for redeploy\n\nThen log in with the new password.')}
+              className="font-semibold text-brand-gold hover:underline"
+            >
+              How to reset
+            </button>
+          </p>
         </div>
       </div>
     </div>
