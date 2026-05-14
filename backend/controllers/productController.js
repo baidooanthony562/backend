@@ -2,6 +2,8 @@ const asyncHandler = require('express-async-handler');
 const Product = require('../models/Product');
 const Category = require('../models/Category');
 
+const MAX_IMAGES = 10;
+
 const getProducts = asyncHandler(async (req, res) => {
   const { search, category, minPrice, maxPrice, sort, featured, limit } = req.query;
   let filter = { active: true };
@@ -26,7 +28,10 @@ const getProducts = asyncHandler(async (req, res) => {
   if (sort === 'cheapest') query = query.sort({ price: 1 });
   else if (sort === 'newest') query = query.sort({ createdAt: -1 });
   else if (sort === 'popular') query = query.sort({ rating: -1 });
-  const safeLimit = Math.min(Number(limit) || 200, 200);
+
+  // Admin can request up to 1000; public defaults to 200
+  const requestedLimit = Number(limit) || 0;
+  const safeLimit = requestedLimit > 0 ? Math.min(requestedLimit, 1000) : 200;
   query = query.limit(safeLimit);
 
   const products = await query;
@@ -44,10 +49,11 @@ const getProductById = asyncHandler(async (req, res) => {
   }
 });
 
+// Single $or query instead of two separate findOne calls
 async function resolveCategory(input) {
   if (!input) return undefined;
   if (/^[a-f\d]{24}$/i.test(input)) return input;
-  const cat = await Category.findOne({ name: input }) || await Category.findOne({ slug: input });
+  const cat = await Category.findOne({ $or: [{ name: input }, { slug: input }] });
   return cat?._id;
 }
 
@@ -81,14 +87,23 @@ function validateProductFields(fields, res) {
 }
 
 const createProduct = asyncHandler(async (req, res) => {
-  const { name, description, category, images, image, price, stock, discount, wholesalePrice, wholesaleMinQty, featured, bestseller } = req.body;
-  if (!name || !price || stock === undefined) {
+  const {
+    name, description, category, images, image,
+    price, stock, discount, wholesalePrice, wholesaleMinQty, featured, bestseller,
+  } = req.body;
+
+  if (!name || price === undefined || stock === undefined) {
     res.status(400);
     throw new Error('Name, price and stock are required');
   }
-  const { priceNum, stockNum, discountNum } = validateProductFields({ price, stock, discount, wholesalePrice, wholesaleMinQty }, res);
+  const { priceNum, stockNum, discountNum } = validateProductFields(
+    { price, stock, discount, wholesalePrice, wholesaleMinQty }, res
+  );
 
-  const productImages = images?.length ? images : image ? [image] : [];
+  // Cap images array to prevent bloated documents
+  const rawImages = images?.length ? images : image ? [image] : [];
+  const productImages = rawImages.slice(0, MAX_IMAGES);
+
   const categoryId = await resolveCategory(category);
   const product = new Product({
     name: String(name).trim().slice(0, 200),
@@ -115,7 +130,13 @@ const updateProduct = asyncHandler(async (req, res) => {
     throw new Error('Product not found');
   }
 
-  if (req.body.price !== undefined || req.body.stock !== undefined) {
+  // Validate numeric fields whenever any of them is provided
+  const hasNumericUpdate =
+    req.body.price !== undefined ||
+    req.body.stock !== undefined ||
+    req.body.discount !== undefined;
+
+  if (hasNumericUpdate) {
     validateProductFields({
       price: req.body.price ?? product.price,
       stock: req.body.stock ?? product.stock,
@@ -130,8 +151,8 @@ const updateProduct = asyncHandler(async (req, res) => {
   if (req.body.price !== undefined) product.price = Number(req.body.price);
   if (req.body.stock !== undefined) product.stock = Number(req.body.stock);
   if (req.body.discount !== undefined) product.discount = Number(req.body.discount);
-  if (req.body.category) product.category = await resolveCategory(req.body.category) || product.category;
-  if (req.body.images !== undefined) product.images = req.body.images;
+  if (req.body.category) product.category = (await resolveCategory(req.body.category)) || product.category;
+  if (req.body.images !== undefined) product.images = req.body.images.slice(0, MAX_IMAGES);
   if (req.body.wholesalePrice !== undefined) product.wholesalePrice = Number(req.body.wholesalePrice);
   if (req.body.wholesaleMinQty !== undefined) product.wholesaleMinQty = Number(req.body.wholesaleMinQty);
   if (req.body.featured !== undefined) product.featured = Boolean(req.body.featured);

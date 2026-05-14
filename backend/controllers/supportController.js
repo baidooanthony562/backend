@@ -4,13 +4,16 @@ const ChatMessage = require('../models/ChatMessage');
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 const sendSupportMessage = asyncHandler(async (req, res) => {
-  const { name, email, message } = req.body;
+  const { name, email } = req.body;
 
-  if (!message || message.trim().length === 0) {
+  // Stringify before any string operations — prevents TypeError on numeric input
+  const messageStr = String(req.body.message || '').trim();
+
+  if (!messageStr) {
     res.status(400);
     throw new Error('Support message is required');
   }
-  if (message.trim().length > 2000) {
+  if (messageStr.length > 2000) {
     res.status(400);
     throw new Error('Message must be under 2000 characters');
   }
@@ -27,7 +30,7 @@ const sendSupportMessage = asyncHandler(async (req, res) => {
   const chat = new ChatMessage({
     name: safeName,
     email: email || '',
-    message: message.trim().slice(0, 2000),
+    message: messageStr,
     response: `Thanks ${safeName}! Our support team received your message and will reply shortly.`,
   });
   await chat.save();

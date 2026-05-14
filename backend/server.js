@@ -23,8 +23,14 @@ const app = express();
 
 connectDB();
 
-// Security headers
-app.use(helmet());
+// Trust Render's proxy so req.ip is the real client IP (required for rate limiting)
+app.set('trust proxy', 1);
+
+// Security headers — configure CORP as cross-origin so the frontend (different origin)
+// can read API responses. Default 'same-origin' breaks cross-origin fetch.
+app.use(helmet({
+  crossOriginResourcePolicy: { policy: 'cross-origin' },
+}));
 
 // Strict CORS — only explicitly listed origins, no *.vercel.app wildcard
 const allowedOrigins = [
@@ -44,8 +50,11 @@ app.use(cors({
   credentials: true,
 }));
 
-app.use(express.json({ limit: '10mb' }));
-app.use(morgan('dev'));
+// Use combined format in production (structured, no colour codes)
+app.use(morgan(process.env.NODE_ENV === 'production' ? 'combined' : 'dev'));
+
+// 2mb cap — enough for base64 product images; blocks large payload DoS
+app.use(express.json({ limit: '2mb' }));
 
 app.get('/api/status', (req, res) => res.json({ status: 'ok', message: 'Cindy Nat backend running' }));
 
@@ -69,6 +78,11 @@ app.use('/api/payments', paymentRoutes);
 
 app.use(notFound);
 app.use(errorHandler);
+
+// Crash-safe: log unhandled rejections instead of silently dying
+process.on('unhandledRejection', (reason) => {
+  console.error('[unhandledRejection]', reason);
+});
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {

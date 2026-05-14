@@ -8,8 +8,17 @@ export default function Login() {
   const navigate = useNavigate();
   const location = useLocation();
   const rawRedirect = new URLSearchParams(location.search).get('redirect') || '/';
-  // Only allow relative paths — prevent open-redirect phishing
-  const redirectTo = /^\/[a-zA-Z0-9\-_/]*$/.test(rawRedirect) ? rawRedirect : '/';
+  // Only allow safe relative paths. Reject // prefix (protocol-relative URL bypass)
+  // and anything that isn't a simple internal path.
+  const isSafeRedirect = (p) => {
+    if (!p || !p.startsWith('/') || p.startsWith('//')) return false;
+    try {
+      return new URL(p, 'https://x').hostname === 'x';
+    } catch {
+      return false;
+    }
+  };
+  const redirectTo = isSafeRedirect(rawRedirect) ? rawRedirect : '/';
 
   useEffect(() => { if (isAuthenticated()) navigate('/'); }, [navigate]);
 

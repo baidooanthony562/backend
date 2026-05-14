@@ -2,14 +2,24 @@ const asyncHandler = require('express-async-handler');
 const Review = require('../models/Review');
 const Product = require('../models/Product');
 
+const OBJECT_ID_RE = /^[a-f\d]{24}$/i;
+
 const getProductReviews = asyncHandler(async (req, res) => {
+  if (!OBJECT_ID_RE.test(req.params.id)) {
+    res.status(400);
+    throw new Error('Invalid product ID');
+  }
   const reviews = await Review.find({ product: req.params.id }).populate('user', 'name');
   res.json(reviews);
 });
 
 const createProductReview = asyncHandler(async (req, res) => {
-  const { rating, comment } = req.body;
+  if (!OBJECT_ID_RE.test(req.params.id)) {
+    res.status(400);
+    throw new Error('Invalid product ID');
+  }
 
+  const { rating, comment } = req.body;
   const ratingNum = Number(rating);
   if (!rating || !Number.isInteger(ratingNum) || ratingNum < 1 || ratingNum > 5) {
     res.status(400);
@@ -30,6 +40,7 @@ const createProductReview = asyncHandler(async (req, res) => {
     res.status(400);
     throw new Error('You have already reviewed this product');
   }
+
   const review = new Review({
     user: req.user._id,
     product: product._id,
@@ -37,10 +48,17 @@ const createProductReview = asyncHandler(async (req, res) => {
     comment: comment ? String(comment).trim().slice(0, 1000) : '',
   });
   await review.save();
+
   product.reviews.push(review._id);
-  const reviews = await Review.find({ product: product._id });
-  product.rating = reviews.reduce((acc, item) => acc + item.rating, 0) / reviews.length;
+
+  // Single aggregation query instead of fetching all reviews to compute average
+  const [stats] = await Review.aggregate([
+    { $match: { product: product._id } },
+    { $group: { _id: null, avg: { $avg: '$rating' }, count: { $sum: 1 } } },
+  ]);
+  product.rating = stats?.avg || ratingNum;
   await product.save();
+
   res.status(201).json(review);
 });
 
