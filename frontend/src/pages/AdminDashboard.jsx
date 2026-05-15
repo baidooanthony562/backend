@@ -149,30 +149,24 @@ export default function AdminDashboard() {
         images: form.image ? [form.image] : [],
       };
 
-      let saved = null;
-      try {
-        if (editing) {
-          const res = await updateProduct(editing, payload, token);
-          saved = res.data;
-        } else {
-          const res = await createProduct(payload, token);
-          saved = res.data;
-        }
-      } catch {
-        // Backend unavailable — save locally only
+      if (editing) {
+        await updateProduct(editing, payload, token);
+      } else {
+        await createProduct(payload, token);
       }
 
-      if (!saved) {
-        setFormError('Failed to save product. Please try again.');
-        return;
-      }
-      const { data: freshProducts } = await fetchProducts();
-      setProducts(Array.isArray(freshProducts) ? freshProducts : freshProducts.products || []);
-      saveProducts(Array.isArray(freshProducts) ? freshProducts : freshProducts.products || []);
+      // Refresh list — if this fails the save still succeeded
+      try {
+        const { data: freshProducts } = await fetchProducts();
+        const list = Array.isArray(freshProducts) ? freshProducts : freshProducts.products || [];
+        setProducts(list);
+        saveProducts(list);
+      } catch { /* non-critical */ }
+
       setShowForm(false);
       showToast(editing ? 'Product updated.' : 'Product created.');
-    } catch {
-      setFormError('Failed to save product. Please try again.');
+    } catch (err) {
+      setFormError(err.response?.data?.message || 'Failed to save product. Please try again.');
     } finally {
       setSaving(false);
     }
@@ -193,12 +187,16 @@ export default function AdminDashboard() {
   };
 
   const handleOrderStatus = async (orderId, status) => {
+    // Optimistic update — show new status immediately so dropdown doesn't snap back
+    const snapshot = orders;
+    setOrders((prev) => prev.map((o) => o._id === orderId ? { ...o, status } : o));
     setUpdatingOrder(orderId);
     try {
       await updateOrderStatus(orderId, status, token);
-      setOrders((prev) => prev.map((o) => o._id === orderId ? { ...o, status } : o));
-    } catch {
-      showToast('Failed to update order status.', 'error');
+      showToast(`Order status updated to ${status}.`);
+    } catch (err) {
+      setOrders(snapshot); // revert on failure
+      showToast(err.response?.data?.message || 'Failed to update order status.', 'error');
     } finally {
       setUpdatingOrder(null);
     }
