@@ -32,6 +32,8 @@ export const resetPassword = (payload) => api.post('/auth/reset-password', paylo
 export const fetchCart = (token) => api.get('/cart', authConfig(token));
 export const updateCart = (items, token) => api.post('/cart', { items }, authConfig(token));
 export const fetchUserProfile = (token) => api.get('/auth/profile', authConfig(token));
+export const updateUserProfile = (payload, token) => api.put('/users/profile', payload, authConfig(token));
+export const changeUserPassword = (payload, token) => api.put('/users/change-password', payload, authConfig(token));
 export const fetchUserOrders = (token) => api.get('/orders/my-orders', authConfig(token));
 export const fetchWishlist = (token) => api.get('/users/wishlist', authConfig(token));
 export const addWishlistItem = (productId, token) => api.post(`/users/wishlist/${productId}`, {}, authConfig(token));
