@@ -1,8 +1,47 @@
 const crypto = require('crypto');
+const https = require('https');
 const asyncHandler = require('express-async-handler');
 const bcrypt = require('bcryptjs');
 const User = require('../models/User');
 const generateToken = require('../utils/generateToken');
+
+// Send email via Resend HTTP API using built-in https (works on all Node versions)
+function sendResendEmail({ to, subject, html }) {
+  return new Promise((resolve, reject) => {
+    const body = JSON.stringify({
+      from: process.env.RESEND_FROM || 'onboarding@resend.dev',
+      to,
+      subject,
+      html,
+    });
+    const req = https.request(
+      {
+        hostname: 'api.resend.com',
+        path: '/emails',
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${process.env.RESEND_API_KEY}`,
+          'Content-Type': 'application/json',
+          'Content-Length': Buffer.byteLength(body),
+        },
+      },
+      (res) => {
+        let data = '';
+        res.on('data', (chunk) => { data += chunk; });
+        res.on('end', () => {
+          if (res.statusCode >= 200 && res.statusCode < 300) {
+            resolve(data);
+          } else {
+            reject(new Error(`Resend API ${res.statusCode}: ${data}`));
+          }
+        });
+      }
+    );
+    req.on('error', reject);
+    req.write(body);
+    req.end();
+  });
+}
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -126,38 +165,26 @@ const forgotPassword = asyncHandler(async (req, res) => {
   const resetUrl = `${process.env.FRONTEND_URL || 'https://backend-alpha-seven-54.vercel.app'}/reset-password/${rawToken}`;
 
   try {
-    const emailRes = await fetch('https://api.resend.com/emails', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${process.env.RESEND_API_KEY}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        from: process.env.RESEND_FROM || 'onboarding@resend.dev',
-        to: user.email,
-        subject: 'Reset your Cindy Nat password',
-        html: `
-          <div style="font-family:sans-serif;max-width:480px;margin:0 auto;padding:32px">
-            <h2 style="color:#131921">Password Reset</h2>
-            <p>Hi ${user.name},</p>
-            <p>We received a request to reset your password. Click the button below — this link expires in <strong>1 hour</strong>.</p>
-            <a href="${resetUrl}" style="display:inline-block;margin:24px 0;padding:12px 28px;background:#D4AF37;color:#000;font-weight:700;border-radius:999px;text-decoration:none">
-              Reset Password
-            </a>
-            <p style="color:#666;font-size:13px">If you didn't request this, you can safely ignore this email.</p>
-            <hr style="border:none;border-top:1px solid #eee;margin:24px 0"/>
-            <p style="color:#999;font-size:12px">Cindy Nat Enterprise &mdash; Kumasi, Ghana</p>
-          </div>
-        `,
-      }),
+    await sendResendEmail({
+      to: user.email,
+      subject: 'Reset your Cindy Nat password',
+      html: `
+        <div style="font-family:sans-serif;max-width:480px;margin:0 auto;padding:32px">
+          <h2 style="color:#131921">Password Reset</h2>
+          <p>Hi ${user.name},</p>
+          <p>We received a request to reset your password. Click the button below — this link expires in <strong>1 hour</strong>.</p>
+          <a href="${resetUrl}" style="display:inline-block;margin:24px 0;padding:12px 28px;background:#D4AF37;color:#000;font-weight:700;border-radius:999px;text-decoration:none">
+            Reset Password
+          </a>
+          <p style="color:#666;font-size:13px">If you didn't request this, you can safely ignore this email.</p>
+          <hr style="border:none;border-top:1px solid #eee;margin:24px 0"/>
+          <p style="color:#999;font-size:12px">Cindy Nat Enterprise &mdash; Kumasi, Ghana</p>
+        </div>
+      `,
     });
-
-    if (!emailRes.ok) {
-      const errText = await emailRes.text();
-      console.error('[Resend] Failed to send reset email:', errText);
-    }
+    console.log(`[Resend] Reset email sent to ${user.email}`);
   } catch (emailErr) {
-    // Log but don't fail the request — token is already saved
+    // Log but don't fail the request — token is already saved in DB
     console.error('[Resend] Error sending reset email:', emailErr.message);
   }
 
