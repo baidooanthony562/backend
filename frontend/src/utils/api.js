@@ -49,6 +49,8 @@ export const createOrder = (payload, token) => api.post('/orders', payload, auth
 export const fetchOrderDetail = (id, token) => api.get(`/orders/${id}`, authConfig(token));
 export const sendSupportMessage = (payload) => api.post('/support/message', payload);
 export const adminLogin = (payload) => api.post('/admin/login', payload);
+export const adminLogout = (sessionId, token) => api.post('/admin/logout', { sessionId }, authConfig(token));
+export const fetchAdminSessions = (token) => api.get('/admin/sessions', authConfig(token));
 export const fetchDashboard = (token) => api.get('/admin/dashboard', authConfig(token));
 export const fetchAllUsers = (token) => api.get('/admin/users', authConfig(token));
 export const fetchAllOrders = (token) => api.get('/orders', authConfig(token));

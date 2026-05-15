@@ -4,6 +4,7 @@ const bcrypt = require('bcryptjs');
 const User = require('../models/User');
 const Product = require('../models/Product');
 const Order = require('../models/Order');
+const AdminSession = require('../models/AdminSession');
 const generateToken = require('../utils/generateToken');
 
 // Constant-time string comparison — always runs both sides, no short-circuit
@@ -30,17 +31,20 @@ const adminLogin = asyncHandler(async (req, res) => {
   const adminEmail = process.env.ADMIN_EMAIL;
   const adminPassword = process.env.ADMIN_PASSWORD;
 
+  const ip = req.headers['x-forwarded-for']?.split(',')[0]?.trim() || req.socket?.remoteAddress || 'unknown';
+
   // Only attempt env-var login if both are configured — prevents empty-string bypass
   if (adminEmail && adminPassword) {
-    // Run both comparisons before checking result — prevents timing side-channel
     const emailMatch = safeEqual(email, adminEmail);
     const passwordMatch = safeEqual(password, adminPassword);
     if (emailMatch && passwordMatch) {
+      const session = await AdminSession.create({ email, ip });
       return res.json({
         token: generateToken('admin'),
         email,
         name: 'Cindy Nat Admin',
         isAdmin: true,
+        sessionId: session._id,
       });
     }
   }
@@ -48,11 +52,13 @@ const adminLogin = asyncHandler(async (req, res) => {
   // Also allow database users with isAdmin flag
   const user = await User.findOne({ email: String(email).toLowerCase().trim() });
   if (user && user.isAdmin && (await bcrypt.compare(password, user.password))) {
+    const session = await AdminSession.create({ email: user.email, ip });
     return res.json({
       token: generateToken(user._id),
       email: user.email,
       name: user.name,
       isAdmin: true,
+      sessionId: session._id,
     });
   }
 
@@ -84,4 +90,17 @@ const getUsers = asyncHandler(async (req, res) => {
   res.json(users);
 });
 
-module.exports = { adminLogin, getDashboardStats, getUsers };
+const adminLogout = asyncHandler(async (req, res) => {
+  const { sessionId } = req.body;
+  if (sessionId) {
+    await AdminSession.findByIdAndUpdate(sessionId, { logoutAt: new Date() });
+  }
+  res.json({ message: 'Logged out' });
+});
+
+const getAdminSessions = asyncHandler(async (req, res) => {
+  const sessions = await AdminSession.find({}).sort({ loginAt: -1 }).limit(20);
+  res.json(sessions);
+});
+
+module.exports = { adminLogin, adminLogout, getAdminSessions, getDashboardStats, getUsers };

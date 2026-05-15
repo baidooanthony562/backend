@@ -25,8 +25,13 @@ export const saveAdminToken = (token) => {
   localStorage.setItem(ADMIN_TOKEN_KEY, token);
 };
 
+export const ADMIN_SESSION_KEY = 'cindyNutAdminSession';
+export const getAdminSessionId = () => localStorage.getItem(ADMIN_SESSION_KEY);
+export const saveAdminSessionId = (id) => localStorage.setItem(ADMIN_SESSION_KEY, String(id));
+
 export const logout = () => {
   localStorage.removeItem(AUTH_TOKEN_KEY);
   localStorage.removeItem(AUTH_USER_KEY);
   localStorage.removeItem(ADMIN_TOKEN_KEY);
+  localStorage.removeItem(ADMIN_SESSION_KEY);
 };

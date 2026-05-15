@@ -4,8 +4,9 @@ import {
   fetchDashboard, fetchAllUsers, fetchAllOrders, fetchProducts,
   updateOrderStatus, createProduct, updateProduct, deleteProduct,
   fetchPromos, createPromoAdmin, deletePromoAdmin,
+  adminLogout, fetchAdminSessions,
 } from '../utils/api';
-import { isAdmin, getAdminToken } from '../utils/auth';
+import { isAdmin, getAdminToken, getAdminSessionId, logout } from '../utils/auth';
 import { getProducts, saveProducts } from '../utils/productStore';
 import { showToast } from '../components/Toast';
 
@@ -67,21 +68,29 @@ export default function AdminDashboard() {
   const [savingPromo, setSavingPromo] = useState(false);
   const [promoError, setPromoError] = useState('');
 
+  // Sessions
+  const [sessions, setSessions] = useState([]);
+  const [now, setNow] = useState(Date.now());
+
   useEffect(() => {
     if (!isAdmin()) { navigate('/admin/login'); return; }
     loadAll();
+    // Live clock — updates relative timestamps every 30s
+    const tick = setInterval(() => setNow(Date.now()), 30000);
+    return () => clearInterval(tick);
   }, [navigate]);
 
   const loadAll = async () => {
     setLoading(true);
     setError('');
     try {
-      const [dashRes, prodRes, orderRes, userRes, promoRes] = await Promise.all([
+      const [dashRes, prodRes, orderRes, userRes, promoRes, sessionRes] = await Promise.all([
         fetchDashboard(token),
         fetchProducts(),
         fetchAllOrders(token),
         fetchAllUsers(token),
         fetchPromos(token),
+        fetchAdminSessions(token),
       ]);
       setStats(dashRes.data);
       saveProducts(prodRes.data);
@@ -89,12 +98,20 @@ export default function AdminDashboard() {
       setOrders(orderRes.data);
       setUsers(userRes.data);
       setPromos(promoRes.data);
+      setSessions(sessionRes.data);
     } catch {
-      // Backend unavailable — use local product store silently
       setProducts(getProducts());
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleLogout = async () => {
+    try {
+      await adminLogout(getAdminSessionId(), token);
+    } catch { /* logout proceeds regardless */ }
+    logout();
+    navigate('/admin/login');
   };
 
   const openAdd = () => {
@@ -244,6 +261,22 @@ export default function AdminDashboard() {
     }
   };
 
+  const timeAgo = (date) => {
+    const diff = Math.floor((now - new Date(date)) / 1000);
+    if (diff < 60) return `${diff}s ago`;
+    if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
+    if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
+    return new Date(date).toLocaleDateString();
+  };
+
+  const duration = (login, logout) => {
+    if (!logout) return null;
+    const diff = Math.floor((new Date(logout) - new Date(login)) / 1000);
+    if (diff < 60) return `${diff}s`;
+    if (diff < 3600) return `${Math.floor(diff / 60)}m`;
+    return `${Math.floor(diff / 3600)}h ${Math.floor((diff % 3600) / 60)}m`;
+  };
+
   const statCards = stats ? [
     { label: 'Total Users', value: stats.totalUsers, icon: '👥', color: 'bg-blue-50 text-blue-700' },
     { label: 'Total Products', value: stats.totalProducts || products.length, icon: '📦', color: 'bg-amber-50 text-amber-700' },
@@ -263,9 +296,17 @@ export default function AdminDashboard() {
             <p className="text-xs font-bold uppercase tracking-widest text-brand-gold">Admin Panel</p>
             <h1 className="mt-1 text-2xl font-extrabold text-[#131921]">Cindy Nat Enterprise</h1>
           </div>
-          <button onClick={loadAll} className="rounded-full border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">
-            ↻ Refresh
-          </button>
+          <div className="flex items-center gap-2">
+            <button onClick={loadAll} className="rounded-full border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">
+              ↻ Refresh
+            </button>
+            <button
+              onClick={handleLogout}
+              className="rounded-full border border-red-200 bg-red-50 px-4 py-2 text-sm font-semibold text-red-600 hover:bg-red-100 transition"
+            >
+              Sign Out
+            </button>
+          </div>
         </div>
 
         {error && <div className="mb-4 rounded-lg bg-red-50 p-4 text-sm text-red-700">{error}</div>}
@@ -310,6 +351,53 @@ export default function AdminDashboard() {
                           </div>
                         ))}</div>;
                   })()}
+                </div>
+
+                {/* Session Log */}
+                <div className="rounded-lg bg-white p-6 shadow-sm">
+                  <h2 className="mb-4 text-lg font-bold text-slate-900">🔐 Admin Session Log</h2>
+                  {sessions.length === 0 ? (
+                    <p className="text-sm text-slate-500">No sessions recorded yet.</p>
+                  ) : (
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-sm">
+                        <thead>
+                          <tr className="border-b text-left text-xs font-bold uppercase text-slate-500">
+                            <th className="pb-3 pr-4">Admin</th>
+                            <th className="pb-3 pr-4">Logged In</th>
+                            <th className="pb-3 pr-4">Logged Out</th>
+                            <th className="pb-3 pr-4">Duration</th>
+                            <th className="pb-3">Status</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y">
+                          {sessions.map((s) => {
+                            const active = !s.logoutAt;
+                            const dur = duration(s.loginAt, s.logoutAt);
+                            return (
+                              <tr key={s._id} className={active ? 'bg-green-50' : ''}>
+                                <td className="py-3 pr-4 font-medium text-slate-800">{s.email}</td>
+                                <td className="py-3 pr-4 text-slate-600">
+                                  <span title={new Date(s.loginAt).toLocaleString()}>{timeAgo(s.loginAt)}</span>
+                                </td>
+                                <td className="py-3 pr-4 text-slate-600">
+                                  {s.logoutAt
+                                    ? <span title={new Date(s.logoutAt).toLocaleString()}>{timeAgo(s.logoutAt)}</span>
+                                    : <span className="text-slate-400">—</span>}
+                                </td>
+                                <td className="py-3 pr-4 text-slate-600">{dur || '—'}</td>
+                                <td className="py-3">
+                                  <span className={`rounded-full px-2 py-1 text-xs font-semibold ${active ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-600'}`}>
+                                    {active ? '● Active' : 'Ended'}
+                                  </span>
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
                 </div>
 
                 <div className="rounded-lg bg-white p-6 shadow-sm">

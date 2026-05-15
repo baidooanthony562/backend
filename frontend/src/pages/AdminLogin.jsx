@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { adminLogin } from '../utils/api';
-import { isAdmin, saveAdminToken } from '../utils/auth';
+import { isAdmin, saveAdminToken, saveAdminSessionId } from '../utils/auth';
 
 export default function AdminLogin() {
   const navigate = useNavigate();
@@ -22,6 +22,7 @@ export default function AdminLogin() {
     try {
       const { data } = await adminLogin({ email, password });
       saveAdminToken(data.token);
+      if (data.sessionId) saveAdminSessionId(data.sessionId);
       navigate('/admin');
     } catch (err) {
       setError(err.response?.data?.message || 'Invalid admin credentials. Please try again.');
