@@ -4,7 +4,7 @@ import {
   fetchDashboard, fetchAllUsers, fetchAllOrders, fetchProducts,
   updateOrderStatus, createProduct, updateProduct, deleteProduct,
   fetchPromos, createPromoAdmin, deletePromoAdmin,
-  adminLogout, fetchAdminSessions,
+  adminLogout, fetchAdminSessions, fetchDailySales,
 } from '../utils/api';
 import { isAdmin, getAdminToken, getAdminSessionId, logout } from '../utils/auth';
 import { getProducts, saveProducts } from '../utils/productStore';
@@ -72,6 +72,10 @@ export default function AdminDashboard() {
   const [sessions, setSessions] = useState([]);
   const [now, setNow] = useState(Date.now());
 
+  // Daily sales
+  const [dailySales, setDailySales] = useState([]);
+  const [salesRange, setSalesRange] = useState(30);
+
   useEffect(() => {
     if (!isAdmin()) { navigate('/admin/login'); return; }
     loadAll();
@@ -84,13 +88,14 @@ export default function AdminDashboard() {
     setLoading(true);
     setError('');
     try {
-      const [dashRes, prodRes, orderRes, userRes, promoRes, sessionRes] = await Promise.all([
+      const [dashRes, prodRes, orderRes, userRes, promoRes, sessionRes, salesRes] = await Promise.all([
         fetchDashboard(token),
         fetchProducts(),
         fetchAllOrders(token),
         fetchAllUsers(token),
         fetchPromos(token),
         fetchAdminSessions(token),
+        fetchDailySales(token, salesRange),
       ]);
       setStats(dashRes.data);
       saveProducts(prodRes.data);
@@ -99,6 +104,7 @@ export default function AdminDashboard() {
       setUsers(userRes.data);
       setPromos(promoRes.data);
       setSessions(sessionRes.data);
+      setDailySales(salesRes.data);
     } catch {
       setProducts(getProducts());
     } finally {
@@ -341,6 +347,103 @@ export default function AdminDashboard() {
                       <p className="mt-1 text-sm font-semibold">{s.label}</p>
                     </div>
                   ))}
+                </div>
+
+                {/* ── DAILY SALES ── */}
+                <div className="rounded-lg bg-white p-6 shadow-sm">
+                  <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+                    <h2 className="text-lg font-bold text-slate-900">📈 Daily Sales</h2>
+                    <div className="flex gap-2">
+                      {[7, 14, 30].map((d) => (
+                        <button
+                          key={d}
+                          onClick={async () => {
+                            setSalesRange(d);
+                            try {
+                              const res = await fetchDailySales(token, d);
+                              setDailySales(res.data);
+                            } catch { /* non-critical */ }
+                          }}
+                          className={`rounded-full px-3 py-1 text-xs font-semibold transition ${salesRange === d ? 'bg-brand-gold text-black' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}
+                        >
+                          {d}d
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {dailySales.length === 0 ? (
+                    <p className="text-sm text-slate-500">No sales data yet.</p>
+                  ) : (() => {
+                    const maxRevenue = Math.max(...dailySales.map((d) => d.revenue), 1);
+                    const totalRevenue = dailySales.reduce((s, d) => s + d.revenue, 0);
+                    const totalOrders = dailySales.reduce((s, d) => s + d.orders, 0);
+                    const activeDays = dailySales.filter((d) => d.orders > 0).length;
+
+                    return (
+                      <>
+                        {/* Summary row */}
+                        <div className="mb-5 grid grid-cols-3 gap-3 text-center">
+                          <div className="rounded-lg bg-green-50 px-3 py-3">
+                            <p className="text-lg font-extrabold text-green-700">₵{totalRevenue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+                            <p className="mt-0.5 text-xs text-green-600">Revenue</p>
+                          </div>
+                          <div className="rounded-lg bg-purple-50 px-3 py-3">
+                            <p className="text-lg font-extrabold text-purple-700">{totalOrders}</p>
+                            <p className="mt-0.5 text-xs text-purple-600">Orders</p>
+                          </div>
+                          <div className="rounded-lg bg-amber-50 px-3 py-3">
+                            <p className="text-lg font-extrabold text-amber-700">{activeDays}</p>
+                            <p className="mt-0.5 text-xs text-amber-600">Active days</p>
+                          </div>
+                        </div>
+
+                        {/* Bar chart */}
+                        <div className="flex items-end gap-[3px] overflow-x-auto pb-2" style={{ height: '120px' }}>
+                          {dailySales.map((d) => {
+                            const pct = maxRevenue > 0 ? (d.revenue / maxRevenue) * 100 : 0;
+                            const label = new Date(d.date + 'T00:00:00').toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+                            return (
+                              <div key={d.date} className="group relative flex flex-1 flex-col items-center justify-end" style={{ minWidth: '18px', height: '100%' }}>
+                                <div
+                                  className={`w-full rounded-t transition-all ${d.revenue > 0 ? 'bg-brand-gold' : 'bg-slate-100'}`}
+                                  style={{ height: `${Math.max(pct, d.revenue > 0 ? 4 : 2)}%` }}
+                                />
+                                {/* Tooltip */}
+                                <div className="pointer-events-none absolute bottom-full mb-1 hidden rounded bg-slate-800 px-2 py-1 text-xs text-white group-hover:block whitespace-nowrap z-10">
+                                  {label}<br />₵{d.revenue.toFixed(2)}<br />{d.orders} order{d.orders !== 1 ? 's' : ''}
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+
+                        {/* Table — last 7 days with sales */}
+                        <div className="mt-5 overflow-x-auto">
+                          <table className="w-full text-sm">
+                            <thead>
+                              <tr className="border-b text-left text-xs font-bold uppercase text-slate-500">
+                                <th className="pb-2 pr-4">Date</th>
+                                <th className="pb-2 pr-4 text-right">Orders</th>
+                                <th className="pb-2 text-right">Revenue</th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y">
+                              {[...dailySales].reverse().filter((d) => d.orders > 0).slice(0, 10).map((d) => (
+                                <tr key={d.date}>
+                                  <td className="py-2 pr-4 text-slate-700">
+                                    {new Date(d.date + 'T00:00:00').toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })}
+                                  </td>
+                                  <td className="py-2 pr-4 text-right font-semibold text-slate-800">{d.orders}</td>
+                                  <td className="py-2 text-right font-semibold text-green-700">₵{d.revenue.toFixed(2)}</td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      </>
+                    );
+                  })()}
                 </div>
 
                 <div className="rounded-lg bg-white p-6 shadow-sm">

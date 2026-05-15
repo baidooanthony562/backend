@@ -106,4 +106,44 @@ const getAdminSessions = asyncHandler(async (req, res) => {
   res.json(sessions);
 });
 
-module.exports = { adminLogin, adminLogout, getAdminSessions, getDashboardStats, getUsers };
+const getDailySales = asyncHandler(async (req, res) => {
+  const days = Math.min(parseInt(req.query.days) || 30, 90);
+  const since = new Date();
+  since.setDate(since.getDate() - (days - 1));
+  since.setHours(0, 0, 0, 0);
+
+  const data = await Order.aggregate([
+    { $match: { status: { $ne: 'Cancelled' }, createdAt: { $gte: since } } },
+    {
+      $group: {
+        _id: {
+          year: { $year: '$createdAt' },
+          month: { $month: '$createdAt' },
+          day: { $dayOfMonth: '$createdAt' },
+        },
+        orders: { $sum: 1 },
+        revenue: { $sum: '$totalPrice' },
+      },
+    },
+    { $sort: { '_id.year': 1, '_id.month': 1, '_id.day': 1 } },
+  ]);
+
+  // Fill in zero-value days so the chart has a continuous x-axis
+  const map = {};
+  for (const row of data) {
+    const key = `${row._id.year}-${String(row._id.month).padStart(2, '0')}-${String(row._id.day).padStart(2, '0')}`;
+    map[key] = { orders: row.orders, revenue: row.revenue };
+  }
+
+  const result = [];
+  for (let i = 0; i < days; i++) {
+    const d = new Date(since);
+    d.setDate(since.getDate() + i);
+    const key = d.toISOString().slice(0, 10);
+    result.push({ date: key, orders: map[key]?.orders || 0, revenue: map[key]?.revenue || 0 });
+  }
+
+  res.json(result);
+});
+
+module.exports = { adminLogin, adminLogout, getAdminSessions, getDashboardStats, getUsers, getDailySales };
