@@ -143,16 +143,20 @@ const getUserProfile = asyncHandler(async (req, res) => {
 
 const forgotPassword = asyncHandler(async (req, res) => {
   const { email } = req.body;
+  console.log('[ForgotPassword] Request received for:', email);
 
   if (!email || !EMAIL_RE.test(String(email).trim())) {
-    // Return generic response — don't reveal format validation either
+    console.log('[ForgotPassword] Invalid email format, returning generic response');
     return res.json({ message: 'If that email is registered, a reset link has been sent.' });
   }
 
   // Always return the same message — never reveal whether email exists
   const genericResponse = { message: 'If that email is registered, a reset link has been sent.' };
 
-  const user = await User.findOne({ email: String(email).toLowerCase().trim() });
+  const normalizedEmail = String(email).toLowerCase().trim();
+  console.log('[ForgotPassword] Looking up user:', normalizedEmail);
+  const user = await User.findOne({ email: normalizedEmail });
+  console.log('[ForgotPassword] User found:', !!user);
   if (!user) return res.json(genericResponse);
 
   const rawToken = crypto.randomBytes(32).toString('hex');
