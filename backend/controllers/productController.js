@@ -133,13 +133,12 @@ const updateProduct = asyncHandler(async (req, res) => {
   // Validate numeric fields whenever any of them is provided
   const hasNumericUpdate =
     req.body.price !== undefined ||
-    req.body.stock !== undefined ||
     req.body.discount !== undefined;
 
   if (hasNumericUpdate) {
     validateProductFields({
       price: req.body.price ?? product.price,
-      stock: req.body.stock ?? product.stock,
+      stock: product.stock,
       discount: req.body.discount ?? product.discount,
       wholesalePrice: req.body.wholesalePrice,
       wholesaleMinQty: req.body.wholesaleMinQty,
@@ -149,7 +148,11 @@ const updateProduct = asyncHandler(async (req, res) => {
   if (req.body.name !== undefined) product.name = String(req.body.name).trim().slice(0, 200);
   if (req.body.description !== undefined) product.description = String(req.body.description).trim().slice(0, 5000);
   if (req.body.price !== undefined) product.price = Number(req.body.price);
-  if (req.body.stock !== undefined) product.stock = Number(req.body.stock);
+  // Stock only increases via restock — never manually set on edit to prevent accidental reduction
+  if (req.body.restock !== undefined) {
+    const qty = Math.floor(Number(req.body.restock));
+    if (qty > 0) product.stock += qty;
+  }
   if (req.body.discount !== undefined) product.discount = Number(req.body.discount);
   if (req.body.category) product.category = (await resolveCategory(req.body.category)) || product.category;
   if (req.body.images !== undefined) product.images = req.body.images.slice(0, MAX_IMAGES);

@@ -35,7 +35,7 @@ const ALL_CATEGORIES = [
 const EMPTY = {
   name: '', description: '', price: '', stock: '',
   discount: '0', wholesalePrice: '', wholesaleMinQty: '',
-  category: '', image: '', bestseller: false,
+  category: '', image: '', bestseller: false, restock: '',
 };
 
 export default function AdminDashboard() {
@@ -142,7 +142,6 @@ export default function AdminDashboard() {
       const payload = {
         ...form,
         price: Number(form.price),
-        stock: Number(form.stock),
         discount: Number(form.discount),
         wholesalePrice: form.wholesalePrice ? Number(form.wholesalePrice) : 0,
         wholesaleMinQty: form.wholesaleMinQty ? Number(form.wholesaleMinQty) : 0,
@@ -150,8 +149,14 @@ export default function AdminDashboard() {
       };
 
       if (editing) {
+        // Stock only increases via restock — never manually set during edit
+        if (form.restock && Number(form.restock) > 0) {
+          payload.restock = Number(form.restock);
+        }
+        delete payload.stock;
         await updateProduct(editing, payload, token);
       } else {
+        payload.stock = Number(form.stock);
         await createProduct(payload, token);
       }
 
@@ -166,7 +171,9 @@ export default function AdminDashboard() {
       setShowForm(false);
       showToast(editing ? 'Product updated.' : 'Product created.');
     } catch (err) {
-      setFormError(err.response?.data?.message || 'Failed to save product. Please try again.');
+      const msg = err.response?.data?.message || 'Failed to save product. Please try again.';
+      setFormError(msg);
+      showToast(msg, 'error');
     } finally {
       setSaving(false);
     }
@@ -423,9 +430,27 @@ export default function AdminDashboard() {
                             <input type="number" min="0" value={form.price} onChange={(e) => setForm({ ...form, price: e.target.value })} placeholder="e.g. 320" className="w-full rounded-lg border px-3 py-2 text-sm outline-none focus:border-brand-gold" />
                           </div>
                           <div>
-                            <label className="mb-1 block text-xs font-semibold text-slate-600">Stock *</label>
-                            <input type="number" min="0" value={form.stock} onChange={(e) => setForm({ ...form, stock: e.target.value })} placeholder="e.g. 10" className="w-full rounded-lg border px-3 py-2 text-sm outline-none focus:border-brand-gold" />
+                            {editing ? (
+                              <>
+                                <label className="mb-1 block text-xs font-semibold text-slate-600">Current Stock</label>
+                                <div className="flex items-center gap-2">
+                                  <span className="rounded-lg border bg-slate-100 px-3 py-2 text-sm font-bold text-slate-700 w-full">{form.stock}</span>
+                                </div>
+                              </>
+                            ) : (
+                              <>
+                                <label className="mb-1 block text-xs font-semibold text-slate-600">Stock *</label>
+                                <input type="number" min="0" value={form.stock} onChange={(e) => setForm({ ...form, stock: e.target.value })} placeholder="e.g. 10" className="w-full rounded-lg border px-3 py-2 text-sm outline-none focus:border-brand-gold" />
+                              </>
+                            )}
                           </div>
+                          {editing && (
+                            <div className="sm:col-span-2">
+                              <label className="mb-1 block text-xs font-semibold text-slate-600">Add Stock (Restock)</label>
+                              <input type="number" min="1" value={form.restock} onChange={(e) => setForm({ ...form, restock: e.target.value })} placeholder="e.g. 20 — adds to current stock" className="w-full rounded-lg border px-3 py-2 text-sm outline-none focus:border-brand-gold" />
+                              <p className="mt-1 text-xs text-slate-400">Stock only reduces automatically when customers purchase. Enter a number here to add more inventory.</p>
+                            </div>
+                          )}
                           <div className="sm:col-span-2">
                             <label className="mb-1 block text-xs font-semibold text-slate-600">Discount (%)</label>
                             <input type="number" min="0" max="100" value={form.discount} onChange={(e) => setForm({ ...form, discount: e.target.value })} placeholder="e.g. 10" className="w-full rounded-lg border px-3 py-2 text-sm outline-none focus:border-brand-gold" />
