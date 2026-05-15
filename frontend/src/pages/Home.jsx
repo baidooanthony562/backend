@@ -386,6 +386,36 @@ export default function Home() {
           ))}
         </div>
 
+        {/* ── DIASPORA BANNER ── */}
+        <div className="overflow-hidden rounded-xl bg-gradient-to-br from-[#0d1b2a] to-[#1a3a2a] shadow-sm">
+          <div className="flex flex-col gap-6 p-8 md:flex-row md:items-center md:p-10">
+            <div className="flex-1 text-white">
+              <span className="inline-block rounded-full border border-brand-gold/40 bg-brand-gold/10 px-3 py-1 text-xs font-bold uppercase tracking-widest text-brand-gold">
+                For Ghanaians Abroad
+              </span>
+              <h2 className="mt-3 text-2xl font-extrabold md:text-3xl">
+                Gift Appliances to Family Back Home
+              </h2>
+              <p className="mt-2 text-sm text-slate-300 md:text-base">
+                Based in the UK, US, Canada or Europe? Pay online and we deliver straight to your family in Ghana. No stress, no middleman.
+              </p>
+              <ul className="mt-4 space-y-1.5 text-sm text-slate-300">
+                <li className="flex items-center gap-2"><span className="text-brand-gold">✓</span> Pay with MoMo or international card</li>
+                <li className="flex items-center gap-2"><span className="text-brand-gold">✓</span> Delivered to any address in Ghana</li>
+                <li className="flex items-center gap-2"><span className="text-brand-gold">✓</span> WhatsApp updates every step of the way</li>
+              </ul>
+            </div>
+            <div className="flex shrink-0 flex-col gap-3">
+              <Link to="/shop" className="rounded-full bg-brand-gold px-8 py-3.5 text-center text-sm font-extrabold text-black transition hover:bg-yellow-400">
+                Shop &amp; Gift Now
+              </Link>
+              <a href="https://wa.me/233257543723" target="_blank" rel="noreferrer" className="rounded-full border border-white/30 px-8 py-3.5 text-center text-sm font-semibold text-white transition hover:bg-white/10">
+                💬 WhatsApp Us
+              </a>
+            </div>
+          </div>
+        </div>
+
         {/* ── SIGN IN PROMPT ── */}
         <div className="rounded-xl bg-white p-8 text-center shadow-sm">
           <p className="text-xs font-bold uppercase tracking-widest text-brand-gold">Member Exclusive</p>

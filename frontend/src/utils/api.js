@@ -29,6 +29,8 @@ export const loginUser = (payload) => api.post('/auth/login', payload);
 export const registerUser = (payload) => api.post('/auth/register', payload);
 export const forgotPassword = (email) => api.post('/auth/forgot-password', { email });
 export const resetPassword = (payload) => api.post('/auth/reset-password', payload);
+export const verifyEmail = (token) => api.get(`/auth/verify-email/${token}`);
+export const resendVerification = (email) => api.post('/auth/resend-verification', { email });
 export const fetchCart = (token) => api.get('/cart', authConfig(token));
 export const updateCart = (items, token) => api.post('/cart', { items }, authConfig(token));
 export const fetchUserProfile = (token) => api.get('/auth/profile', authConfig(token));

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { loginUser } from '../utils/api';
+import { loginUser, resendVerification } from '../utils/api';
 import { isAuthenticated } from '../utils/auth';
 import { showToast } from '../components/Toast';
 
@@ -8,15 +8,9 @@ export default function Login() {
   const navigate = useNavigate();
   const location = useLocation();
   const rawRedirect = new URLSearchParams(location.search).get('redirect') || '/';
-  // Only allow safe relative paths. Reject // prefix (protocol-relative URL bypass)
-  // and anything that isn't a simple internal path.
   const isSafeRedirect = (p) => {
     if (!p || !p.startsWith('/') || p.startsWith('//')) return false;
-    try {
-      return new URL(p, 'https://x').hostname === 'x';
-    } catch {
-      return false;
-    }
+    try { return new URL(p, 'https://x').hostname === 'x'; } catch { return false; }
   };
   const redirectTo = isSafeRedirect(rawRedirect) ? rawRedirect : '/';
 
@@ -27,12 +21,16 @@ export default function Login() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [showPass, setShowPass] = useState(false);
+  const [notVerified, setNotVerified] = useState(false);
+  const [resending, setResending] = useState(false);
+  const [resendDone, setResendDone] = useState(false);
 
   const handleSubmit = async (event) => {
     event.preventDefault();
     if (loading) return;
     setLoading(true);
     setError('');
+    setNotVerified(false);
     try {
       const { data } = await loginUser({ email, password });
       localStorage.setItem('cindyNutToken', data.token);
@@ -41,9 +39,26 @@ export default function Login() {
       showToast(`Welcome back, ${data.name?.split(' ')[0] || 'there'}!`);
       navigate(redirectTo);
     } catch (err) {
-      setError(err.response?.data?.message || 'Invalid email or password. Please try again.');
+      const msg = err.response?.data?.message || 'Invalid email or password. Please try again.';
+      if (err.response?.status === 403 && msg.toLowerCase().includes('verify')) {
+        setNotVerified(true);
+      } else {
+        setError(msg);
+      }
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleResend = async () => {
+    setResending(true);
+    try {
+      await resendVerification(email);
+      setResendDone(true);
+    } catch {
+      setResendDone(true); // generic response — always show success
+    } finally {
+      setResending(false);
     }
   };
 
@@ -59,6 +74,24 @@ export default function Login() {
         {error && (
           <div className="mb-4 flex items-center gap-2 rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700">
             <span>⚠️</span> {error}
+          </div>
+        )}
+
+        {notVerified && (
+          <div className="mb-4 rounded-lg bg-amber-50 px-4 py-4 text-sm text-amber-800">
+            <p className="font-semibold">Email not verified</p>
+            <p className="mt-1">Please check your inbox and click the verification link before signing in.</p>
+            {resendDone ? (
+              <p className="mt-2 font-semibold text-green-700">New verification link sent — check your inbox.</p>
+            ) : (
+              <button
+                onClick={handleResend}
+                disabled={resending}
+                className="mt-2 rounded-full bg-amber-600 px-4 py-1.5 text-xs font-bold text-white hover:bg-amber-700 disabled:opacity-60"
+              >
+                {resending ? 'Sending...' : 'Resend verification email'}
+              </button>
+            )}
           </div>
         )}
 

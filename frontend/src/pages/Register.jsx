@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { registerUser } from '../utils/api';
 import { isAuthenticated } from '../utils/auth';
-import { showToast } from '../components/Toast';
 
 export default function Register() {
   const navigate = useNavigate();
@@ -11,14 +10,15 @@ export default function Register() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [showPass, setShowPass] = useState(false);
+  const [done, setDone] = useState(false);
 
   const handleChange = (e) => setForm({ ...form, [e.target.name]: e.target.value });
 
   const handleSubmit = async (event) => {
     event.preventDefault();
     if (loading) return;
-    if (form.password.length < 6) {
-      setError('Password must be at least 6 characters.');
+    if (form.password.length < 8) {
+      setError('Password must be at least 8 characters.');
       return;
     }
     if (form.password !== form.confirm) {
@@ -28,18 +28,38 @@ export default function Register() {
     setLoading(true);
     setError('');
     try {
-      const { data } = await registerUser({ name: form.name, email: form.email, password: form.password });
-      localStorage.setItem('cindyNutToken', data.token);
-      localStorage.setItem('cindyNutUser', JSON.stringify(data));
-      window.dispatchEvent(new Event('storage'));
-      showToast(`Welcome to Cindy Nat, ${data.name?.split(' ')[0]}!`);
-      navigate('/');
+      await registerUser({ name: form.name, email: form.email, password: form.password });
+      setDone(true);
     } catch (err) {
       setError(err.response?.data?.message || 'Registration failed. Please try again.');
     } finally {
       setLoading(false);
     }
   };
+
+  if (done) {
+    return (
+      <section className="mx-auto max-w-md px-4 pb-24 pt-8 md:px-0">
+        <div className="rounded-xl border border-slate-200 bg-white p-10 text-center shadow-sm">
+          <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-green-100 text-3xl">
+            📧
+          </div>
+          <h1 className="text-2xl font-extrabold text-slate-900">Check your email</h1>
+          <p className="mt-3 text-slate-500">
+            We sent a verification link to <strong>{form.email}</strong>.<br />
+            Click the link to activate your account.
+          </p>
+          <p className="mt-4 text-xs text-slate-400">
+            Didn't receive it? Check your spam folder or{' '}
+            <Link to="/login" className="font-semibold text-[#C7511F] hover:underline">
+              go to login to resend
+            </Link>
+            .
+          </p>
+        </div>
+      </section>
+    );
+  }
 
   return (
     <section className="mx-auto max-w-md px-4 pb-24 pt-8 md:px-0">
@@ -89,8 +109,8 @@ export default function Register() {
                 value={form.password}
                 onChange={handleChange}
                 required
-                minLength={6}
-                placeholder="Min. 6 characters"
+                minLength={8}
+                placeholder="Min. 8 characters"
                 className="w-full rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 pr-11 text-sm outline-none focus:border-brand-gold focus:bg-white"
               />
               <button type="button" onClick={() => setShowPass(!showPass)} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700">
