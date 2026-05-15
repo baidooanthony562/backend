@@ -211,15 +211,20 @@ export default function AdminDashboard() {
   };
 
   const handleOrderStatus = async (orderId, status) => {
-    // Optimistic update — show new status immediately so dropdown doesn't snap back
     const snapshot = orders;
     setOrders((prev) => prev.map((o) => o._id === orderId ? { ...o, status } : o));
     setUpdatingOrder(orderId);
     try {
-      await updateOrderStatus(orderId, status, token);
-      showToast(`Order status updated to ${status}.`);
+      const { data } = await updateOrderStatus(orderId, status, token);
+      if (data?.deleted) {
+        // Order was cancelled and cleared — remove from list entirely
+        setOrders((prev) => prev.filter((o) => o._id !== orderId));
+        showToast('Order cancelled and cleared.');
+      } else {
+        showToast(`Order status updated to ${status}.`);
+      }
     } catch (err) {
-      setOrders(snapshot); // revert on failure
+      setOrders(snapshot);
       showToast(err.response?.data?.message || 'Failed to update order status.', 'error');
     } finally {
       setUpdatingOrder(null);

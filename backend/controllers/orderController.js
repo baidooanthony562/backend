@@ -227,6 +227,17 @@ const updateOrderStatus = asyncHandler(async (req, res) => {
     throw new Error('Order not found');
   }
 
+  // Cancelling — restore stock for every item then delete the order
+  if (status === 'Cancelled' && order.status !== 'Cancelled') {
+    await Promise.allSettled(
+      order.orderItems.map((item) =>
+        Product.findByIdAndUpdate(item.product, { $inc: { stock: item.quantity } })
+      )
+    );
+    await Order.findByIdAndDelete(order._id);
+    return res.json({ deleted: true, message: 'Order cancelled and removed.' });
+  }
+
   order.status = status || order.status;
   order.isDelivered = order.status === 'Delivered';
   if (order.isDelivered && !order.deliveredAt) order.deliveredAt = Date.now();
