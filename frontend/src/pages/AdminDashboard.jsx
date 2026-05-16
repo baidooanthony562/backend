@@ -280,6 +280,22 @@ export default function AdminDashboard() {
     return new Date(date).toLocaleDateString();
   };
 
+  const formatSessionTime = (date) =>
+    new Date(date).toLocaleString(undefined, {
+      weekday: 'short', month: 'short', day: 'numeric',
+      hour: '2-digit', minute: '2-digit',
+    });
+
+  const shopAlert = (() => {
+    const h = new Date(now).getHours();
+    const m = new Date(now).getMinutes();
+    const time = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+    if (h < 8) return { type: 'info', msg: `Shop opens at 8:00 AM — current time is ${time}` };
+    if (h >= 18) return { type: 'closed', msg: `Shop is closed (past 6:00 PM) — current time is ${time}. Remember to lock up!` };
+    if (h >= 17) return { type: 'warn', msg: `Approaching closing time — shop closes at 6:00 PM. Current time: ${time}` };
+    return null;
+  })();
+
   const duration = (login, logout) => {
     if (!logout) return null;
     const diff = Math.floor((new Date(logout) - new Date(login)) / 1000);
@@ -319,6 +335,19 @@ export default function AdminDashboard() {
             </button>
           </div>
         </div>
+
+        {shopAlert && (
+          <div className={`mb-4 flex items-center gap-3 rounded-lg px-4 py-3 text-sm font-semibold ${
+            shopAlert.type === 'closed' ? 'bg-red-100 text-red-800' :
+            shopAlert.type === 'warn'   ? 'bg-amber-100 text-amber-800' :
+                                          'bg-blue-50 text-blue-700'
+          }`}>
+            <span className="text-lg">
+              {shopAlert.type === 'closed' ? '🔒' : shopAlert.type === 'warn' ? '⏰' : 'ℹ️'}
+            </span>
+            {shopAlert.msg}
+          </div>
+        )}
 
         {error && <div className="mb-4 rounded-lg bg-red-50 p-4 text-sm text-red-700">{error}</div>}
 
@@ -486,12 +515,16 @@ export default function AdminDashboard() {
                               <tr key={s._id} className={active ? 'bg-green-50' : ''}>
                                 <td className="py-3 pr-4 font-medium text-slate-800">{s.email}</td>
                                 <td className="py-3 pr-4 text-slate-600">
-                                  <span title={new Date(s.loginAt).toLocaleString()}>{timeAgo(s.loginAt)}</span>
+                                  <span className="block text-slate-800">{formatSessionTime(s.loginAt)}</span>
+                                  <span className="text-xs text-slate-400">{timeAgo(s.loginAt)}</span>
                                 </td>
                                 <td className="py-3 pr-4 text-slate-600">
-                                  {s.logoutAt
-                                    ? <span title={new Date(s.logoutAt).toLocaleString()}>{timeAgo(s.logoutAt)}</span>
-                                    : <span className="text-slate-400">—</span>}
+                                  {s.logoutAt ? (
+                                    <>
+                                      <span className="block text-slate-800">{formatSessionTime(s.logoutAt)}</span>
+                                      <span className="text-xs text-slate-400">{timeAgo(s.logoutAt)}</span>
+                                    </>
+                                  ) : <span className="text-slate-400">—</span>}
                                 </td>
                                 <td className="py-3 pr-4 text-slate-600">{dur || '—'}</td>
                                 <td className="py-3">
