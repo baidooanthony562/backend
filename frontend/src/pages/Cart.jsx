@@ -281,7 +281,7 @@ export default function Cart() {
             )}
             <div className="flex items-center justify-between text-sm text-slate-600">
               <span>Delivery</span>
-              <span>Free over ₵100</span>
+              <span>Free over ₵5,000</span>
             </div>
             <div className="border-t border-slate-200 pt-4 text-lg font-semibold text-slate-900">
               <span>Total</span>

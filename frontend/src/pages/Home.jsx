@@ -179,7 +179,7 @@ export default function Home() {
         {/* ── TRUST BAR ── */}
         <div className="grid grid-cols-2 gap-2 md:grid-cols-4">
           {[
-            { icon: '🚚', title: 'Fast Delivery', sub: 'Free on orders over ₵100' },
+            { icon: '🚚', title: 'Fast Delivery', sub: 'Free on orders over ₵5,000' },
             { icon: '↩️', title: 'Easy Returns', sub: '30-day return policy' },
             { icon: '🔒', title: 'Secure Checkout', sub: '100% safe & encrypted' },
             { icon: '📞', title: '24/7 Support', sub: '0257543723 — Kumasi' },
