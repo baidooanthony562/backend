@@ -77,6 +77,10 @@ export default function AdminDashboard() {
   const [dailySales, setDailySales] = useState([]);
   const [salesRange, setSalesRange] = useState(30);
 
+  // Order filters
+  const [orderSearch, setOrderSearch] = useState('');
+  const [orderStatusFilter, setOrderStatusFilter] = useState('');
+
   // Session termination
   const [terminated, setTerminated] = useState(false);
 
@@ -800,49 +804,83 @@ export default function AdminDashboard() {
             )}
 
             {/* ── ORDERS ── */}
-            {tab === 'Orders' && (
-              <div className="space-y-4">
-                <p className="text-sm text-slate-600">{orders.length} total orders</p>
-                <div className="overflow-x-auto rounded-lg bg-white shadow-sm">
-                  <table className="w-full text-sm">
-                    <thead>
-                      <tr className="border-b bg-slate-50 text-left text-xs font-bold uppercase text-slate-500">
-                        <th className="px-4 py-3">Order ID</th>
-                        <th className="px-4 py-3">Customer</th>
-                        <th className="px-4 py-3">Items</th>
-                        <th className="px-4 py-3">Total</th>
-                        <th className="px-4 py-3">Date</th>
-                        <th className="px-4 py-3">Status</th>
-                        <th className="px-4 py-3">Update</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y">
-                      {orders.length === 0
-                        ? <tr><td colSpan="7" className="px-4 py-8 text-center text-slate-500">No orders yet.</td></tr>
-                        : orders.map((o) => (
-                          <tr key={o._id} className="hover:bg-slate-50">
-                            <td className="px-4 py-3 font-mono text-xs font-semibold">#{o._id.slice(-6).toUpperCase()}</td>
-                            <td className="px-4 py-3">{o.user?.name || 'Customer'}</td>
-                            <td className="px-4 py-3">{o.orderItems?.length || 0}</td>
-                            <td className="px-4 py-3 font-bold">₵{Number(o.totalPrice || 0).toFixed(2)}</td>
-                            <td className="px-4 py-3 text-slate-500">{new Date(o.createdAt).toLocaleDateString()}</td>
-                            <td className="px-4 py-3">
-                              <span className={`rounded-full px-2 py-1 text-xs font-semibold ${STATUS_COLORS[o.status] || 'bg-slate-100 text-slate-600'}`}>{o.status}</span>
-                            </td>
-                            <td className="px-4 py-3">
-                              <select value={o.status} disabled={updatingOrder === o._id}
-                                onChange={(e) => handleOrderStatus(o._id, e.target.value)}
-                                className="rounded-lg border px-2 py-1 text-xs outline-none focus:border-brand-gold disabled:opacity-50">
-                                {['Pending', 'Processing', 'Shipped', 'Delivered', 'Cancelled'].map((s) => <option key={s}>{s}</option>)}
-                              </select>
-                            </td>
-                          </tr>
+            {tab === 'Orders' && (() => {
+              const q = orderSearch.trim().toLowerCase();
+              const filtered = orders.filter((o) => {
+                const matchSearch = !q ||
+                  o._id.slice(-6).toLowerCase().includes(q) ||
+                  (o.user?.name || '').toLowerCase().includes(q) ||
+                  (o.user?.email || '').toLowerCase().includes(q);
+                const matchStatus = !orderStatusFilter || o.status === orderStatusFilter;
+                return matchSearch && matchStatus;
+              });
+              return (
+                <div className="space-y-4">
+                  <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                    <p className="text-sm text-slate-600">
+                      {filtered.length} of {orders.length} orders
+                    </p>
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        value={orderSearch}
+                        onChange={(e) => setOrderSearch(e.target.value)}
+                        placeholder="Search by ID or customer..."
+                        className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-brand-gold w-56"
+                      />
+                      <select
+                        value={orderStatusFilter}
+                        onChange={(e) => setOrderStatusFilter(e.target.value)}
+                        className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-brand-gold"
+                      >
+                        <option value="">All statuses</option>
+                        {['Pending', 'Processing', 'Shipped', 'Delivered', 'Cancelled'].map((s) => (
+                          <option key={s}>{s}</option>
                         ))}
-                    </tbody>
-                  </table>
+                      </select>
+                    </div>
+                  </div>
+                  <div className="overflow-x-auto rounded-lg bg-white shadow-sm">
+                    <table className="w-full text-sm">
+                      <thead>
+                        <tr className="border-b bg-slate-50 text-left text-xs font-bold uppercase text-slate-500">
+                          <th className="px-4 py-3">Order ID</th>
+                          <th className="px-4 py-3">Customer</th>
+                          <th className="px-4 py-3">Items</th>
+                          <th className="px-4 py-3">Total</th>
+                          <th className="px-4 py-3">Date</th>
+                          <th className="px-4 py-3">Status</th>
+                          <th className="px-4 py-3">Update</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y">
+                        {filtered.length === 0
+                          ? <tr><td colSpan="7" className="px-4 py-8 text-center text-slate-500">No orders match your search.</td></tr>
+                          : filtered.map((o) => (
+                            <tr key={o._id} className="hover:bg-slate-50">
+                              <td className="px-4 py-3 font-mono text-xs font-semibold">#{o._id.slice(-6).toUpperCase()}</td>
+                              <td className="px-4 py-3">{o.user?.name || 'Customer'}</td>
+                              <td className="px-4 py-3">{o.orderItems?.length || 0}</td>
+                              <td className="px-4 py-3 font-bold">₵{Number(o.totalPrice || 0).toFixed(2)}</td>
+                              <td className="px-4 py-3 text-slate-500">{new Date(o.createdAt).toLocaleDateString()}</td>
+                              <td className="px-4 py-3">
+                                <span className={`rounded-full px-2 py-1 text-xs font-semibold ${STATUS_COLORS[o.status] || 'bg-slate-100 text-slate-600'}`}>{o.status}</span>
+                              </td>
+                              <td className="px-4 py-3">
+                                <select value={o.status} disabled={updatingOrder === o._id}
+                                  onChange={(e) => handleOrderStatus(o._id, e.target.value)}
+                                  className="rounded-lg border px-2 py-1 text-xs outline-none focus:border-brand-gold disabled:opacity-50">
+                                  {['Pending', 'Processing', 'Shipped', 'Delivered', 'Cancelled'].map((s) => <option key={s}>{s}</option>)}
+                                </select>
+                              </td>
+                            </tr>
+                          ))}
+                      </tbody>
+                    </table>
+                  </div>
                 </div>
-              </div>
-            )}
+              );
+            })()}
 
             {/* ── USERS ── */}
             {tab === 'Users' && (
