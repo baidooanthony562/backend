@@ -1,6 +1,7 @@
 const asyncHandler = require('express-async-handler');
 const bcrypt = require('bcryptjs');
 const User = require('../models/User');
+const { validatePassword } = require('../utils/passwordStrength');
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -62,10 +63,6 @@ const changePassword = asyncHandler(async (req, res) => {
     res.status(400);
     throw new Error('Current password and new password are required');
   }
-  if (newPassword.length < 8) {
-    res.status(400);
-    throw new Error('New password must be at least 8 characters');
-  }
   if (currentPassword === newPassword) {
     res.status(400);
     throw new Error('New password must be different from your current password');
@@ -75,6 +72,12 @@ const changePassword = asyncHandler(async (req, res) => {
   if (!user) {
     res.status(404);
     throw new Error('User not found');
+  }
+
+  const pwdErrors = validatePassword(newPassword, { name: user.name, email: user.email });
+  if (pwdErrors.length > 0) {
+    res.status(400);
+    throw new Error(`Password must: ${pwdErrors.join(', ')}`);
   }
 
   const isMatch = await bcrypt.compare(currentPassword, user.password);

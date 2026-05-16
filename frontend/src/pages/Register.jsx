@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { registerUser } from '../utils/api';
 import { isAuthenticated } from '../utils/auth';
+import PasswordStrength from '../components/PasswordStrength';
 
 export default function Register() {
   const navigate = useNavigate();
@@ -17,10 +18,6 @@ export default function Register() {
   const handleSubmit = async (event) => {
     event.preventDefault();
     if (loading) return;
-    if (form.password.length < 8) {
-      setError('Password must be at least 8 characters.');
-      return;
-    }
     if (form.password !== form.confirm) {
       setError('Passwords do not match.');
       return;
@@ -117,6 +114,7 @@ export default function Register() {
                 {showPass ? '🙈' : '👁️'}
               </button>
             </div>
+            <PasswordStrength password={form.password} userInfo={{ name: form.name, email: form.email }} />
           </div>
           <div>
             <label className="mb-1.5 block text-sm font-semibold text-slate-700">Confirm password</label>

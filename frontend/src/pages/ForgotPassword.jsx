@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { forgotPassword, verifyResetCode, resetPassword } from '../utils/api';
 import { showToast } from '../components/Toast';
+import PasswordStrength from '../components/PasswordStrength';
 
 export default function ForgotPassword() {
   const navigate = useNavigate();
@@ -207,6 +208,7 @@ export default function ForgotPassword() {
                 </button>
               </div>
             </div>
+            <PasswordStrength password={password} userInfo={{ email }} />
             <div>
               <label className="mb-1.5 block text-sm font-semibold text-slate-700">Confirm new password</label>
               <input

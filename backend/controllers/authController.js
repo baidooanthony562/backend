@@ -7,6 +7,7 @@ const { sendResendEmail } = require('../utils/email');
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const FRONTEND = process.env.FRONTEND_URL || 'https://backend-alpha-seven-54.vercel.app';
+const { validatePassword } = require('../utils/passwordStrength');
 
 const registerUser = asyncHandler(async (req, res) => {
   const { name, email, password, phone, address, city, country } = req.body;
@@ -23,12 +24,14 @@ const registerUser = asyncHandler(async (req, res) => {
     res.status(400);
     throw new Error('Invalid email address');
   }
-  if (String(password).length < 8) {
+  const normalizedEmail = String(email).toLowerCase().trim();
+
+  const pwdErrors = validatePassword(password, { name, email: normalizedEmail });
+  if (pwdErrors.length > 0) {
     res.status(400);
-    throw new Error('Password must be at least 8 characters');
+    throw new Error(`Password must: ${pwdErrors.join(', ')}`);
   }
 
-  const normalizedEmail = String(email).toLowerCase().trim();
   const existingUser = await User.findOne({ email: normalizedEmail });
   if (existingUser) {
     res.status(400);
@@ -268,12 +271,15 @@ const resetPassword = asyncHandler(async (req, res) => {
     res.status(400);
     throw new Error('Email, code and new password are required');
   }
-  if (String(password).length < 8) {
-    res.status(400);
-    throw new Error('Password must be at least 8 characters');
-  }
 
   const normalizedEmail = String(email).toLowerCase().trim();
+
+  const pwdErrors = validatePassword(password, { email: normalizedEmail });
+  if (pwdErrors.length > 0) {
+    res.status(400);
+    throw new Error(`Password must: ${pwdErrors.join(', ')}`);
+  }
+
   const hashedCode = crypto.createHash('sha256').update(String(code).trim()).digest('hex');
 
   const user = await User.findOne({
