@@ -199,18 +199,18 @@ export default function Cart() {
   };
 
   return (
-    <section className="mx-auto max-w-6xl px-4 pb-24 pt-8 md:px-8">
-      <div className="mb-10 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+    <section className="mx-auto max-w-6xl px-4 pb-20 pt-6 md:px-8">
+      <div className="mb-6 flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
         <div>
-          <p className="text-sm uppercase tracking-[0.3em] text-brand-gold">Your cart</p>
-          <h1 className="mt-3 text-4xl font-bold text-slate-900">Review items before checkout</h1>
+          <p className="text-xs font-bold uppercase tracking-widest text-brand-gold">Your cart</p>
+          <h1 className="mt-1 text-2xl font-bold text-slate-900">Review &amp; Checkout</h1>
         </div>
       </div>
 
-      <div className="grid gap-8 xl:grid-cols-[1.8fr_0.9fr]">
-        <div className="space-y-5">
+      <div className="grid gap-6 xl:grid-cols-[1.8fr_0.9fr]">
+        <div className="space-y-3">
           {cartItems.length === 0 ? (
-            <div className="rounded-3xl border border-slate-200 bg-white p-10 text-center text-slate-600">
+            <div className="rounded-xl border border-slate-200 bg-white p-8 text-center text-slate-600">
               Your cart is empty. <Link to="/shop" className="text-brand-dark underline">Browse products</Link>.
             </div>
           ) : (
@@ -221,8 +221,8 @@ export default function Cart() {
               const toWholesale = hasWholesale && !isWholesale ? item.wholesaleMinQty - item.quantity : 0;
 
               return (
-                <div key={itemId} className="flex flex-col gap-4 rounded-3xl border border-slate-200 bg-white p-6 sm:flex-row sm:items-center">
-                  <img src={item.image} alt={item.name} className="h-32 w-32 rounded-3xl object-cover" onError={(e) => { e.target.src = 'https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?auto=format&fit=crop&w=800&q=80'; }} />
+                <div key={itemId} className="flex flex-col gap-3 rounded-xl border border-slate-200 bg-white p-4 sm:flex-row sm:items-center">
+                  <img src={item.image} alt={item.name} className="h-24 w-24 rounded-lg object-cover" onError={(e) => { e.target.src = 'https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?auto=format&fit=crop&w=800&q=80'; }} />
                   <div className="flex-1">
                     <h2 className="text-xl font-semibold text-slate-900">{item.name}</h2>
                     <p className="mt-1 text-sm text-slate-500">{typeof item.category === 'string' ? item.category : item.category?.name || 'Product'}</p>
@@ -266,9 +266,9 @@ export default function Cart() {
           )}
         </div>
 
-        <div className="rounded-3xl border border-slate-200 bg-white p-8 shadow-sm">
-          <h2 className="text-xl font-semibold text-slate-900">Order summary</h2>
-          <div className="mt-6 space-y-4">
+        <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+          <h2 className="text-base font-bold text-slate-900">Order Summary</h2>
+          <div className="mt-4 space-y-3">
             <div className="flex items-center justify-between text-sm text-slate-600">
               <span>Subtotal</span>
               <span>₵{total.toFixed(2)}</span>
@@ -290,34 +290,34 @@ export default function Cart() {
           </div>
 
           <div className="mt-6 space-y-4">
-            <div className="rounded-3xl border border-slate-200 bg-slate-50 p-4">
+            <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
               <label className="block text-sm font-medium text-slate-700">Shipping address</label>
               <input
                 value={shipping.address}
                 onChange={(e) => setShipping({ ...shipping, address: e.target.value })}
                 placeholder="Street address"
-                className="mt-3 w-full rounded-3xl border border-slate-200 bg-white px-4 py-3 outline-none focus:border-brand-gold"
+                className="mt-3 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 outline-none focus:border-brand-gold"
               />
               <input
                 value={shipping.city}
                 onChange={(e) => setShipping({ ...shipping, city: e.target.value })}
                 placeholder="City"
-                className="mt-3 w-full rounded-3xl border border-slate-200 bg-white px-4 py-3 outline-none focus:border-brand-gold"
+                className="mt-3 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 outline-none focus:border-brand-gold"
               />
               <input
                 value={shipping.phone}
                 onChange={(e) => setShipping({ ...shipping, phone: e.target.value })}
                 placeholder="Phone number"
-                className="mt-3 w-full rounded-3xl border border-slate-200 bg-white px-4 py-3 outline-none focus:border-brand-gold"
+                className="mt-3 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 outline-none focus:border-brand-gold"
               />
             </div>
 
-            <div className="rounded-3xl border border-slate-200 bg-slate-50 p-4">
+            <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
               <label className="block text-sm font-medium text-slate-700">Payment method</label>
               <select
                 value={paymentMethod}
                 onChange={(e) => { setPaymentMethod(e.target.value); setMomoStatus(''); setCheckoutMessage(''); }}
-                className="mt-3 w-full rounded-3xl border border-slate-200 bg-white px-4 py-3 outline-none focus:border-brand-gold"
+                className="mt-3 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 outline-none focus:border-brand-gold"
               >
                 <option value="momo">📱 MTN Mobile Money</option>
                 <option value="card">Credit / Debit Card</option>
@@ -331,7 +331,7 @@ export default function Cart() {
                     value={momoPhone}
                     onChange={(e) => setMomoPhone(e.target.value)}
                     placeholder="MoMo number e.g. 0241234567"
-                    className="w-full rounded-3xl border border-slate-200 bg-white px-4 py-3 outline-none focus:border-brand-gold"
+                    className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 outline-none focus:border-brand-gold"
                   />
                   {momoStatus === 'pending' && (
                     <div className="flex items-center gap-3 rounded-2xl bg-yellow-50 px-4 py-3 text-sm text-yellow-800">
@@ -356,14 +356,14 @@ export default function Cart() {
               )}
             </div>
 
-            <div className="rounded-3xl border border-slate-200 bg-slate-50 p-4">
+            <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
               <label className="block text-sm font-medium text-slate-700">Promo code</label>
               <div className="mt-3 flex gap-2">
                 <input
                   value={promoCode}
                   onChange={(e) => setPromoCode(e.target.value)}
                   placeholder="Enter code"
-                  className="w-full rounded-3xl border border-slate-200 bg-white px-4 py-3 outline-none focus:border-brand-gold"
+                  className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 outline-none focus:border-brand-gold"
                 />
                 <button onClick={applyPromo} disabled={applying} className="rounded-full bg-brand-dark px-5 py-3 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:opacity-60">
                   Apply

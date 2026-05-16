@@ -129,18 +129,19 @@ export default function UserDashboard() {
   };
 
   return (
-    <section className="mx-auto max-w-6xl px-4 pb-24 pt-8 md:px-8">
-      <div className="rounded-[2rem] border border-slate-200 bg-white p-10 shadow-sm">
-        <h1 className="text-3xl font-bold text-slate-900">Welcome back, {profile?.name || 'Customer'}</h1>
-        <p className="mt-3 text-slate-600">Manage your orders, wishlist, and account settings.</p>
+    <section className="mx-auto max-w-6xl px-4 pb-20 pt-6 md:px-8">
+      <div className="mb-5">
+        <p className="text-xs font-bold uppercase tracking-widest text-brand-gold">My Account</p>
+        <h1 className="mt-1 text-2xl font-bold text-slate-900">Welcome back, {profile?.name || 'Customer'}</h1>
+      </div>
 
-        {error && <div className="mt-6 rounded-3xl bg-rose-50 p-4 text-sm text-rose-700">{error}</div>}
+        {error && <div className="mb-4 rounded-xl bg-rose-50 p-4 text-sm text-rose-700">{error}</div>}
 
         {/* Profile details + Edit */}
-        <div className="mt-10 grid gap-6 md:grid-cols-2">
-          <div className="rounded-3xl border border-slate-200 bg-slate-50 p-6">
+        <div className="grid gap-4 md:grid-cols-2">
+          <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
             <div className="flex items-center justify-between">
-              <h2 className="text-xl font-semibold text-slate-900">Profile details</h2>
+              <h2 className="text-base font-bold text-slate-900">Profile Details</h2>
               {!editingProfile && (
                 <button
                   onClick={openEditProfile}
@@ -188,9 +189,9 @@ export default function UserDashboard() {
           </div>
 
           {/* Change password */}
-          <div className="rounded-3xl border border-slate-200 bg-slate-50 p-6">
+          <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
             <div className="flex items-center justify-between">
-              <h2 className="text-xl font-semibold text-slate-900">Password</h2>
+              <h2 className="text-base font-bold text-slate-900">Password</h2>
               {!changingPassword && (
                 <button
                   onClick={() => { setChangingPassword(true); setPasswordError(''); }}
@@ -274,10 +275,10 @@ export default function UserDashboard() {
         </div>
 
         {/* Orders + Wishlist */}
-        <div className="mt-12 grid gap-8 xl:grid-cols-[1.4fr_0.8fr]">
-          <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+        <div className="mt-4 grid gap-4 xl:grid-cols-[1.4fr_0.8fr]">
+          <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
             <div className="flex items-center justify-between gap-4">
-              <h2 className="text-2xl font-bold text-slate-900">Recent orders</h2>
+              <h2 className="text-base font-bold text-slate-900">Recent Orders</h2>
               <Link to="/orders" className="rounded-full border border-slate-200 bg-brand-gold px-4 py-2 text-sm font-semibold text-black transition hover:bg-yellow-400">
                 View all
               </Link>
@@ -289,7 +290,7 @@ export default function UserDashboard() {
                 <p className="text-slate-500">No orders yet. Start shopping to build your order history.</p>
               ) : (
                 orders.slice(0, 5).map((order) => (
-                  <Link key={order._id} to={`/orders/${order._id}`} className="block rounded-3xl border border-slate-200 bg-slate-50 p-5 transition hover:border-brand-gold">
+                  <Link key={order._id} to={`/orders/${order._id}`} className="block rounded-xl border border-slate-200 bg-slate-50 p-4 transition hover:border-brand-gold">
                     <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                       <div>
                         <p className="font-semibold text-slate-900">Order #{order._id.slice(-6).toUpperCase()}</p>
@@ -304,8 +305,8 @@ export default function UserDashboard() {
             </div>
           </div>
 
-          <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-            <h2 className="text-2xl font-bold text-slate-900">Wishlist</h2>
+          <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+            <h2 className="text-base font-bold text-slate-900">Wishlist</h2>
             <div className="mt-6 space-y-4">
               {loading ? (
                 <p className="text-slate-500">Loading wishlist...</p>
@@ -315,7 +316,7 @@ export default function UserDashboard() {
                 wishlist.map((product) => {
                   const pid = product._id || product.id;
                   return (
-                    <div key={pid} className="rounded-3xl border border-slate-200 bg-slate-50 p-4">
+                    <div key={pid} className="rounded-xl border border-slate-200 bg-slate-50 p-4">
                       <div className="flex items-center gap-3">
                         {(product.images?.[0] || product.image) && (
                           <img src={product.images?.[0] || product.image} alt={product.name} className="h-12 w-12 rounded-xl object-contain bg-white border border-slate-100" onError={(e) => { e.target.style.display = 'none'; }} />
@@ -335,7 +336,6 @@ export default function UserDashboard() {
             </div>
           </div>
         </div>
-      </div>
     </section>
   );
 }
