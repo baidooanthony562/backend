@@ -241,6 +241,26 @@ const forgotPassword = asyncHandler(async (req, res) => {
   res.json(genericResponse);
 });
 
+const verifyResetCode = asyncHandler(async (req, res) => {
+  const { email, code } = req.body;
+  if (!email || !code) {
+    res.status(400);
+    throw new Error('Email and code are required');
+  }
+  const normalizedEmail = String(email).toLowerCase().trim();
+  const hashedCode = crypto.createHash('sha256').update(String(code).trim()).digest('hex');
+  const user = await User.findOne({
+    email: normalizedEmail,
+    resetToken: hashedCode,
+    resetTokenExpiry: { $gt: Date.now() },
+  });
+  if (!user) {
+    res.status(400);
+    throw new Error('Code is invalid or has expired');
+  }
+  res.json({ valid: true });
+});
+
 const resetPassword = asyncHandler(async (req, res) => {
   const { email, code, password } = req.body;
 
@@ -275,4 +295,4 @@ const resetPassword = asyncHandler(async (req, res) => {
   res.json({ message: 'Password reset successfully. You can now sign in.' });
 });
 
-module.exports = { registerUser, authUser, verifyEmail, resendVerification, getUserProfile, forgotPassword, resetPassword };
+module.exports = { registerUser, authUser, verifyEmail, resendVerification, getUserProfile, forgotPassword, verifyResetCode, resetPassword };

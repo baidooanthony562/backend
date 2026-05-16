@@ -28,6 +28,7 @@ export const fetchCategories = () => api.get('/categories');
 export const loginUser = (payload) => api.post('/auth/login', payload);
 export const registerUser = (payload) => api.post('/auth/register', payload);
 export const forgotPassword = (email) => api.post('/auth/forgot-password', { email });
+export const verifyResetCode = (payload) => api.post('/auth/verify-reset-code', payload);
 export const resetPassword = (payload) => api.post('/auth/reset-password', payload);
 export const verifyEmail = (token) => api.get(`/auth/verify-email/${token}`);
 export const resendVerification = (email) => api.post('/auth/resend-verification', { email });
