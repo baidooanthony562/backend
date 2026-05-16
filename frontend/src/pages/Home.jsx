@@ -117,22 +117,6 @@ export default function Home() {
 
       <div className="mx-auto max-w-7xl space-y-4 px-4 py-4 md:px-6">
 
-        {/* ── SHOP BY CATEGORY ── */}
-        <div>
-          <div className="mb-3 flex items-center justify-between">
-            <h2 className="text-lg font-extrabold text-slate-900">Shop by Category</h2>
-            <Link to="/shop" className="text-sm font-semibold text-[#C7511F] hover:underline">Browse all →</Link>
-          </div>
-          <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 lg:grid-cols-8">
-            {categories.map((cat) => (
-              <Link key={cat.id} to={`/shop?category=${encodeURIComponent(cat.name)}`}
-                className="group flex flex-col items-center rounded-xl border border-slate-200 bg-white p-3 text-center transition hover:shadow-md hover:-translate-y-0.5">
-                <span className="text-2xl transition group-hover:scale-110">{cat.icon}</span>
-                <p className="mt-1.5 text-xs font-semibold leading-tight text-slate-700">{cat.name}</p>
-              </Link>
-            ))}
-          </div>
-        </div>
 
         {/* ── DEALS ── */}
         {deals.length > 0 && (
