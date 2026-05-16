@@ -9,6 +9,7 @@ import {
 import { isAdmin, getAdminToken, getAdminSessionId, logout } from '../utils/auth';
 import { getProducts, saveProducts } from '../utils/productStore';
 import { showToast } from '../components/Toast';
+import { useAdminSessionGuard } from '../hooks/useAdminSessionGuard';
 
 const TABS = ['Overview', 'Products', 'Orders', 'Users', 'Promos'];
 
@@ -75,6 +76,13 @@ export default function AdminDashboard() {
   // Daily sales
   const [dailySales, setDailySales] = useState([]);
   const [salesRange, setSalesRange] = useState(30);
+
+  // Session termination
+  const [terminated, setTerminated] = useState(false);
+
+  useAdminSessionGuard((reason) => {
+    setTerminated(reason);
+  });
 
   useEffect(() => {
     if (!isAdmin()) { navigate('/admin/login'); return; }
@@ -315,6 +323,30 @@ export default function AdminDashboard() {
 
   return (
     <div className="min-h-screen bg-[#EAEDED]">
+
+      {/* Session terminated overlay */}
+      {terminated && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm">
+          <div className="mx-4 w-full max-w-sm rounded-2xl bg-white p-8 text-center shadow-2xl">
+            <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-red-100 text-3xl">
+              🔒
+            </div>
+            <h2 className="text-xl font-extrabold text-slate-900">Session Terminated</h2>
+            <p className="mt-2 text-sm text-slate-500">
+              {terminated === 'inactivity'
+                ? 'You were away for more than 10 minutes. Your admin session has been ended for security.'
+                : 'Your session was ended because the admin tab was closed.'}
+            </p>
+            <button
+              onClick={() => navigate('/admin/login')}
+              className="mt-6 w-full rounded-full bg-brand-gold py-3 text-sm font-extrabold text-black hover:bg-yellow-400 transition"
+            >
+              Sign in again
+            </button>
+          </div>
+        </div>
+      )}
+
       <div className="mx-auto max-w-7xl px-4 py-6 md:px-8">
 
         {/* Header */}
