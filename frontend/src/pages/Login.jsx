@@ -17,6 +17,7 @@ export default function Login() {
   useEffect(() => { if (isAuthenticated()) navigate('/'); }, [navigate]);
 
   const resetSuccess = location.state?.resetSuccess || false;
+  const verifySuccess = location.state?.verifySuccess || false;
   const [email, setEmail] = useState(location.state?.email || '');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -71,6 +72,12 @@ export default function Login() {
           <h1 className="mt-3 text-2xl font-extrabold text-slate-900">Sign in to your account</h1>
           <p className="mt-1 text-sm text-slate-500">Access your orders, wishlist and dashboard.</p>
         </div>
+
+        {verifySuccess && (
+          <div className="mb-4 flex items-center gap-2 rounded-lg bg-green-50 px-4 py-3 text-sm font-semibold text-green-700">
+            <span>✓</span> Email verified! Your account is active — sign in below.
+          </div>
+        )}
 
         {resetSuccess && (
           <div className="mb-4 flex items-center gap-2 rounded-lg bg-green-50 px-4 py-3 text-sm font-semibold text-green-700">

@@ -48,8 +48,8 @@ const registerUser = asyncHandler(async (req, res) => {
 
   const hashedPassword = await bcrypt.hash(password, 10);
 
-  const rawToken = crypto.randomBytes(32).toString('hex');
-  const verifyToken = crypto.createHash('sha256').update(rawToken).digest('hex');
+  const code = String(Math.floor(100000 + Math.random() * 900000));
+  const verifyToken = crypto.createHash('sha256').update(code).digest('hex');
 
   const user = await User.create({
     name: String(name).trim(),
@@ -69,19 +69,20 @@ const registerUser = asyncHandler(async (req, res) => {
     throw new Error('Invalid user data');
   }
 
-  const verifyUrl = `${FRONTEND}/verify-email/${rawToken}`;
-
   sendResendEmail({
     to: user.email,
-    subject: 'Verify your Cindy Nat account',
+    subject: 'Your Cindy Nat verification code',
     html: `
       <div style="font-family:sans-serif;max-width:480px;margin:0 auto;padding:32px">
         <h2 style="color:#131921">Welcome to Cindy Nat!</h2>
-        <p>Hi ${user.name},</p>
-        <p>Thanks for creating an account. Please verify your email address to get started. This link expires in <strong>24 hours</strong>.</p>
-        <a href="${verifyUrl}" style="display:inline-block;margin:24px 0;padding:12px 28px;background:#D4AF37;color:#000;font-weight:700;border-radius:999px;text-decoration:none">
-          Verify My Email
-        </a>
+        <p>Hi ${String(name).trim()},</p>
+        <p>Use the code below to verify your email address. It expires in <strong>10 minutes</strong>.</p>
+        <div style="margin:28px 0;text-align:center">
+          <span style="display:inline-block;letter-spacing:10px;font-size:40px;font-weight:900;color:#131921;background:#f5f5f5;padding:16px 24px;border-radius:12px;border:2px solid #D4AF37">
+            ${code}
+          </span>
+        </div>
+        <p style="color:#444;font-size:14px">Enter this code on the verification page. Do not share it with anyone.</p>
         <p style="color:#666;font-size:13px">If you didn't create this account, you can safely ignore this email.</p>
         <hr style="border:none;border-top:1px solid #eee;margin:24px 0"/>
         <p style="color:#999;font-size:12px">Cindy Nat Enterprise &mdash; Kumasi, Ghana</p>
@@ -89,7 +90,7 @@ const registerUser = asyncHandler(async (req, res) => {
     `,
   }).catch((err) => console.error('[Email] Verification email failed:', err.message));
 
-  res.status(201).json({ message: 'Account created. Please check your email to verify your account.' });
+  res.status(201).json({ message: 'Account created. A 6-digit verification code has been sent to your email.' });
 });
 
 const authUser = asyncHandler(async (req, res) => {
@@ -129,29 +130,47 @@ const authUser = asyncHandler(async (req, res) => {
 });
 
 const verifyEmail = asyncHandler(async (req, res) => {
+  // Legacy link-based route — kept for backward compatibility but code flow is preferred
   const hashedToken = crypto.createHash('sha256').update(String(req.params.token)).digest('hex');
-
-  const user = await User.findOne({
-    verifyToken: hashedToken,
-    verifyTokenExpiry: { $gt: Date.now() },
-  });
-
+  const user = await User.findOne({ verifyToken: hashedToken, verifyTokenExpiry: { $gt: Date.now() } });
   if (!user) {
     res.status(400);
     throw new Error('Verification link is invalid or has expired.');
   }
-
   user.isVerified = true;
   user.verifyToken = undefined;
   user.verifyTokenExpiry = undefined;
   await user.save();
+  res.json({ message: 'Email verified successfully. You can now sign in.' });
+});
 
+const verifyEmailCode = asyncHandler(async (req, res) => {
+  const { email, code } = req.body;
+  if (!email || !code) {
+    res.status(400);
+    throw new Error('Email and code are required');
+  }
+  const normalizedEmail = String(email).toLowerCase().trim();
+  const hashedCode = crypto.createHash('sha256').update(String(code).trim()).digest('hex');
+  const user = await User.findOne({
+    email: normalizedEmail,
+    verifyToken: hashedCode,
+    verifyTokenExpiry: { $gt: Date.now() },
+  });
+  if (!user) {
+    res.status(400);
+    throw new Error('Code is invalid or has expired. Please register again.');
+  }
+  user.isVerified = true;
+  user.verifyToken = undefined;
+  user.verifyTokenExpiry = undefined;
+  await user.save();
   res.json({ message: 'Email verified successfully. You can now sign in.' });
 });
 
 const resendVerification = asyncHandler(async (req, res) => {
   const { email } = req.body;
-  const genericResponse = { message: 'If that email is registered and unverified, a new link has been sent.' };
+  const genericResponse = { message: 'If that email is registered and unverified, a new code has been sent.' };
 
   if (!email || !EMAIL_RE.test(String(email).trim())) {
     return res.json(genericResponse);
@@ -160,24 +179,25 @@ const resendVerification = asyncHandler(async (req, res) => {
   const user = await User.findOne({ email: String(email).toLowerCase().trim() });
   if (!user || user.isVerified) return res.json(genericResponse);
 
-  const rawToken = crypto.randomBytes(32).toString('hex');
-  user.verifyToken = crypto.createHash('sha256').update(rawToken).digest('hex');
+  const code = String(Math.floor(100000 + Math.random() * 900000));
+  user.verifyToken = crypto.createHash('sha256').update(code).digest('hex');
   user.verifyTokenExpiry = Date.now() + 10 * 60 * 1000; // 10 minutes
   await user.save();
 
-  const verifyUrl = `${FRONTEND}/verify-email/${rawToken}`;
-
   sendResendEmail({
     to: user.email,
-    subject: 'Verify your Cindy Nat account',
+    subject: 'Your new Cindy Nat verification code',
     html: `
       <div style="font-family:sans-serif;max-width:480px;margin:0 auto;padding:32px">
-        <h2 style="color:#131921">Verify Your Email</h2>
+        <h2 style="color:#131921">New Verification Code</h2>
         <p>Hi ${user.name},</p>
-        <p>Here is your new verification link. It expires in <strong>24 hours</strong>.</p>
-        <a href="${verifyUrl}" style="display:inline-block;margin:24px 0;padding:12px 28px;background:#D4AF37;color:#000;font-weight:700;border-radius:999px;text-decoration:none">
-          Verify My Email
-        </a>
+        <p>Here is your new verification code. It expires in <strong>10 minutes</strong>.</p>
+        <div style="margin:28px 0;text-align:center">
+          <span style="display:inline-block;letter-spacing:10px;font-size:40px;font-weight:900;color:#131921;background:#f5f5f5;padding:16px 24px;border-radius:12px;border:2px solid #D4AF37">
+            ${code}
+          </span>
+        </div>
+        <p style="color:#444;font-size:14px">Enter this code on the verification page.</p>
         <hr style="border:none;border-top:1px solid #eee;margin:24px 0"/>
         <p style="color:#999;font-size:12px">Cindy Nat Enterprise &mdash; Kumasi, Ghana</p>
       </div>
@@ -316,4 +336,4 @@ const resetPassword = asyncHandler(async (req, res) => {
   res.json({ message: 'Password reset successfully. You can now sign in.' });
 });
 
-module.exports = { registerUser, authUser, verifyEmail, resendVerification, getUserProfile, forgotPassword, verifyResetCode, resetPassword };
+module.exports = { registerUser, authUser, verifyEmail, verifyEmailCode, resendVerification, getUserProfile, forgotPassword, verifyResetCode, resetPassword };

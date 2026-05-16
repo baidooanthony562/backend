@@ -31,6 +31,7 @@ export const forgotPassword = (email) => api.post('/auth/forgot-password', { ema
 export const verifyResetCode = (payload) => api.post('/auth/verify-reset-code', payload);
 export const resetPassword = (payload) => api.post('/auth/reset-password', payload);
 export const verifyEmail = (token) => api.get(`/auth/verify-email/${token}`);
+export const verifyEmailCode = (payload) => api.post('/auth/verify-email-code', payload);
 export const resendVerification = (email) => api.post('/auth/resend-verification', { email });
 export const fetchCart = (token) => api.get('/cart', authConfig(token));
 export const updateCart = (items, token) => api.post('/cart', { items }, authConfig(token));
