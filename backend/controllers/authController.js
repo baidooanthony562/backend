@@ -34,8 +34,16 @@ const registerUser = asyncHandler(async (req, res) => {
 
   const existingUser = await User.findOne({ email: normalizedEmail });
   if (existingUser) {
-    res.status(400);
-    throw new Error('User already exists');
+    // Allow re-registration if account exists but was never verified and window expired
+    if (existingUser.isVerified === false && existingUser.verifyTokenExpiry < Date.now()) {
+      await User.deleteOne({ _id: existingUser._id });
+    } else if (existingUser.isVerified === false) {
+      res.status(400);
+      throw new Error('A verification email was already sent to this address. Please check your inbox (expires in 10 minutes).');
+    } else {
+      res.status(400);
+      throw new Error('User already exists');
+    }
   }
 
   const hashedPassword = await bcrypt.hash(password, 10);
@@ -53,7 +61,7 @@ const registerUser = asyncHandler(async (req, res) => {
     country,
     isVerified: false,
     verifyToken,
-    verifyTokenExpiry: Date.now() + 24 * 60 * 60 * 1000, // 24 hours
+    verifyTokenExpiry: Date.now() + 10 * 60 * 1000, // 10 minutes
   });
 
   if (!user) {
@@ -100,11 +108,15 @@ const authUser = asyncHandler(async (req, res) => {
     throw new Error('Invalid email or password');
   }
 
-  // Only block login for users who explicitly have isVerified: false (new accounts)
-  // Existing accounts without the field (isVerified: undefined) are allowed through
+  // Block unverified accounts; delete them if their 10-minute window has expired
   if (user.isVerified === false) {
+    if (user.verifyTokenExpiry && user.verifyTokenExpiry < Date.now()) {
+      await User.deleteOne({ _id: user._id });
+      res.status(403);
+      throw new Error('Your account was not verified in time and has been removed. Please register again.');
+    }
     res.status(403);
-    throw new Error('Please verify your email before logging in. Check your inbox or request a new verification link.');
+    throw new Error('Please verify your email before logging in. Check your inbox (link expires in 10 minutes).');
   }
 
   res.json({
@@ -150,7 +162,7 @@ const resendVerification = asyncHandler(async (req, res) => {
 
   const rawToken = crypto.randomBytes(32).toString('hex');
   user.verifyToken = crypto.createHash('sha256').update(rawToken).digest('hex');
-  user.verifyTokenExpiry = Date.now() + 24 * 60 * 60 * 1000;
+  user.verifyTokenExpiry = Date.now() + 10 * 60 * 1000; // 10 minutes
   await user.save();
 
   const verifyUrl = `${FRONTEND}/verify-email/${rawToken}`;

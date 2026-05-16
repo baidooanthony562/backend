@@ -17,6 +17,7 @@ const supportRoutes = require('./routes/support');
 const paymentRoutes = require('./routes/payments');
 const { seedData } = require('./utils/seeder');
 const { notFound, errorHandler } = require('./middlewares/errorMiddleware');
+const User = require('./models/User');
 
 dotenv.config();
 const app = express();
@@ -83,6 +84,21 @@ app.use(errorHandler);
 process.on('unhandledRejection', (reason) => {
   console.error('[unhandledRejection]', reason);
 });
+
+// Purge unverified accounts whose 10-minute window has expired — runs every 5 minutes
+setInterval(async () => {
+  try {
+    const result = await User.deleteMany({
+      isVerified: false,
+      verifyTokenExpiry: { $lt: Date.now() },
+    });
+    if (result.deletedCount > 0) {
+      console.log(`[Cleanup] Deleted ${result.deletedCount} expired unverified account(s)`);
+    }
+  } catch (err) {
+    console.error('[Cleanup] Failed to purge unverified accounts:', err.message);
+  }
+}, 5 * 60 * 1000);
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
