@@ -58,8 +58,7 @@ export default function ForgotPassword() {
     setError('');
     try {
       await resetPassword({ email: email.trim(), code: code.trim(), password });
-      showToast('Password reset! Please sign in.');
-      navigate('/login');
+      navigate('/login', { state: { resetSuccess: true, email: email.trim() } });
     } catch (err) {
       setError(err.response?.data?.message || 'Something went wrong. Please try again.');
     } finally {
