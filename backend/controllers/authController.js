@@ -296,6 +296,9 @@ const resetPassword = asyncHandler(async (req, res) => {
   user.password = await bcrypt.hash(password, 10);
   user.resetToken = undefined;
   user.resetTokenExpiry = undefined;
+  user.isVerified = true; // OTP proves email ownership
+  user.verifyToken = undefined;
+  user.verifyTokenExpiry = undefined;
   await user.save();
 
   res.json({ message: 'Password reset successfully. You can now sign in.' });
