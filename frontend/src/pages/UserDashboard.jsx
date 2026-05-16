@@ -4,6 +4,7 @@ import { getAuthUser, getToken, isAuthenticated } from '../utils/auth';
 import { fetchUserOrders, fetchUserProfile, updateUserProfile, changeUserPassword } from '../utils/api';
 import { getWishlist, removeFromWishlist } from '../utils/wishlist';
 import { showToast } from '../components/Toast';
+import PasswordStrength from '../components/PasswordStrength';
 
 function Field({ label, value, onChange, type = 'text', placeholder = '' }) {
   return (
@@ -100,10 +101,6 @@ export default function UserDashboard() {
     const { currentPassword, newPassword, confirmPassword } = passwordForm;
     if (!currentPassword || !newPassword || !confirmPassword) {
       setPasswordError('All fields are required');
-      return;
-    }
-    if (newPassword.length < 8) {
-      setPasswordError('New password must be at least 8 characters');
       return;
     }
     if (newPassword !== confirmPassword) {
@@ -236,6 +233,7 @@ export default function UserDashboard() {
                       {showNew ? '🙈' : '👁️'}
                     </button>
                   </div>
+                  <PasswordStrength password={passwordForm.newPassword} userInfo={{ name: profile?.name, email: profile?.email }} />
                 </div>
 
                 <div>
