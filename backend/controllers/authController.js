@@ -195,72 +195,76 @@ const getUserProfile = asyncHandler(async (req, res) => {
 const forgotPassword = asyncHandler(async (req, res) => {
   const { email } = req.body;
 
-  if (!email || !EMAIL_RE.test(String(email).trim())) {
-    return res.json({ message: 'If that email is registered, a reset link has been sent.' });
-  }
+  const genericResponse = { message: 'If that email is registered, a 6-digit code has been sent.' };
 
-  const genericResponse = { message: 'If that email is registered, a reset link has been sent.' };
+  if (!email || !EMAIL_RE.test(String(email).trim())) {
+    return res.json(genericResponse);
+  }
 
   const normalizedEmail = String(email).toLowerCase().trim();
   const user = await User.findOne({ email: normalizedEmail });
   if (!user) return res.json(genericResponse);
 
-  const rawToken = crypto.randomBytes(32).toString('hex');
-  const hashedToken = crypto.createHash('sha256').update(rawToken).digest('hex');
+  // 6-digit OTP — no link, no FRONTEND_URL dependency
+  const code = String(Math.floor(100000 + Math.random() * 900000));
+  const hashedCode = crypto.createHash('sha256').update(code).digest('hex');
 
-  user.resetToken = hashedToken;
-  user.resetTokenExpiry = Date.now() + 60 * 60 * 1000;
+  user.resetToken = hashedCode;
+  user.resetTokenExpiry = Date.now() + 15 * 60 * 1000; // 15 minutes
   await user.save();
-
-  const resetUrl = `${FRONTEND}/reset-password/${rawToken}`;
 
   try {
     await sendResendEmail({
       to: user.email,
-      subject: 'Reset your Cindy Nat password',
+      subject: 'Your Cindy Nat password reset code',
       html: `
         <div style="font-family:sans-serif;max-width:480px;margin:0 auto;padding:32px">
-          <h2 style="color:#131921">Password Reset</h2>
+          <h2 style="color:#131921">Password Reset Code</h2>
           <p>Hi ${user.name},</p>
-          <p>We received a request to reset your password. Click the button below — this link expires in <strong>1 hour</strong>.</p>
-          <a href="${resetUrl}" style="display:inline-block;margin:24px 0;padding:12px 28px;background:#D4AF37;color:#000;font-weight:700;border-radius:999px;text-decoration:none">
-            Reset Password
-          </a>
+          <p>Use the code below to reset your Cindy Nat password. It expires in <strong>15 minutes</strong>.</p>
+          <div style="margin:28px 0;text-align:center">
+            <span style="display:inline-block;letter-spacing:10px;font-size:40px;font-weight:900;color:#131921;background:#f5f5f5;padding:16px 24px;border-radius:12px;border:2px solid #D4AF37">
+              ${code}
+            </span>
+          </div>
+          <p style="color:#444;font-size:14px">Enter this code on the reset page. Do not share it with anyone.</p>
           <p style="color:#666;font-size:13px">If you didn't request this, you can safely ignore this email.</p>
           <hr style="border:none;border-top:1px solid #eee;margin:24px 0"/>
           <p style="color:#999;font-size:12px">Cindy Nat Enterprise &mdash; Kumasi, Ghana</p>
         </div>
       `,
     });
-    console.log(`[Resend] Reset email sent to ${user.email}`);
   } catch (emailErr) {
-    console.error('[Resend] Error sending reset email:', emailErr.message);
+    console.error('[Resend] Error sending reset code:', emailErr.message);
   }
 
   res.json(genericResponse);
 });
 
 const resetPassword = asyncHandler(async (req, res) => {
-  const { token, password } = req.body;
+  const { email, code, password } = req.body;
 
-  if (!token || !password) {
+  if (!email || !code || !password) {
     res.status(400);
-    throw new Error('Token and password are required');
+    throw new Error('Email, code and new password are required');
   }
   if (String(password).length < 8) {
     res.status(400);
     throw new Error('Password must be at least 8 characters');
   }
 
-  const hashedToken = crypto.createHash('sha256').update(String(token)).digest('hex');
+  const normalizedEmail = String(email).toLowerCase().trim();
+  const hashedCode = crypto.createHash('sha256').update(String(code).trim()).digest('hex');
+
   const user = await User.findOne({
-    resetToken: hashedToken,
+    email: normalizedEmail,
+    resetToken: hashedCode,
     resetTokenExpiry: { $gt: Date.now() },
   });
 
   if (!user) {
     res.status(400);
-    throw new Error('Reset link is invalid or has expired');
+    throw new Error('Code is invalid or has expired');
   }
 
   user.password = await bcrypt.hash(password, 10);
