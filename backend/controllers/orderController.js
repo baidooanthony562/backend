@@ -214,6 +214,66 @@ const getOrders = asyncHandler(async (req, res) => {
   res.json(orders);
 });
 
+const STATUS_EMAIL = {
+  Processing: {
+    subject: 'Your order is being prepared',
+    heading: 'We\'re on it!',
+    body: 'Great news — your order has been confirmed and our team is now preparing it for dispatch.',
+    color: '#3B82F6',
+  },
+  Shipped: {
+    subject: 'Your order is on its way!',
+    heading: 'Order Shipped 🚚',
+    body: 'Your order has been handed over to our delivery team and is on its way to you. Please be available to receive it.',
+    color: '#8B5CF6',
+  },
+  Delivered: {
+    subject: 'Your order has been delivered',
+    heading: 'Order Delivered ✓',
+    body: 'Your order has been marked as delivered. We hope you love your purchase! If you have any issues, please contact us.',
+    color: '#10B981',
+  },
+  Cancelled: {
+    subject: 'Your order has been cancelled',
+    heading: 'Order Cancelled',
+    body: 'Your order has been cancelled. If you did not request this or have any questions, please contact us immediately.',
+    color: '#EF4444',
+  },
+};
+
+const sendStatusEmail = (userEmail, userName, order, status) => {
+  const tpl = STATUS_EMAIL[status];
+  if (!tpl || !userEmail) return;
+  const orderId = order._id.toString().slice(-8).toUpperCase();
+  const FRONTEND = process.env.FRONTEND_URL || 'https://backend-alpha-seven-54.vercel.app';
+
+  sendResendEmail({
+    to: userEmail,
+    subject: `${tpl.subject} — Order #${orderId}`,
+    html: `
+      <div style="font-family:sans-serif;max-width:520px;margin:0 auto;padding:32px">
+        <h2 style="color:${tpl.color};margin-bottom:4px">${tpl.heading}</h2>
+        <p>Hi ${userName || 'Customer'},</p>
+        <p>${tpl.body}</p>
+        <div style="margin:20px 0;padding:16px;background:#f9f9f9;border-radius:8px;font-size:14px;line-height:1.8">
+          <strong>Order ID:</strong> #${orderId}<br>
+          <strong>Status:</strong> <span style="color:${tpl.color};font-weight:700">${status}</span><br>
+          <strong>Items:</strong> ${order.orderItems?.length || 0}<br>
+          <strong>Total:</strong> &#8373;${Number(order.totalPrice || 0).toFixed(2)}
+        </div>
+        ${status !== 'Cancelled' ? `
+        <a href="${FRONTEND}/orders/${order._id}"
+           style="display:inline-block;margin:8px 0 20px;padding:12px 28px;background:#D4AF37;color:#000;font-weight:700;border-radius:999px;text-decoration:none">
+          View Order
+        </a>` : ''}
+        <p style="color:#666;font-size:13px">Questions? Contact us on WhatsApp: <a href="https://wa.me/233257543723" style="color:#D4AF37">0257543723</a></p>
+        <hr style="border:none;border-top:1px solid #eee;margin:24px 0"/>
+        <p style="color:#999;font-size:12px">Cindy Nat Enterprise &mdash; Kumasi, Ghana</p>
+      </div>
+    `,
+  }).catch((err) => console.error(`[Email] Status email (${status}) failed:`, err.message));
+};
+
 const updateOrderStatus = asyncHandler(async (req, res) => {
   const { status } = req.body;
   if (status && !VALID_STATUSES.includes(status)) {
@@ -221,27 +281,35 @@ const updateOrderStatus = asyncHandler(async (req, res) => {
     throw new Error(`Invalid status. Must be one of: ${VALID_STATUSES.join(', ')}`);
   }
 
-  const order = await Order.findById(req.params.id);
+  const order = await Order.findById(req.params.id).populate('user', 'name email');
   if (!order) {
     res.status(404);
     throw new Error('Order not found');
   }
 
-  // Cancelling — restore stock for every item then delete the order
+  // Cancelling — restore stock, delete order, notify customer
   if (status === 'Cancelled' && order.status !== 'Cancelled') {
     await Promise.allSettled(
       order.orderItems.map((item) =>
         Product.findByIdAndUpdate(item.product, { $inc: { stock: item.quantity } })
       )
     );
+    sendStatusEmail(order.user?.email, order.user?.name, order, 'Cancelled');
     await Order.findByIdAndDelete(order._id);
     return res.json({ deleted: true, message: 'Order cancelled and removed.' });
   }
 
+  const prevStatus = order.status;
   order.status = status || order.status;
   order.isDelivered = order.status === 'Delivered';
   if (order.isDelivered && !order.deliveredAt) order.deliveredAt = Date.now();
   const updated = await order.save();
+
+  // Email customer only when status actually changes
+  if (status && status !== prevStatus) {
+    sendStatusEmail(order.user?.email, order.user?.name, updated, status);
+  }
+
   res.json(updated);
 });
 
