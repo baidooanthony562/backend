@@ -313,4 +313,120 @@ const updateOrderStatus = asyncHandler(async (req, res) => {
   res.json(updated);
 });
 
-module.exports = { createOrder, getOrderById, getMyOrders, getOrders, updateOrderStatus };
+const createGuestOrder = asyncHandler(async (req, res) => {
+  const { guestName, guestEmail, orderItems, shippingAddress, paymentMethod, promoCode } = req.body;
+
+  if (!guestName || !guestName.trim()) { res.status(400); throw new Error('Name is required'); }
+  if (!guestEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(guestEmail)) { res.status(400); throw new Error('Valid email is required'); }
+  if (!orderItems || orderItems.length === 0) { res.status(400); throw new Error('Order items required'); }
+  if (orderItems.length > MAX_ORDER_ITEMS) { res.status(400); throw new Error(`Order cannot exceed ${MAX_ORDER_ITEMS} items`); }
+
+  const validatedItems = [];
+  const decremented = [];
+  const rollback = async () => {
+    if (decremented.length > 0) {
+      await Promise.allSettled(decremented.map((d) => Product.findByIdAndUpdate(d.id, { $inc: { stock: d.qty } })));
+    }
+  };
+
+  try {
+    for (const item of orderItems) {
+      if (!item.product || !/^[a-f\d]{24}$/i.test(String(item.product))) { res.status(400); throw new Error('Invalid product ID'); }
+      const qty = Math.floor(Number(item.quantity));
+      if (!qty || qty < 1) { res.status(400); throw new Error('Quantity must be at least 1'); }
+      const product = await Product.findById(item.product);
+      if (!product || !product.active) { res.status(400); throw new Error('One or more products are no longer available'); }
+      const reserved = await Product.findOneAndUpdate(
+        { _id: product._id, active: true, stock: { $gte: qty } },
+        { $inc: { stock: -qty } }
+      );
+      if (!reserved) { res.status(400); throw new Error(`"${product.name}" is out of stock`); }
+      decremented.push({ id: product._id, qty });
+      const isWholesale = product.wholesalePrice > 0 && product.wholesaleMinQty > 0 && qty >= product.wholesaleMinQty;
+      const serverPrice = isWholesale
+        ? product.wholesalePrice
+        : Math.round(product.price * (1 - (product.discount || 0) / 100) * 100) / 100;
+      validatedItems.push({ product: product._id, name: product.name, quantity: qty, price: serverPrice, image: product.images?.[0] || '' });
+    }
+
+    const serverSubtotal = Math.round(validatedItems.reduce((sum, i) => sum + i.price * i.quantity * 100, 0)) / 100;
+    let serverDiscount = 0;
+    let validPromoCode = '';
+    if (promoCode) {
+      const promo = await PromoCode.findOne({ code: String(promoCode).toUpperCase().trim(), active: true });
+      if (promo && (!promo.expiresAt || promo.expiresAt > Date.now()) && (!promo.minAmount || serverSubtotal >= promo.minAmount)) {
+        validPromoCode = promo.code;
+        serverDiscount = promo.discountType === 'fixed'
+          ? promo.discountValue
+          : Math.round(serverSubtotal * (promo.discountValue / 100) * 100) / 100;
+      }
+    }
+    const serverTotal = Math.max(0, Math.round((serverSubtotal - serverDiscount) * 100) / 100);
+
+    const order = await new Order({
+      guestName: String(guestName).trim(),
+      guestEmail: String(guestEmail).toLowerCase().trim(),
+      orderItems: validatedItems,
+      shippingAddress,
+      paymentMethod,
+      subtotalPrice: serverSubtotal,
+      discountPrice: serverDiscount,
+      promoCode: validPromoCode,
+      totalPrice: serverTotal,
+    }).save();
+
+    // Confirmation email to guest
+    const itemRows = validatedItems.map((item) =>
+      `<tr style="border-bottom:1px solid #f0f0f0">
+        <td style="padding:8px 4px">${item.name}</td>
+        <td style="text-align:right;padding:8px 4px">${item.quantity}</td>
+        <td style="text-align:right;padding:8px 4px">&#8373;${(item.quantity * item.price).toFixed(2)}</td>
+      </tr>`
+    ).join('');
+    sendResendEmail({
+      to: String(guestEmail).toLowerCase().trim(),
+      subject: `Order Confirmed — #${order._id.toString().slice(-8).toUpperCase()}`,
+      html: `
+        <div style="font-family:sans-serif;max-width:520px;margin:0 auto;padding:32px">
+          <h2 style="color:#131921">Order Confirmed!</h2>
+          <p>Hi ${String(guestName).trim()},</p>
+          <p>Thank you for your order. Here is a summary:</p>
+          <table style="width:100%;border-collapse:collapse;margin:16px 0">
+            <thead><tr style="border-bottom:2px solid #eee">
+              <th style="text-align:left;padding:8px 4px;color:#888;font-size:12px">Item</th>
+              <th style="text-align:right;padding:8px 4px;color:#888;font-size:12px">Qty</th>
+              <th style="text-align:right;padding:8px 4px;color:#888;font-size:12px">Price</th>
+            </tr></thead>
+            <tbody>${itemRows}</tbody>
+          </table>
+          ${serverDiscount > 0 ? `<p style="text-align:right;color:#666">Promo: &minus;&#8373;${serverDiscount.toFixed(2)}</p>` : ''}
+          <p style="text-align:right;font-size:18px;font-weight:bold">Total: &#8373;${serverTotal.toFixed(2)}</p>
+          <div style="margin:20px 0;padding:16px;background:#f9f9f9;border-radius:8px;font-size:14px;line-height:1.8">
+            <strong>Order ID:</strong> #${order._id.toString().slice(-8).toUpperCase()}<br>
+            <strong>Payment:</strong> ${paymentMethod || 'N/A'}<br>
+            <strong>Ship to:</strong> ${shippingAddress?.address || ''}, ${shippingAddress?.city || ''}
+          </div>
+          <p style="color:#666;font-size:13px">We will notify you when your order is shipped.</p>
+          <hr style="border:none;border-top:1px solid #eee;margin:24px 0"/>
+          <p style="color:#999;font-size:12px">Cindy Nat Enterprise &mdash; Kumasi, Ghana</p>
+        </div>
+      `,
+    }).catch((err) => console.error('[Email] Guest order confirmation failed:', err.message));
+
+    res.status(201).json(order);
+  } catch (err) {
+    await rollback();
+    throw err;
+  }
+});
+
+const getGuestOrder = asyncHandler(async (req, res) => {
+  const { email } = req.query;
+  if (!email) { res.status(400); throw new Error('Email is required'); }
+  const order = await Order.findById(req.params.id);
+  if (!order || !order.guestEmail) { res.status(404); throw new Error('Order not found'); }
+  if (order.guestEmail !== String(email).toLowerCase().trim()) { res.status(403); throw new Error('Access denied'); }
+  res.json(order);
+});
+
+module.exports = { createOrder, createGuestOrder, getGuestOrder, getOrderById, getMyOrders, getOrders, updateOrderStatus };

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { createOrder, validatePromo, initiateMoMoPayment, checkMoMoStatus } from '../utils/api';
+import { createOrder, createGuestOrder, validatePromo, initiateMoMoPayment, checkMoMoStatus } from '../utils/api';
 import { getAuthUser, getToken, isAuthenticated } from '../utils/auth';
 
 function resolveUnitPrice(item) {
@@ -24,6 +24,8 @@ export default function Cart() {
   const [placingOrder, setPlacingOrder] = useState(false);
   const [momoPhone, setMomoPhone] = useState('');
   const [momoStatus, setMomoStatus] = useState(''); // '' | 'pending' | 'success' | 'failed'
+  const [guestName, setGuestName] = useState('');
+  const [guestEmail, setGuestEmail] = useState('');
   const pollRef = useRef(null);
   const token = getToken();
 
@@ -124,20 +126,36 @@ export default function Cart() {
     };
   };
 
-  const placeOrder = async (method, momoRef = '') => {
-    const { data } = await createOrder(buildOrderPayload(method, momoRef), token);
+  const clearCart = () => {
     localStorage.removeItem('cart');
     setCartItems([]);
     setPromoResult(null);
     setPromoCode('');
     window.dispatchEvent(new Event('storage'));
+  };
+
+  const placeOrder = async (method, momoRef = '') => {
+    const { data } = await createOrder(buildOrderPayload(method, momoRef), token);
+    clearCart();
+    navigate(`/order-confirmation/${data._id}`);
+  };
+
+  const placeGuestOrder = async (method) => {
+    const payload = { ...buildOrderPayload(method), guestName: guestName.trim(), guestEmail: guestEmail.trim() };
+    const { data } = await createGuestOrder(payload);
+    clearCart();
+    sessionStorage.setItem('guestOrderEmail', guestEmail.trim().toLowerCase());
     navigate(`/order-confirmation/${data._id}`);
   };
 
   const handleCheckout = async () => {
-    if (!isAuthenticated()) { navigate('/login?redirect=/cart'); return; }
     if (cartItems.length === 0) { setCheckoutMessage('Add at least one item to complete checkout.'); return; }
     if (!shipping.address || !shipping.city || !shipping.phone) { setCheckoutMessage('Please fill in your shipping address before checkout.'); return; }
+
+    if (!isAuthenticated()) {
+      if (!guestName.trim()) { setCheckoutMessage('Please enter your name.'); return; }
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(guestEmail.trim())) { setCheckoutMessage('Please enter a valid email address.'); return; }
+    }
 
     const isValidId = (id) => /^[a-f\d]{24}$/i.test(id);
     if (!cartItems.some((item) => isValidId(item._id || item.id))) {
@@ -145,8 +163,10 @@ export default function Cart() {
       return;
     }
 
-    // MTN MoMo flow
-    if (paymentMethod === 'momo') {
+    const isGuest = !isAuthenticated();
+
+    // MTN MoMo flow (guests can't use MoMo — requires auth token for payment API)
+    if (paymentMethod === 'momo' && !isGuest) {
       if (!momoPhone.trim()) { setCheckoutMessage('Enter your MTN MoMo phone number.'); return; }
       setPlacingOrder(true);
       setCheckoutMessage('');
@@ -186,11 +206,15 @@ export default function Cart() {
       return;
     }
 
-    // Standard checkout (card / bank transfer / cash on delivery)
+    // Standard checkout
     setPlacingOrder(true);
     setCheckoutMessage('');
     try {
-      await placeOrder(paymentMethod);
+      if (isGuest) {
+        await placeGuestOrder(paymentMethod);
+      } else {
+        await placeOrder(paymentMethod);
+      }
     } catch (err) {
       setCheckoutMessage(err.response?.data?.message || 'Unable to place order.');
     } finally {
@@ -290,6 +314,27 @@ export default function Cart() {
           </div>
 
           <div className="mt-6 space-y-4">
+            {!isAuthenticated() && (
+              <div className="rounded-xl border border-amber-200 bg-amber-50 p-4">
+                <p className="mb-3 text-sm font-semibold text-amber-800">Checking out as guest</p>
+                <input
+                  value={guestName}
+                  onChange={(e) => setGuestName(e.target.value)}
+                  placeholder="Your full name"
+                  className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none focus:border-brand-gold"
+                />
+                <input
+                  type="email"
+                  value={guestEmail}
+                  onChange={(e) => setGuestEmail(e.target.value)}
+                  placeholder="Email (for order confirmation)"
+                  className="mt-3 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none focus:border-brand-gold"
+                />
+                <p className="mt-2 text-xs text-amber-700">
+                  Have an account? <Link to="/login?redirect=/cart" className="font-semibold underline">Sign in</Link> to track orders and use MoMo.
+                </p>
+              </div>
+            )}
             <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
               <label className="block text-sm font-medium text-slate-700">Shipping address</label>
               <input
@@ -319,7 +364,7 @@ export default function Cart() {
                 onChange={(e) => { setPaymentMethod(e.target.value); setMomoStatus(''); setCheckoutMessage(''); }}
                 className="mt-3 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 outline-none focus:border-brand-gold"
               >
-                <option value="momo">📱 MTN Mobile Money</option>
+                {isAuthenticated() && <option value="momo">📱 MTN Mobile Money</option>}
                 <option value="card">Credit / Debit Card</option>
                 <option value="bank-transfer">Bank Transfer</option>
                 <option value="cash-on-delivery">Cash on Delivery</option>

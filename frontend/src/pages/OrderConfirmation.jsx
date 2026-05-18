@@ -1,7 +1,7 @@
 ﻿import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { fetchOrderDetail } from '../utils/api';
-import { getToken } from '../utils/auth';
+import { fetchOrderDetail, fetchGuestOrder } from '../utils/api';
+import { getToken, isAuthenticated } from '../utils/auth';
 
 export default function OrderConfirmation() {
   const { id } = useParams();
@@ -14,8 +14,16 @@ export default function OrderConfirmation() {
     const loadOrder = async () => {
       setLoading(true);
       try {
-        const { data } = await fetchOrderDetail(id, token);
-        setOrder(data);
+        if (isAuthenticated()) {
+          const { data } = await fetchOrderDetail(id, token);
+          setOrder(data);
+        } else {
+          const guestEmail = sessionStorage.getItem('guestOrderEmail');
+          if (!guestEmail) { setError('Order not found.'); return; }
+          const { data } = await fetchGuestOrder(id, guestEmail);
+          setOrder(data);
+          sessionStorage.removeItem('guestOrderEmail');
+        }
       } catch (err) {
         setError(err.response?.data?.message || 'Unable to load order confirmation.');
       } finally {

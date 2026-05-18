@@ -13,7 +13,9 @@ const orderItemSchema = mongoose.Schema(
 
 const orderSchema = mongoose.Schema(
   {
-    user: { type: mongoose.Schema.Types.ObjectId, required: true, ref: 'User' },
+    user: { type: mongoose.Schema.Types.ObjectId, required: false, ref: 'User' },
+    guestName: { type: String },
+    guestEmail: { type: String },
     orderItems: [orderItemSchema],
     shippingAddress: {
       address: { type: String },
