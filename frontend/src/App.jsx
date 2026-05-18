@@ -19,6 +19,7 @@ import OrderHistory from './pages/OrderHistory';
 import ForgotPassword from './pages/ForgotPassword';
 import PrivacyPolicy from './pages/PrivacyPolicy';
 import Terms from './pages/Terms';
+import PaymentVerify from './pages/PaymentVerify';
 import NotFound from './pages/NotFound';
 
 function App() {
@@ -38,6 +39,7 @@ function App() {
           <Route path="/order-confirmation/:id" element={<OrderConfirmation />} />
           <Route path="/orders/:id" element={<ProtectedRoute><OrderDetail /></ProtectedRoute>} />
           <Route path="/forgot-password" element={<ForgotPassword />} />
+          <Route path="/payment/verify" element={<PaymentVerify />} />
           <Route path="/privacy-policy" element={<PrivacyPolicy />} />
           <Route path="/terms" element={<Terms />} />
           <Route path="/admin/login" element={<AdminLogin />} />

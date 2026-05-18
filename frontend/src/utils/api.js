@@ -65,4 +65,6 @@ export const updateProduct = (id, payload, token) => api.put(`/products/${id}`, 
 export const deleteProduct = (id, token) => api.delete(`/products/${id}`, authConfig(token));
 export const initiateMoMoPayment = (payload, token) => api.post('/payments/momo/request', payload, authConfig(token));
 export const checkMoMoStatus = (referenceId, token) => api.get(`/payments/momo/status/${referenceId}`, authConfig(token));
+export const initializePaystackPayment = (payload) => api.post('/payments/paystack/initialize', payload);
+export const verifyPaystackPayment = (reference) => api.get(`/payments/paystack/verify/${encodeURIComponent(reference)}`);
 export default api;

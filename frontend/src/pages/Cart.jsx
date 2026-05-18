@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { createOrder, createGuestOrder, validatePromo, initiateMoMoPayment, checkMoMoStatus } from '../utils/api';
+import { createOrder, createGuestOrder, validatePromo, initiateMoMoPayment, checkMoMoStatus, initializePaystackPayment } from '../utils/api';
 import { getAuthUser, getToken, isAuthenticated } from '../utils/auth';
 
 function resolveUnitPrice(item) {
@@ -20,7 +20,7 @@ export default function Cart() {
   const [applying, setApplying] = useState(false);
   const [checkoutMessage, setCheckoutMessage] = useState('');
   const [shipping, setShipping] = useState({ address: '', city: '', phone: '' });
-  const [paymentMethod, setPaymentMethod] = useState('card');
+  const [paymentMethod, setPaymentMethod] = useState('paystack');
   const [placingOrder, setPlacingOrder] = useState(false);
   const [momoPhone, setMomoPhone] = useState('');
   const [momoStatus, setMomoStatus] = useState(''); // '' | 'pending' | 'success' | 'failed'
@@ -206,6 +206,30 @@ export default function Cart() {
       return;
     }
 
+    // Paystack flow
+    if (paymentMethod === 'paystack') {
+      const email = isGuest ? guestEmail.trim() : user?.email;
+      if (!email) { setCheckoutMessage('Email is required for Paystack payment.'); return; }
+      setPlacingOrder(true);
+      setCheckoutMessage('');
+      try {
+        const { data } = await initializePaystackPayment({ email, amount: finalTotal });
+        // Save order data so PaymentVerify can create the order after payment
+        sessionStorage.setItem('paystackPending', JSON.stringify({
+          orderPayload: isGuest
+            ? { ...buildOrderPayload('Paystack'), guestName: guestName.trim(), guestEmail: email }
+            : buildOrderPayload('Paystack'),
+          isGuest,
+          guestEmail: isGuest ? email : null,
+        }));
+        window.location.href = data.authorization_url;
+      } catch (err) {
+        setCheckoutMessage(err.response?.data?.message || 'Could not connect to Paystack. Try again.');
+        setPlacingOrder(false);
+      }
+      return;
+    }
+
     // Standard checkout
     setPlacingOrder(true);
     setCheckoutMessage('');
@@ -364,10 +388,10 @@ export default function Cart() {
                 onChange={(e) => { setPaymentMethod(e.target.value); setMomoStatus(''); setCheckoutMessage(''); }}
                 className="mt-3 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 outline-none focus:border-brand-gold"
               >
-                {isAuthenticated() && <option value="momo">📱 MTN Mobile Money</option>}
-                <option value="card">Credit / Debit Card</option>
-                <option value="bank-transfer">Bank Transfer</option>
-                <option value="cash-on-delivery">Cash on Delivery</option>
+                <option value="paystack">💳 Pay Online (Card / MoMo) — Paystack</option>
+                {isAuthenticated() && <option value="momo">📱 MTN MoMo (Direct)</option>}
+                <option value="bank-transfer">🏦 Bank Transfer</option>
+                <option value="cash-on-delivery">💵 Cash on Delivery</option>
               </select>
 
               {paymentMethod === 'momo' && (
@@ -421,8 +445,8 @@ export default function Cart() {
               )}
             </div>
 
-            <button onClick={handleCheckout} disabled={placingOrder || momoStatus === 'pending'} className="w-full rounded-full bg-brand-dark px-6 py-4 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:opacity-60">
-              {momoStatus === 'pending' ? 'Awaiting MoMo approval...' : placingOrder ? 'Placing order...' : paymentMethod === 'momo' ? '📱 Pay with MoMo' : 'Proceed to checkout'}
+            <button onClick={handleCheckout} disabled={placingOrder || momoStatus === 'pending'} className={`w-full rounded-full px-6 py-4 text-sm font-semibold transition disabled:opacity-60 ${paymentMethod === 'paystack' ? 'bg-[#0BA4DB] text-white hover:bg-[#0993c5]' : 'bg-brand-dark text-white hover:bg-slate-800'}`}>
+              {momoStatus === 'pending' ? 'Awaiting MoMo approval...' : placingOrder ? (paymentMethod === 'paystack' ? 'Redirecting to Paystack...' : 'Placing order...') : paymentMethod === 'paystack' ? '💳 Pay securely with Paystack' : paymentMethod === 'momo' ? '📱 Pay with MoMo' : 'Proceed to checkout'}
             </button>
             <button
               onClick={whatsappOrder}

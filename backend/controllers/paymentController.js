@@ -98,4 +98,58 @@ const checkMoMoStatus = asyncHandler(async (req, res) => {
   res.json({ status: data.status, financialTransactionId: data.financialTransactionId });
 });
 
-module.exports = { initiateMoMoPayment, checkMoMoStatus };
+const initializePaystackPayment = asyncHandler(async (req, res) => {
+  const { email, amount } = req.body;
+  if (!email || !amount) {
+    res.status(400);
+    throw new Error('Email and amount are required');
+  }
+
+  const amountInPesewas = Math.round(Number(amount) * 100);
+  const reference = `CN-${Date.now()}-${Math.random().toString(36).slice(2, 8).toUpperCase()}`;
+  const callbackUrl = `${process.env.FRONTEND_URL}/payment/verify`;
+
+  const response = await fetch('https://api.paystack.co/transaction/initialize', {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${process.env.PAYSTACK_SECRET_KEY}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ email, amount: amountInPesewas, currency: 'GHS', reference, callback_url: callbackUrl }),
+  });
+
+  const data = await response.json();
+  if (!data.status) {
+    res.status(400);
+    throw new Error(data.message || 'Failed to initialize Paystack payment');
+  }
+
+  res.json({ authorization_url: data.data.authorization_url, reference: data.data.reference });
+});
+
+const verifyPaystackPayment = asyncHandler(async (req, res) => {
+  const { reference } = req.params;
+  if (!reference) {
+    res.status(400);
+    throw new Error('Reference is required');
+  }
+
+  const response = await fetch(`https://api.paystack.co/transaction/verify/${encodeURIComponent(reference)}`, {
+    headers: { Authorization: `Bearer ${process.env.PAYSTACK_SECRET_KEY}` },
+  });
+
+  const data = await response.json();
+  if (!data.status || data.data?.status !== 'success') {
+    res.status(400);
+    throw new Error('Payment not successful or could not be verified');
+  }
+
+  res.json({
+    success: true,
+    reference: data.data.reference,
+    amount: data.data.amount / 100,
+    email: data.data.customer?.email,
+  });
+});
+
+module.exports = { initiateMoMoPayment, checkMoMoStatus, initializePaystackPayment, verifyPaystackPayment };
