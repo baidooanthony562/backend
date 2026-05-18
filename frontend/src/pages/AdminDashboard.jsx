@@ -820,7 +820,7 @@ export default function AdminDashboard() {
                     <p className="text-sm text-slate-600">
                       {filtered.length} of {orders.length} orders
                     </p>
-                    <div className="flex gap-2">
+                    <div className="flex flex-wrap gap-2">
                       <input
                         type="text"
                         value={orderSearch}
@@ -838,6 +838,34 @@ export default function AdminDashboard() {
                           <option key={s}>{s}</option>
                         ))}
                       </select>
+                      <button
+                        onClick={() => {
+                          const escape = (v) => `"${String(v ?? '').replace(/"/g, '""')}"`;
+                          const rows = [
+                            ['Order ID', 'Customer', 'Email', 'Items', 'Total (₵)', 'Payment', 'Status', 'Date'].map(escape).join(','),
+                            ...filtered.map((o) => [
+                              o._id.slice(-6).toUpperCase(),
+                              o.user?.name || o.guestName || 'Guest',
+                              o.user?.email || o.guestEmail || '',
+                              o.orderItems?.length || 0,
+                              Number(o.totalPrice || 0).toFixed(2),
+                              o.paymentMethod || '',
+                              o.status || '',
+                              new Date(o.createdAt).toLocaleDateString('en-GH'),
+                            ].map(escape).join(',')),
+                          ];
+                          const blob = new Blob([rows.join('\n')], { type: 'text/csv' });
+                          const url = URL.createObjectURL(blob);
+                          const a = document.createElement('a');
+                          a.href = url;
+                          a.download = `orders-${new Date().toISOString().slice(0, 10)}.csv`;
+                          a.click();
+                          URL.revokeObjectURL(url);
+                        }}
+                        className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 hover:border-brand-gold transition"
+                      >
+                        ↓ Export CSV
+                      </button>
                     </div>
                   </div>
                   <div className="overflow-x-auto rounded-lg bg-white shadow-sm">
