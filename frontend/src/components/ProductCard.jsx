@@ -93,6 +93,11 @@ export default function ProductCard({ product }) {
             #1 Best Seller
           </span>
         )}
+        {inStock && maxStock <= 10 && (
+          <span className="absolute right-2 bottom-2 z-10 rounded-sm bg-red-600 px-1.5 py-0.5 text-xs font-bold text-white">
+            Only {maxStock} left!
+          </span>
+        )}
         <div className="aspect-square overflow-hidden flex items-center justify-center">
           <img
             src={productImage}
@@ -142,8 +147,8 @@ export default function ProductCard({ product }) {
           </p>
         )}
 
-        <p className={`text-xs ${inStock ? 'text-[#007185]' : 'text-red-500'}`}>
-          {inStock ? `✓ ${product.stock} in stock` : '✗ Out of stock'}
+        <p className={`text-xs font-semibold ${!inStock ? 'text-red-500' : maxStock <= 5 ? 'text-red-600' : maxStock <= 10 ? 'text-amber-600' : 'text-[#007185]'}`}>
+          {!inStock ? '✗ Out of stock' : maxStock <= 10 ? `⚡ Only ${maxStock} left!` : '✓ In stock'}
         </p>
 
         {/* Quantity stepper */}

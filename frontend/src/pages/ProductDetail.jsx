@@ -287,6 +287,19 @@ export default function ProductDetail() {
               </p>
             )}
 
+            {/* Stock urgency */}
+            {inStock && maxStock <= 10 && (
+              <div className="mt-3 flex items-center gap-2 rounded-lg bg-red-50 px-3 py-2 text-sm font-semibold text-red-700">
+                <span className="h-2 w-2 rounded-full bg-red-500 animate-pulse" />
+                Only {maxStock} left in stock — order soon!
+              </div>
+            )}
+            {!inStock && (
+              <div className="mt-3 rounded-lg bg-slate-100 px-3 py-2 text-sm font-semibold text-slate-500 text-center">
+                Currently out of stock
+              </div>
+            )}
+
             {/* Buttons */}
             <div className="mt-4 space-y-2">
               <button
