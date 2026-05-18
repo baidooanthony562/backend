@@ -29,6 +29,8 @@ export default function Shop() {
   const [sort, setSort] = useState(searchParams.get('sort') || 'newest');
   const [allProducts, setAllProducts] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [currentPage, setCurrentPage] = useState(1);
+  const PAGE_SIZE = 12;
 
   useEffect(() => {
     const cat = searchParams.get('category');
@@ -56,6 +58,9 @@ export default function Shop() {
     ? `Results for "${search}"`
     : 'All Products';
 
+  // Reset to page 1 whenever filters change
+  useEffect(() => { setCurrentPage(1); }, [search, selectedCategory, priceRange, sort]);
+
   const filteredProducts = useMemo(() => {
     return allProducts
       .filter((p) => p.name.toLowerCase().includes(search.toLowerCase()))
@@ -80,6 +85,9 @@ export default function Shop() {
       });
   }, [search, selectedCategory, priceRange, sort, allProducts]);
 
+  const totalPages = Math.ceil(filteredProducts.length / PAGE_SIZE);
+  const paginatedProducts = filteredProducts.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
+
   const handleCategorySelect = (cat) => {
     setSelectedCategory(cat);
     setSearchParams(cat === 'All' ? {} : { category: cat });
@@ -94,7 +102,10 @@ export default function Shop() {
             {selectedCategory !== 'All' ? 'Category' : 'Shop'}
           </p>
           <h1 className="mt-1 text-3xl font-extrabold text-slate-900">{pageTitle}</h1>
-          <p className="mt-1 text-sm text-slate-500">{filteredProducts.length} product{filteredProducts.length !== 1 ? 's' : ''} found</p>
+          <p className="mt-1 text-sm text-slate-500">
+            {filteredProducts.length} product{filteredProducts.length !== 1 ? 's' : ''} found
+            {totalPages > 1 && ` — page ${currentPage} of ${totalPages}`}
+          </p>
         </div>
         <select
           value={sort}
@@ -193,11 +204,54 @@ export default function Shop() {
               </button>
             </div>
           ) : (
-            <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
-              {filteredProducts.map((product) => (
-                <ProductCard key={product.id || product._id} product={product} />
-              ))}
-            </div>
+            <>
+              <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
+                {paginatedProducts.map((product) => (
+                  <ProductCard key={product.id || product._id} product={product} />
+                ))}
+              </div>
+
+              {totalPages > 1 && (
+                <div className="mt-8 flex items-center justify-center gap-2">
+                  <button
+                    onClick={() => { setCurrentPage((p) => Math.max(1, p - 1)); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+                    disabled={currentPage === 1}
+                    className="rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-40"
+                  >
+                    ← Prev
+                  </button>
+
+                  {Array.from({ length: totalPages }, (_, i) => i + 1)
+                    .filter((p) => p === 1 || p === totalPages || Math.abs(p - currentPage) <= 1)
+                    .reduce((acc, p, idx, arr) => {
+                      if (idx > 0 && p - arr[idx - 1] > 1) acc.push('...');
+                      acc.push(p);
+                      return acc;
+                    }, [])
+                    .map((p, i) =>
+                      p === '...' ? (
+                        <span key={`ellipsis-${i}`} className="px-2 text-slate-400">…</span>
+                      ) : (
+                        <button
+                          key={p}
+                          onClick={() => { setCurrentPage(p); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+                          className={`h-9 w-9 rounded-full text-sm font-semibold transition ${p === currentPage ? 'bg-brand-dark text-white' : 'border border-slate-200 bg-white text-slate-700 hover:bg-slate-50'}`}
+                        >
+                          {p}
+                        </button>
+                      )
+                    )}
+
+                  <button
+                    onClick={() => { setCurrentPage((p) => Math.min(totalPages, p + 1)); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+                    disabled={currentPage === totalPages}
+                    className="rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-40"
+                  >
+                    Next →
+                  </button>
+                </div>
+              )}
+            </>
           )}
         </div>
       </div>
