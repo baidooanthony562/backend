@@ -61,10 +61,9 @@ export default function Footer() {
           <span className="text-sm font-bold text-white">Cindy Nat Enterprise</span>
         </div>
         <div className="flex flex-wrap justify-center gap-4 text-xs text-slate-400 mb-3">
-          <span className="rounded bg-slate-700 px-2 py-1">Mobile Money</span>
-          <span className="rounded bg-slate-700 px-2 py-1">Visa</span>
-          <span className="rounded bg-slate-700 px-2 py-1">Mastercard</span>
-          <span className="rounded bg-slate-700 px-2 py-1">Cash on Delivery</span>
+          <span className="rounded bg-slate-700 px-2 py-1">📱 MTN Mobile Money</span>
+          <span className="rounded bg-slate-700 px-2 py-1">🏦 Bank Transfer</span>
+          <span className="rounded bg-slate-700 px-2 py-1">💵 Cash on Delivery</span>
         </div>
         <div className="flex flex-wrap justify-center gap-4 text-xs text-slate-500 mb-2">
           <Link to="/privacy-policy" className="hover:text-slate-300 hover:underline">Privacy Policy</Link>

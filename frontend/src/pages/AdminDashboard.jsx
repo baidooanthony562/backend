@@ -77,9 +77,12 @@ export default function AdminDashboard() {
   const [dailySales, setDailySales] = useState([]);
   const [salesRange, setSalesRange] = useState(30);
 
-  // Order filters
+  // Order filters + bulk
   const [orderSearch, setOrderSearch] = useState('');
   const [orderStatusFilter, setOrderStatusFilter] = useState('');
+  const [selectedOrders, setSelectedOrders] = useState(new Set());
+  const [bulkStatus, setBulkStatus] = useState('');
+  const [bulkUpdating, setBulkUpdating] = useState(false);
 
   // Session termination
   const [terminated, setTerminated] = useState(false);
@@ -247,6 +250,30 @@ export default function AdminDashboard() {
     } finally {
       setUpdatingOrder(null);
     }
+  };
+
+  const handleBulkStatus = async () => {
+    if (!bulkStatus || selectedOrders.size === 0) return;
+    setBulkUpdating(true);
+    const ids = [...selectedOrders];
+    let failed = 0;
+    for (const orderId of ids) {
+      try {
+        const { data } = await updateOrderStatus(orderId, bulkStatus, token);
+        if (data?.deleted) {
+          setOrders((prev) => prev.filter((o) => o._id !== orderId));
+        } else {
+          setOrders((prev) => prev.map((o) => o._id === orderId ? { ...o, status: bulkStatus } : o));
+        }
+      } catch {
+        failed++;
+      }
+    }
+    setSelectedOrders(new Set());
+    setBulkStatus('');
+    setBulkUpdating(false);
+    if (failed > 0) showToast(`${ids.length - failed} updated, ${failed} failed.`, 'error');
+    else showToast(`${ids.length} order${ids.length > 1 ? 's' : ''} updated to ${bulkStatus}.`);
   };
 
   const handlePromoSave = async (e) => {
@@ -868,10 +895,47 @@ export default function AdminDashboard() {
                       </button>
                     </div>
                   </div>
+                  {selectedOrders.size > 0 && (
+                    <div className="flex items-center gap-3 rounded-lg border border-yellow-200 bg-yellow-50 px-4 py-3">
+                      <span className="text-sm font-semibold text-yellow-800">{selectedOrders.size} order{selectedOrders.size > 1 ? 's' : ''} selected</span>
+                      <select
+                        value={bulkStatus}
+                        onChange={(e) => setBulkStatus(e.target.value)}
+                        className="rounded-lg border border-yellow-300 bg-white px-3 py-1.5 text-sm outline-none focus:border-brand-gold"
+                      >
+                        <option value="">Set status…</option>
+                        {['Pending', 'Processing', 'Shipped', 'Delivered', 'Cancelled'].map((s) => <option key={s}>{s}</option>)}
+                      </select>
+                      <button
+                        onClick={handleBulkStatus}
+                        disabled={!bulkStatus || bulkUpdating}
+                        className="rounded-lg bg-brand-gold px-4 py-1.5 text-sm font-semibold text-slate-900 hover:bg-yellow-400 disabled:opacity-40 disabled:cursor-not-allowed transition"
+                      >
+                        {bulkUpdating ? 'Updating…' : `Apply to ${selectedOrders.size}`}
+                      </button>
+                      <button
+                        onClick={() => setSelectedOrders(new Set())}
+                        className="ml-auto text-xs text-yellow-700 hover:text-yellow-900 hover:underline"
+                      >
+                        Clear selection
+                      </button>
+                    </div>
+                  )}
                   <div className="overflow-x-auto rounded-lg bg-white shadow-sm">
                     <table className="w-full text-sm">
                       <thead>
                         <tr className="border-b bg-slate-50 text-left text-xs font-bold uppercase text-slate-500">
+                          <th className="px-4 py-3">
+                            <input
+                              type="checkbox"
+                              checked={filtered.length > 0 && filtered.every((o) => selectedOrders.has(o._id))}
+                              onChange={(e) => {
+                                if (e.target.checked) setSelectedOrders(new Set(filtered.map((o) => o._id)));
+                                else setSelectedOrders(new Set());
+                              }}
+                              className="h-4 w-4 accent-brand-gold cursor-pointer"
+                            />
+                          </th>
                           <th className="px-4 py-3">Order ID</th>
                           <th className="px-4 py-3">Customer</th>
                           <th className="px-4 py-3">Items</th>
@@ -883,11 +947,26 @@ export default function AdminDashboard() {
                       </thead>
                       <tbody className="divide-y">
                         {filtered.length === 0
-                          ? <tr><td colSpan="7" className="px-4 py-8 text-center text-slate-500">No orders match your search.</td></tr>
+                          ? <tr><td colSpan="8" className="px-4 py-8 text-center text-slate-500">No orders match your search.</td></tr>
                           : filtered.map((o) => (
-                            <tr key={o._id} className="hover:bg-slate-50">
+                            <tr key={o._id} className={`hover:bg-slate-50 ${selectedOrders.has(o._id) ? 'bg-yellow-50' : ''}`}>
+                              <td className="px-4 py-3">
+                                <input
+                                  type="checkbox"
+                                  checked={selectedOrders.has(o._id)}
+                                  onChange={(e) => {
+                                    setSelectedOrders((prev) => {
+                                      const next = new Set(prev);
+                                      if (e.target.checked) next.add(o._id);
+                                      else next.delete(o._id);
+                                      return next;
+                                    });
+                                  }}
+                                  className="h-4 w-4 accent-brand-gold cursor-pointer"
+                                />
+                              </td>
                               <td className="px-4 py-3 font-mono text-xs font-semibold">#{o._id.slice(-6).toUpperCase()}</td>
-                              <td className="px-4 py-3">{o.user?.name || 'Customer'}</td>
+                              <td className="px-4 py-3">{o.user?.name || o.guestName || 'Guest'}</td>
                               <td className="px-4 py-3">{o.orderItems?.length || 0}</td>
                               <td className="px-4 py-3 font-bold">₵{Number(o.totalPrice || 0).toFixed(2)}</td>
                               <td className="px-4 py-3 text-slate-500">{new Date(o.createdAt).toLocaleDateString()}</td>
