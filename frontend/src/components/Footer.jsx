@@ -14,9 +14,10 @@ export default function Footer() {
           <div>
             <p className="mb-3 font-bold text-white">Get to Know Us</p>
             <ul className="space-y-2 text-sm">
-              <li><Link to="/" className="hover:text-white hover:underline">About Cindy Nat</Link></li>
+              <li><Link to="/terms" className="hover:text-white hover:underline">About Cindy Nat</Link></li>
               <li><a href="mailto:baidooanthony562@gmail.com" className="hover:text-white hover:underline">Contact Us</a></li>
-              <li><span className="text-slate-400">Adum & Alabar, Kumasi</span></li>
+              <li><Link to="/privacy-policy" className="hover:text-white hover:underline">Privacy Policy</Link></li>
+              <li><Link to="/terms" className="hover:text-white hover:underline">Terms & Conditions</Link></li>
             </ul>
           </div>
           <div>
@@ -64,6 +65,11 @@ export default function Footer() {
           <span className="rounded bg-slate-700 px-2 py-1">Visa</span>
           <span className="rounded bg-slate-700 px-2 py-1">Mastercard</span>
           <span className="rounded bg-slate-700 px-2 py-1">Cash on Delivery</span>
+        </div>
+        <div className="flex flex-wrap justify-center gap-4 text-xs text-slate-500 mb-2">
+          <Link to="/privacy-policy" className="hover:text-slate-300 hover:underline">Privacy Policy</Link>
+          <span>·</span>
+          <Link to="/terms" className="hover:text-slate-300 hover:underline">Terms & Conditions</Link>
         </div>
         <p className="text-xs text-slate-500">© 2026 Cindy Nat Enterprise. All rights reserved. Adum & Alabar, Kumasi, Ghana.</p>
       </div>
