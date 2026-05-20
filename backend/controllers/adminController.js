@@ -71,9 +71,9 @@ const getDashboardStats = asyncHandler(async (req, res) => {
   const [totalUsers, totalProducts, totalOrders, revenue, lowStock] = await Promise.all([
     User.countDocuments(),
     Product.countDocuments(),
-    Order.countDocuments({ status: { $ne: 'Cancelled' } }),
+    Order.countDocuments({ status: { $in: ['Pending', 'Processing', 'Shipped'] } }),
     Order.aggregate([
-      { $match: { status: { $ne: 'Cancelled' } } },
+      { $match: { status: 'Delivered' } },
       { $group: { _id: null, revenue: { $sum: '$totalPrice' } } },
     ]),
     Product.find({ stock: { $lte: 5 } }).select('name stock price').limit(10),
@@ -113,7 +113,7 @@ const getDailySales = asyncHandler(async (req, res) => {
   since.setHours(0, 0, 0, 0);
 
   const data = await Order.aggregate([
-    { $match: { status: { $ne: 'Cancelled' }, createdAt: { $gte: since } } },
+    { $match: { status: 'Delivered', createdAt: { $gte: since } } },
     {
       $group: {
         _id: {

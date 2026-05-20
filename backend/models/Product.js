@@ -11,6 +11,7 @@ const productSchema = mongoose.Schema(
     wholesaleMinQty: { type: Number, default: 0 },
     discount: { type: Number, default: 0 },
     stock: { type: Number, required: true, default: 0 },
+    totalSold: { type: Number, default: 0 },
     sku: { type: String },
     rating: { type: Number, default: 4.5 },
     reviews: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Review' }],

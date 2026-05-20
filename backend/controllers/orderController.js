@@ -27,7 +27,7 @@ const createOrder = asyncHandler(async (req, res) => {
   const rollback = async () => {
     if (decremented.length > 0) {
       await Promise.allSettled(
-        decremented.map((d) => Product.findByIdAndUpdate(d.id, { $inc: { stock: d.qty } }))
+        decremented.map((d) => Product.findByIdAndUpdate(d.id, { $inc: { stock: d.qty, totalSold: -d.qty } }))
       );
     }
   };
@@ -53,7 +53,7 @@ const createOrder = asyncHandler(async (req, res) => {
       // Atomic check-and-decrement — prevents overselling under concurrent load
       const reserved = await Product.findOneAndUpdate(
         { _id: product._id, active: true, stock: { $gte: qty } },
-        { $inc: { stock: -qty } }
+        { $inc: { stock: -qty, totalSold: qty } }
       );
       if (!reserved) {
         res.status(400);
@@ -200,14 +200,14 @@ const getOrderById = asyncHandler(async (req, res) => {
 });
 
 const getMyOrders = asyncHandler(async (req, res) => {
-  const orders = await Order.find({ user: req.user._id })
+  const orders = await Order.find({ user: req.user._id, status: { $ne: 'Cancelled' } })
     .populate('orderItems.product', 'name price images')
     .sort({ createdAt: -1 });
   res.json(orders);
 });
 
 const getOrders = asyncHandler(async (req, res) => {
-  const orders = await Order.find({})
+  const orders = await Order.find({ status: { $ne: 'Cancelled' } })
     .populate('user', 'name email')
     .sort({ createdAt: -1 })
     .limit(500);
@@ -287,13 +287,16 @@ const updateOrderStatus = asyncHandler(async (req, res) => {
     throw new Error('Order not found');
   }
 
-  // Cancelling — restore stock, delete order, notify customer
+  // Cancelling — restore stock, remove from user record, delete order, notify customer
   if (status === 'Cancelled' && order.status !== 'Cancelled') {
-    await Promise.allSettled(
-      order.orderItems.map((item) =>
-        Product.findByIdAndUpdate(item.product, { $inc: { stock: item.quantity } })
-      )
-    );
+    await Promise.allSettled([
+      ...order.orderItems.map((item) =>
+        Product.findByIdAndUpdate(item.product, { $inc: { stock: item.quantity, totalSold: -item.quantity } })
+      ),
+      order.user?._id
+        ? User.findByIdAndUpdate(order.user._id, { $pull: { orders: order._id } })
+        : Promise.resolve(),
+    ]);
     sendStatusEmail(order.user?.email, order.user?.name, order, 'Cancelled');
     await Order.findByIdAndDelete(order._id);
     return res.json({ deleted: true, message: 'Order cancelled and removed.' });
@@ -325,7 +328,7 @@ const createGuestOrder = asyncHandler(async (req, res) => {
   const decremented = [];
   const rollback = async () => {
     if (decremented.length > 0) {
-      await Promise.allSettled(decremented.map((d) => Product.findByIdAndUpdate(d.id, { $inc: { stock: d.qty } })));
+      await Promise.allSettled(decremented.map((d) => Product.findByIdAndUpdate(d.id, { $inc: { stock: d.qty, totalSold: -d.qty } })));
     }
   };
 
@@ -338,7 +341,7 @@ const createGuestOrder = asyncHandler(async (req, res) => {
       if (!product || !product.active) { res.status(400); throw new Error('One or more products are no longer available'); }
       const reserved = await Product.findOneAndUpdate(
         { _id: product._id, active: true, stock: { $gte: qty } },
-        { $inc: { stock: -qty } }
+        { $inc: { stock: -qty, totalSold: qty } }
       );
       if (!reserved) { res.status(400); throw new Error(`"${product.name}" is out of stock`); }
       decremented.push({ id: product._id, qty });

@@ -36,17 +36,18 @@ export default function LiveChat() {
   };
 
   return (
-    <div className="fixed bottom-6 right-6 z-50 w-full max-w-sm">
+    <div className="fixed bottom-4 right-4 z-50 w-[calc(100vw-2rem)] max-w-sm sm:bottom-6 sm:right-6">
       <div className="flex justify-end">
         <button
-          className="inline-flex items-center gap-2 rounded-full bg-brand-dark px-4 py-3 text-sm font-semibold text-white shadow-lg transition hover:bg-slate-800"
+          className="inline-flex items-center gap-1.5 rounded-full bg-brand-dark px-3 py-2 text-xs font-semibold text-white shadow-lg transition hover:bg-slate-800 sm:gap-2 sm:px-4 sm:py-3 sm:text-sm"
           onClick={() => setOpen((prev) => !prev)}
         >
-          {open ? 'Close chat' : 'Live support'}
+          <span>{open ? '✕' : '💬'}</span>
+          <span>{open ? 'Close' : 'Live support'}</span>
         </button>
       </div>
       {open && (
-        <div className="mt-3 rounded-3xl border border-slate-200 bg-white p-4 shadow-2xl">
+        <div className="mt-2 rounded-2xl border border-slate-200 bg-white p-4 shadow-2xl sm:mt-3 sm:rounded-3xl">
           <div className="mb-4 flex items-center justify-between">
             <div>
               <p className="text-base font-semibold text-slate-900">Live chat support</p>

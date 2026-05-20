@@ -148,6 +148,7 @@ export default function AdminDashboard() {
       name: p.name || '',
       description: p.description || '',
       price: p.price || '',
+      category: p.category?.name || p.category || '',
       stock: p.stock || '',
       discount: p.discount || 0,
       wholesalePrice: p.wholesalePrice || '',
@@ -415,14 +416,20 @@ export default function AdminDashboard() {
         {error && <div className="mb-4 rounded-lg bg-red-50 p-4 text-sm text-red-700">{error}</div>}
 
         {/* Tabs */}
-        <div className="mb-6 flex overflow-x-auto rounded-lg bg-white shadow-sm">
-          {TABS.map((t) => (
-            <button key={t} onClick={() => { setTab(t); if (t === 'Orders') loadAll(); }}
-              className={`flex-1 whitespace-nowrap px-6 py-3 text-sm font-semibold transition ${tab === t ? 'border-b-2 border-brand-gold bg-white text-[#131921]' : 'text-slate-500 hover:text-slate-800'}`}>
-              {t}
-            </button>
-          ))}
-        </div>
+        {(() => {
+          const TAB_ICONS = { Overview: '📊', Products: '📦', Orders: '🛒', Users: '👥', Promos: '🎟️' };
+          return (
+            <div className="mb-6 flex overflow-x-auto rounded-lg bg-white shadow-sm">
+              {TABS.map((t) => (
+                <button key={t} onClick={() => { setTab(t); if (t === 'Orders') loadAll(); }}
+                  className={`flex flex-1 flex-col items-center justify-center gap-0.5 whitespace-nowrap px-2 py-2.5 sm:flex-row sm:gap-1.5 sm:px-5 sm:py-3 text-xs sm:text-sm font-semibold transition ${tab === t ? 'border-b-2 border-brand-gold bg-white text-[#131921]' : 'text-slate-500 hover:text-slate-800'}`}>
+                  <span className="text-base sm:text-sm leading-none">{TAB_ICONS[t]}</span>
+                  <span>{t}</span>
+                </button>
+              ))}
+            </div>
+          );
+        })()}
 
         {loading ? (
           <div className="rounded-lg bg-white p-16 text-center text-slate-500 shadow-sm">Loading...</div>
@@ -440,6 +447,105 @@ export default function AdminDashboard() {
                     </div>
                   ))}
                 </div>
+
+                {/* ── TODAY'S CONFIRMED PURCHASES ── */}
+                {(() => {
+                  const todayStr = new Date().toISOString().slice(0, 10);
+                  const todayConfirmed = orders.filter((o) => {
+                    const updated = new Date(o.updatedAt).toISOString().slice(0, 10);
+                    return updated === todayStr && o.status === 'Delivered';
+                  }).sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt));
+                  const todayRevenue = todayConfirmed.reduce((s, o) => s + (o.totalPrice || 0), 0);
+
+                  return (
+                    <div className="rounded-lg bg-white p-6 shadow-sm">
+                      <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
+                        <h2 className="text-lg font-bold text-slate-900">
+                          ✅ Today's Delivered Orders
+                          <span className="ml-2 text-sm font-normal text-slate-500">
+                            {new Date().toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' })}
+                          </span>
+                        </h2>
+                        <div className="flex gap-3">
+                          <span className="rounded-full bg-green-100 px-3 py-1 text-xs font-bold text-green-700">
+                            {todayConfirmed.length} order{todayConfirmed.length !== 1 ? 's' : ''}
+                          </span>
+                          <span className="rounded-full bg-amber-100 px-3 py-1 text-xs font-bold text-amber-700">
+                            ₵{todayRevenue.toFixed(2)}
+                          </span>
+                        </div>
+                      </div>
+
+                      {todayConfirmed.length === 0 ? (
+                        <p className="text-sm text-slate-500">No delivered orders yet today. Orders will appear here once you mark them as Delivered.</p>
+                      ) : (
+                        <>
+                          {/* Mobile cards */}
+                          <div className="space-y-3 md:hidden">
+                            {todayConfirmed.map((o) => (
+                              <div key={o._id} className="rounded-lg border border-green-100 bg-green-50 p-3">
+                                <div className="flex items-center justify-between">
+                                  <span className="font-mono text-xs font-bold text-slate-700">#{o._id.slice(-6).toUpperCase()}</span>
+                                  <span className="text-xs text-slate-400">{new Date(o.updatedAt).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })}</span>
+                                </div>
+                                <p className="mt-1 font-medium text-slate-800">{o.user?.name || o.guestName || 'Guest'}</p>
+                                <div className="mt-1 text-xs text-slate-500">
+                                  {o.orderItems?.slice(0, 2).map((item, i) => (
+                                    <span key={i} className="mr-2">{item.name} × {item.quantity}</span>
+                                  ))}
+                                  {o.orderItems?.length > 2 && <span>+{o.orderItems.length - 2} more</span>}
+                                </div>
+                                <p className="mt-1 text-right font-bold text-slate-900">₵{Number(o.totalPrice).toFixed(2)}</p>
+                              </div>
+                            ))}
+                          </div>
+
+                          {/* Desktop table */}
+                          <div className="hidden md:block overflow-x-auto">
+                            <table className="w-full text-sm">
+                              <thead>
+                                <tr className="border-b text-left text-xs font-bold uppercase text-slate-500">
+                                  <th className="pb-2 pr-4">Order ID</th>
+                                  <th className="pb-2 pr-4">Customer</th>
+                                  <th className="pb-2 pr-4">Items</th>
+                                  <th className="pb-2 pr-4 text-right">Total</th>
+                                  <th className="pb-2 pr-4">Status</th>
+                                  <th className="pb-2">Time</th>
+                                </tr>
+                              </thead>
+                              <tbody className="divide-y">
+                                {todayConfirmed.map((o) => (
+                                  <tr key={o._id} className="hover:bg-slate-50">
+                                    <td className="py-3 pr-4 font-mono text-xs font-semibold text-slate-700">#{o._id.slice(-6).toUpperCase()}</td>
+                                    <td className="py-3 pr-4 text-slate-700">
+                                      {o.user?.name || o.guestName || 'Guest'}
+                                      {(o.user?.email || o.guestEmail) && (
+                                        <span className="block text-xs text-slate-400">{o.user?.email || o.guestEmail}</span>
+                                      )}
+                                    </td>
+                                    <td className="py-3 pr-4 text-slate-600">
+                                      {o.orderItems?.slice(0, 2).map((item, i) => (
+                                        <span key={i} className="block text-xs">{item.name} × {item.quantity}</span>
+                                      ))}
+                                      {o.orderItems?.length > 2 && <span className="text-xs text-slate-400">+{o.orderItems.length - 2} more</span>}
+                                    </td>
+                                    <td className="py-3 pr-4 text-right font-semibold text-slate-900">₵{Number(o.totalPrice).toFixed(2)}</td>
+                                    <td className="py-3 pr-4">
+                                      <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${STATUS_COLORS[o.status] || 'bg-slate-100 text-slate-600'}`}>{o.status}</span>
+                                    </td>
+                                    <td className="py-3 text-xs text-slate-500">
+                                      {new Date(o.updatedAt).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })}
+                                    </td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          </div>
+                        </>
+                      )}
+                    </div>
+                  );
+                })()}
 
                 {/* ── DAILY SALES ── */}
                 <div className="rounded-lg bg-white p-6 shadow-sm">
@@ -781,52 +887,144 @@ export default function AdminDashboard() {
                 )}
 
                 {/* Products table */}
-                <div className="overflow-x-auto rounded-lg bg-white shadow-sm">
-                  <table className="w-full text-sm">
-                    <thead>
-                      <tr className="border-b bg-slate-50 text-left text-xs font-bold uppercase text-slate-500">
-                        <th className="px-4 py-3">Product</th>
-                        <th className="px-4 py-3">Category</th>
-                        <th className="px-4 py-3">Price</th>
-                        <th className="px-4 py-3">Stock</th>
-                        <th className="px-4 py-3">Discount</th>
-                        <th className="px-4 py-3">Actions</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y">
-                      {products.length === 0 ? (
-                        <tr><td colSpan="6" className="px-4 py-12 text-center text-slate-500">No products yet. Click "+ Add Product" to get started.</td></tr>
-                      ) : products.map((p) => {
-                        const imgSrc = p.images?.[0] || p.image;
-                        return (
-                          <tr key={p._id || p.id} className="hover:bg-slate-50">
-                            <td className="px-4 py-3">
-                              <div className="flex items-center gap-3">
-                                {imgSrc
-                                  ? <img src={imgSrc} alt={p.name} className="h-12 w-12 rounded-lg border object-cover bg-slate-100" onError={(e) => { e.target.style.display = 'none'; }} />
-                                  : <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-slate-100 text-xl">📦</div>
-                                }
-                                <span className="max-w-[180px] truncate font-medium text-slate-900">{p.name}</span>
+                {(() => {
+                  const totalStockUnits = products.reduce((s, p) => s + Number(p.stock || 0), 0);
+                  const totalInventoryValue = products.reduce((s, p) => s + Number(p.price || 0) * Number(p.stock || 0), 0);
+                  const totalUnitsSold = products.reduce((s, p) => s + Number(p.totalSold || 0), 0);
+                  return (
+                    <>
+                      {products.length > 0 && (
+                        <div className="grid grid-cols-3 gap-3 mb-2">
+                          <div className="rounded-lg bg-slate-50 border px-4 py-3 text-center">
+                            <p className="text-lg font-extrabold text-slate-800">{products.length}</p>
+                            <p className="text-xs text-slate-500 mt-0.5">Products</p>
+                          </div>
+                          <div className="rounded-lg bg-green-50 border border-green-100 px-4 py-3 text-center">
+                            <p className="text-lg font-extrabold text-green-700">{totalStockUnits.toLocaleString()}</p>
+                            <p className="text-xs text-green-600 mt-0.5">Units in Stock</p>
+                          </div>
+                          <div className="rounded-lg bg-amber-50 border border-amber-100 px-4 py-3 text-center">
+                            <p className="text-lg font-extrabold text-amber-700">₵{totalInventoryValue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+                            <p className="text-xs text-amber-600 mt-0.5">Total Inventory Value</p>
+                          </div>
+                        </div>
+                      )}
+                      {/* Mobile product cards */}
+                      <div className="space-y-3 md:hidden">
+                        {products.length === 0
+                          ? <p className="rounded-lg bg-white p-6 text-center text-sm text-slate-500 shadow-sm">No products yet. Click "+ Add Product" to get started.</p>
+                          : products.map((p) => {
+                            const imgSrc = p.images?.[0] || p.image;
+                            const totalValue = Number(p.price || 0) * Number(p.stock || 0);
+                            return (
+                              <div key={p._id || p.id} className="rounded-lg bg-white p-4 shadow-sm">
+                                <div className="flex items-center gap-3">
+                                  {imgSrc
+                                    ? <img src={imgSrc} alt={p.name} className="h-14 w-14 rounded-lg border object-cover bg-slate-100 shrink-0" onError={(e) => { e.target.style.display = 'none'; }} />
+                                    : <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-lg bg-slate-100 text-2xl">📦</div>
+                                  }
+                                  <div className="min-w-0">
+                                    <p className="font-semibold text-slate-900 truncate">{p.name}</p>
+                                    <p className="text-xs text-slate-500">{p.category?.name || p.category || '—'}</p>
+                                  </div>
+                                </div>
+                                <div className="mt-3 grid grid-cols-3 gap-2 text-center text-xs">
+                                  <div className="rounded-lg bg-slate-50 p-2">
+                                    <p className="font-bold text-slate-900">₵{Number(p.price).toFixed(2)}</p>
+                                    <p className="text-slate-400">Price</p>
+                                  </div>
+                                  <div className="rounded-lg bg-slate-50 p-2">
+                                    <span className={`font-bold ${Number(p.stock) <= 5 ? 'text-red-600' : 'text-green-700'}`}>{p.stock}</span>
+                                    <p className="text-slate-400">Stock</p>
+                                  </div>
+                                  <div className="rounded-lg bg-slate-50 p-2">
+                                    <p className="font-bold text-blue-700">{p.totalSold || 0}</p>
+                                    <p className="text-slate-400">Sold</p>
+                                  </div>
+                                </div>
+                                <div className="mt-2 flex items-center justify-between rounded-lg bg-amber-50 px-3 py-1.5">
+                                  <span className="text-xs text-amber-700">Total value</span>
+                                  <span className="text-sm font-bold text-amber-800">₵{totalValue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                                </div>
+                                <div className="mt-3 flex gap-2">
+                                  <button onClick={() => openEdit(p)} className="flex-1 rounded-full bg-blue-100 py-1.5 text-xs font-semibold text-blue-700 hover:bg-blue-200">Edit</button>
+                                  <button onClick={() => handleDelete(p._id || p.id)} className="flex-1 rounded-full bg-red-100 py-1.5 text-xs font-semibold text-red-700 hover:bg-red-200">Delete</button>
+                                </div>
                               </div>
-                            </td>
-                            <td className="px-4 py-3 text-slate-600">{p.category?.name || p.category}</td>
-                            <td className="px-4 py-3 font-semibold text-slate-900">₵{Number(p.price).toFixed(2)}</td>
-                            <td className="px-4 py-3">
-                              <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${Number(p.stock) <= 5 ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'}`}>{p.stock}</span>
-                            </td>
-                            <td className="px-4 py-3 text-slate-600">{p.discount || 0}%</td>
-                            <td className="px-4 py-3">
-                              <div className="flex gap-2">
-                                <button onClick={() => openEdit(p)} className="rounded-full bg-blue-100 px-3 py-1 text-xs font-semibold text-blue-700 hover:bg-blue-200">Edit</button>
-                                <button onClick={() => handleDelete(p._id || p.id)} className="rounded-full bg-red-100 px-3 py-1 text-xs font-semibold text-red-700 hover:bg-red-200">Delete</button>
-                              </div>
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                </div>
+                            );
+                          })}
+                      </div>
+
+                      {/* Desktop product table */}
+                      <div className="hidden md:block overflow-x-auto rounded-lg bg-white shadow-sm">
+                        <table className="w-full text-sm">
+                          <thead>
+                            <tr className="border-b bg-slate-50 text-left text-xs font-bold uppercase text-slate-500">
+                              <th className="px-4 py-3">Product</th>
+                              <th className="px-4 py-3">Category</th>
+                              <th className="px-4 py-3">Price</th>
+                              <th className="px-4 py-3">Stock</th>
+                              <th className="px-4 py-3">Sold</th>
+                              <th className="px-4 py-3">Total Value</th>
+                              <th className="px-4 py-3">Discount</th>
+                              <th className="px-4 py-3">Actions</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y">
+                            {products.length === 0 ? (
+                              <tr><td colSpan="8" className="px-4 py-12 text-center text-slate-500">No products yet. Click "+ Add Product" to get started.</td></tr>
+                            ) : products.map((p) => {
+                              const imgSrc = p.images?.[0] || p.image;
+                              const totalValue = Number(p.price || 0) * Number(p.stock || 0);
+                              return (
+                                <tr key={p._id || p.id} className="hover:bg-slate-50">
+                                  <td className="px-4 py-3">
+                                    <div className="flex items-center gap-3">
+                                      {imgSrc
+                                        ? <img src={imgSrc} alt={p.name} className="h-12 w-12 rounded-lg border object-cover bg-slate-100" onError={(e) => { e.target.style.display = 'none'; }} />
+                                        : <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-slate-100 text-xl">📦</div>
+                                      }
+                                      <span className="max-w-[180px] truncate font-medium text-slate-900">{p.name}</span>
+                                    </div>
+                                  </td>
+                                  <td className="px-4 py-3 text-slate-600">{p.category?.name || p.category}</td>
+                                  <td className="px-4 py-3 font-semibold text-slate-900">₵{Number(p.price).toFixed(2)}</td>
+                                  <td className="px-4 py-3">
+                                    <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${Number(p.stock) <= 5 ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'}`}>{p.stock}</span>
+                                  </td>
+                                  <td className="px-4 py-3">
+                                    <span className="rounded-full bg-blue-100 px-2 py-0.5 text-xs font-semibold text-blue-700">{p.totalSold || 0}</span>
+                                  </td>
+                                  <td className="px-4 py-3 font-semibold text-slate-700">
+                                    ₵{totalValue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                  </td>
+                                  <td className="px-4 py-3 text-slate-600">{p.discount || 0}%</td>
+                                  <td className="px-4 py-3">
+                                    <div className="flex gap-2">
+                                      <button onClick={() => openEdit(p)} className="rounded-full bg-blue-100 px-3 py-1 text-xs font-semibold text-blue-700 hover:bg-blue-200">Edit</button>
+                                      <button onClick={() => handleDelete(p._id || p.id)} className="rounded-full bg-red-100 px-3 py-1 text-xs font-semibold text-red-700 hover:bg-red-200">Delete</button>
+                                    </div>
+                                  </td>
+                                </tr>
+                              );
+                            })}
+                          </tbody>
+                          {products.length > 0 && (
+                            <tfoot>
+                              <tr className="border-t-2 bg-slate-50 text-xs font-bold text-slate-600">
+                                <td className="px-4 py-3 uppercase" colSpan="3">Totals</td>
+                                <td className="px-4 py-3">{totalStockUnits.toLocaleString()} units</td>
+                                <td className="px-4 py-3">{totalUnitsSold.toLocaleString()} sold</td>
+                                <td className="px-4 py-3 text-amber-700">₵{totalInventoryValue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                                <td colSpan="2" />
+                              </tr>
+                            </tfoot>
+                          )}
+                        </table>
+                      </div>
+                    </>
+                  );
+                })()}
               </div>
             )}
 
@@ -834,6 +1032,7 @@ export default function AdminDashboard() {
             {tab === 'Orders' && (() => {
               const q = orderSearch.trim().toLowerCase();
               const filtered = orders.filter((o) => {
+                if (o.status === 'Cancelled') return false;
                 const matchSearch = !q ||
                   o._id.slice(-6).toLowerCase().includes(q) ||
                   (o.user?.name || '').toLowerCase().includes(q) ||
@@ -843,17 +1042,17 @@ export default function AdminDashboard() {
               });
               return (
                 <div className="space-y-4">
-                  <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="flex flex-col gap-2">
                     <p className="text-sm text-slate-600">
                       {filtered.length} of {orders.length} orders
                     </p>
-                    <div className="flex flex-wrap gap-2">
+                    <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">
                       <input
                         type="text"
                         value={orderSearch}
                         onChange={(e) => setOrderSearch(e.target.value)}
-                        placeholder="Search by ID or customer..."
-                        className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-brand-gold w-56"
+                        placeholder="Search…"
+                        className="col-span-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-brand-gold sm:w-52"
                       />
                       <select
                         value={orderStatusFilter}
@@ -861,7 +1060,7 @@ export default function AdminDashboard() {
                         className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-brand-gold"
                       >
                         <option value="">All statuses</option>
-                        {['Pending', 'Processing', 'Shipped', 'Delivered', 'Cancelled'].map((s) => (
+                        {['Pending', 'Processing', 'Shipped', 'Delivered'].map((s) => (
                           <option key={s}>{s}</option>
                         ))}
                       </select>
@@ -904,7 +1103,7 @@ export default function AdminDashboard() {
                         className="rounded-lg border border-yellow-300 bg-white px-3 py-1.5 text-sm outline-none focus:border-brand-gold"
                       >
                         <option value="">Set status…</option>
-                        {['Pending', 'Processing', 'Shipped', 'Delivered', 'Cancelled'].map((s) => <option key={s}>{s}</option>)}
+                        {['Pending', 'Processing', 'Shipped', 'Delivered'].map((s) => <option key={s}>{s}</option>)}
                       </select>
                       <button
                         onClick={handleBulkStatus}
@@ -921,7 +1120,61 @@ export default function AdminDashboard() {
                       </button>
                     </div>
                   )}
-                  <div className="overflow-x-auto rounded-lg bg-white shadow-sm">
+                  {/* Mobile order cards */}
+                  <div className="space-y-3 md:hidden">
+                    {filtered.length === 0
+                      ? <p className="rounded-lg bg-white p-6 text-center text-sm text-slate-500 shadow-sm">No orders match your search.</p>
+                      : filtered.map((o) => (
+                        <div key={o._id} className={`rounded-lg bg-white p-4 shadow-sm ${selectedOrders.has(o._id) ? 'ring-2 ring-brand-gold' : ''}`}>
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="flex items-center gap-2">
+                              <input
+                                type="checkbox"
+                                checked={selectedOrders.has(o._id)}
+                                onChange={(e) => {
+                                  setSelectedOrders((prev) => {
+                                    const next = new Set(prev);
+                                    if (e.target.checked) next.add(o._id); else next.delete(o._id);
+                                    return next;
+                                  });
+                                }}
+                                className="h-4 w-4 accent-brand-gold cursor-pointer"
+                              />
+                              <span className="font-mono text-xs font-bold text-slate-700">#{o._id.slice(-6).toUpperCase()}</span>
+                            </div>
+                            <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${STATUS_COLORS[o.status] || 'bg-slate-100 text-slate-600'}`}>{o.status}</span>
+                          </div>
+                          <div className="mt-2 grid grid-cols-2 gap-1 text-sm">
+                            <div>
+                              <p className="text-xs text-slate-400">Customer</p>
+                              <p className="font-medium text-slate-800 truncate">{o.user?.name || o.guestName || 'Guest'}</p>
+                            </div>
+                            <div>
+                              <p className="text-xs text-slate-400">Total</p>
+                              <p className="font-bold text-slate-900">₵{Number(o.totalPrice || 0).toFixed(2)}</p>
+                            </div>
+                            <div>
+                              <p className="text-xs text-slate-400">Items</p>
+                              <p className="text-slate-700">{o.orderItems?.length || 0}</p>
+                            </div>
+                            <div>
+                              <p className="text-xs text-slate-400">Date</p>
+                              <p className="text-slate-600">{new Date(o.createdAt).toLocaleDateString()}</p>
+                            </div>
+                          </div>
+                          <div className="mt-3">
+                            <select value={o.status} disabled={updatingOrder === o._id}
+                              onChange={(e) => handleOrderStatus(o._id, e.target.value)}
+                              className="w-full rounded-lg border px-3 py-2 text-sm outline-none focus:border-brand-gold disabled:opacity-50">
+                              {['Pending', 'Processing', 'Shipped', 'Delivered', 'Cancelled'].map((s) => <option key={s}>{s}</option>)}
+                            </select>
+                          </div>
+                        </div>
+                      ))}
+                  </div>
+
+                  {/* Desktop order table */}
+                  <div className="hidden md:block overflow-x-auto rounded-lg bg-white shadow-sm">
                     <table className="w-full text-sm">
                       <thead>
                         <tr className="border-b bg-slate-50 text-left text-xs font-bold uppercase text-slate-500">
@@ -990,10 +1243,43 @@ export default function AdminDashboard() {
             })()}
 
             {/* ── USERS ── */}
-            {tab === 'Users' && (
+            {tab === 'Users' && (() => {
+              // Count active (non-cancelled) orders per user from the live orders list
+              const orderCountByUser = {};
+              orders.forEach((o) => {
+                const uid = o.user?._id || o.user;
+                if (uid) orderCountByUser[uid] = (orderCountByUser[uid] || 0) + 1;
+              });
+              return (
               <div className="space-y-4">
                 <p className="text-sm text-slate-600">{users.length} registered users</p>
-                <div className="overflow-x-auto rounded-lg bg-white shadow-sm">
+
+                {/* Mobile user cards */}
+                <div className="space-y-3 md:hidden">
+                  {users.length === 0
+                    ? <p className="rounded-lg bg-white p-6 text-center text-sm text-slate-500 shadow-sm">No users registered yet.</p>
+                    : users.map((u) => (
+                      <div key={u._id} className="rounded-lg bg-white p-4 shadow-sm">
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="min-w-0">
+                            <p className="font-semibold text-slate-900 truncate">{u.name}</p>
+                            <p className="text-xs text-slate-500 truncate">{u.email}</p>
+                          </div>
+                          <span className={`shrink-0 rounded-full px-2 py-0.5 text-xs font-semibold ${u.isAdmin ? 'bg-purple-100 text-purple-700' : 'bg-slate-100 text-slate-600'}`}>
+                            {u.isAdmin ? 'Admin' : 'Customer'}
+                          </span>
+                        </div>
+                        <div className="mt-2 flex gap-4 text-xs text-slate-500">
+                          <span>📞 {u.phone || '—'}</span>
+                          <span>📍 {u.city || '—'}</span>
+                          <span className="ml-auto font-semibold text-slate-700">{orderCountByUser[u._id] || 0} orders</span>
+                        </div>
+                      </div>
+                    ))}
+                </div>
+
+                {/* Desktop users table */}
+                <div className="hidden md:block overflow-x-auto rounded-lg bg-white shadow-sm">
                   <table className="w-full text-sm">
                     <thead>
                       <tr className="border-b bg-slate-50 text-left text-xs font-bold uppercase text-slate-500">
@@ -1014,7 +1300,7 @@ export default function AdminDashboard() {
                             <td className="px-4 py-3 text-slate-600">{u.email}</td>
                             <td className="px-4 py-3 text-slate-600">{u.phone || '—'}</td>
                             <td className="px-4 py-3 text-slate-600">{u.city || '—'}</td>
-                            <td className="px-4 py-3">{u.orders?.length || 0}</td>
+                            <td className="px-4 py-3">{orderCountByUser[u._id] || 0}</td>
                             <td className="px-4 py-3">
                               <span className={`rounded-full px-2 py-1 text-xs font-semibold ${u.isAdmin ? 'bg-purple-100 text-purple-700' : 'bg-slate-100 text-slate-600'}`}>
                                 {u.isAdmin ? 'Admin' : 'Customer'}
@@ -1026,7 +1312,8 @@ export default function AdminDashboard() {
                   </table>
                 </div>
               </div>
-            )}
+              );
+            })()}
 
             {/* ── PROMOS ── */}
             {tab === 'Promos' && (
