@@ -75,27 +75,27 @@ export default function ProductCard({ product }) {
   };
 
   return (
-    <div className="group flex flex-col bg-white border border-slate-200 hover:shadow-lg transition rounded-sm overflow-hidden">
+    <div className="group flex flex-col bg-white border border-slate-200 hover:shadow-md transition rounded overflow-hidden">
       {/* Image */}
-      <Link to={`/product/${productId}`} className="relative block bg-slate-50 p-4">
+      <Link to={`/product/${productId}`} className="relative block bg-slate-50 p-2">
         {discount > 0 && !isWholesaleQty && (
-          <span className="absolute left-2 top-2 z-10 rounded-sm bg-red-600 px-1.5 py-0.5 text-xs font-bold text-white">
+          <span className="absolute left-1.5 top-1.5 z-10 rounded bg-red-600 px-1 py-0.5 text-[10px] font-bold text-white leading-none">
             -{discount}%
           </span>
         )}
         {isWholesaleQty && (
-          <span className="absolute left-2 top-2 z-10 rounded-sm bg-emerald-600 px-1.5 py-0.5 text-xs font-bold text-white">
+          <span className="absolute left-1.5 top-1.5 z-10 rounded bg-emerald-600 px-1 py-0.5 text-[10px] font-bold text-white leading-none">
             Wholesale
           </span>
         )}
         {product.bestseller && (
-          <span className="absolute right-2 top-2 z-10 rounded-sm bg-[#232F3E] px-1.5 py-0.5 text-xs font-bold text-white">
-            #1 Best Seller
+          <span className="absolute right-1.5 top-1.5 z-10 rounded bg-[#232F3E] px-1 py-0.5 text-[10px] font-bold text-white leading-none">
+            Best Seller
           </span>
         )}
         {inStock && maxStock <= 10 && (
-          <span className="absolute right-2 bottom-2 z-10 rounded-sm bg-red-600 px-1.5 py-0.5 text-xs font-bold text-white">
-            Only {maxStock} left!
+          <span className="absolute right-1.5 bottom-1.5 z-10 rounded bg-red-600 px-1 py-0.5 text-[10px] font-bold text-white leading-none">
+            {maxStock} left!
           </span>
         )}
         <div className="aspect-square overflow-hidden flex items-center justify-center">
@@ -109,91 +109,50 @@ export default function ProductCard({ product }) {
       </Link>
 
       {/* Info */}
-      <div className="flex flex-1 flex-col gap-1.5 p-3">
+      <div className="flex flex-1 flex-col gap-1 p-2">
         <Link to={`/product/${productId}`}>
-          <h3 className="text-sm font-medium leading-snug text-slate-900 hover:text-[#C7511F] line-clamp-2">{product.name}</h3>
+          <h3 className="text-xs font-medium leading-snug text-slate-900 hover:text-[#C7511F] line-clamp-2 sm:text-sm">{product.name}</h3>
         </Link>
 
         <StarRating rating={product.rating} />
 
-        {/* Price display */}
-        <div className="mt-1">
+        {/* Price */}
+        <div className="mt-0.5">
           {originalPrice && (
-            <p className="text-xs text-slate-400 line-through">₵{originalPrice.toFixed(2)}</p>
+            <p className="text-[10px] text-slate-400 line-through">₵{originalPrice.toFixed(2)}</p>
           )}
-          <div className="flex items-baseline gap-2">
-            <p className={`text-lg font-bold ${isWholesaleQty ? 'text-emerald-600' : 'text-slate-900'}`}>
-              <span className="text-sm font-normal align-top">₵</span>
-              {unitPrice.toFixed(2)}
-              <span className="ml-1 text-xs font-normal text-slate-400">/ unit</span>
-            </p>
-          </div>
-          {isWholesaleQty && (
-            <p className="text-xs font-semibold text-emerald-600">
-              Save ₵{(product.price - product.wholesalePrice).toFixed(2)}/unit wholesale
-            </p>
-          )}
+          <p className={`text-sm font-bold sm:text-base ${isWholesaleQty ? 'text-emerald-600' : 'text-slate-900'}`}>
+            ₵{unitPrice.toFixed(2)}
+          </p>
           {!isWholesaleQty && discount > 0 && (
-            <p className="text-xs font-semibold text-red-600">
-              Save ₵{(originalPrice - product.price).toFixed(2)} ({discount}% off)
-            </p>
+            <p className="text-[10px] font-semibold text-red-600">Save ₵{(originalPrice - product.price).toFixed(2)}</p>
           )}
         </div>
 
-        {/* Wholesale tier hint */}
-        {hasWholesale && !isWholesaleQty && (
-          <p className="text-xs text-slate-500 bg-slate-50 rounded px-2 py-1">
-            🏭 Wholesale ₵{product.wholesalePrice}/unit from {product.wholesaleMinQty} units
-          </p>
-        )}
-
-        <p className={`text-xs font-semibold ${!inStock ? 'text-red-500' : maxStock <= 5 ? 'text-red-600' : maxStock <= 10 ? 'text-amber-600' : 'text-[#007185]'}`}>
-          {!inStock ? '✗ Out of stock' : maxStock <= 10 ? `⚡ Only ${maxStock} left!` : '✓ In stock'}
+        <p className={`text-[10px] font-semibold sm:text-xs ${!inStock ? 'text-red-500' : maxStock <= 5 ? 'text-red-600' : maxStock <= 10 ? 'text-amber-600' : 'text-[#007185]'}`}>
+          {!inStock ? '✗ Out of stock' : maxStock <= 10 ? `⚡ Only ${maxStock} left` : '✓ In stock'}
         </p>
 
         {/* Quantity stepper */}
-        <div className="flex items-center gap-2">
-          <span className="text-xs font-semibold text-slate-500">Qty:</span>
-          <div className="flex items-center rounded-lg border border-slate-200 overflow-hidden">
-            <button
-              onClick={(e) => { e.preventDefault(); changeQty(-1); }}
-              disabled={qty <= 1}
-              className="px-2.5 py-1 text-slate-600 hover:bg-slate-100 disabled:opacity-30 disabled:cursor-not-allowed text-sm font-bold"
-            >
-              −
-            </button>
-            <span className="px-3 py-1 text-sm font-bold text-slate-900 min-w-[2rem] text-center border-x border-slate-200">
-              {qty}
-            </span>
-            <button
-              onClick={(e) => { e.preventDefault(); changeQty(1); }}
-              disabled={qty >= maxStock}
-              className="px-2.5 py-1 text-slate-600 hover:bg-slate-100 disabled:opacity-30 disabled:cursor-not-allowed text-sm font-bold"
-            >
-              +
-            </button>
+        <div className="flex items-center gap-1.5">
+          <div className="flex items-center rounded border border-slate-200 overflow-hidden">
+            <button onClick={(e) => { e.preventDefault(); changeQty(-1); }} disabled={qty <= 1}
+              className="px-2 py-0.5 text-slate-600 hover:bg-slate-100 disabled:opacity-30 disabled:cursor-not-allowed text-sm font-bold">−</button>
+            <span className="px-2 py-0.5 text-xs font-bold text-slate-900 min-w-[1.5rem] text-center border-x border-slate-200">{qty}</span>
+            <button onClick={(e) => { e.preventDefault(); changeQty(1); }} disabled={qty >= maxStock}
+              className="px-2 py-0.5 text-slate-600 hover:bg-slate-100 disabled:opacity-30 disabled:cursor-not-allowed text-sm font-bold">+</button>
           </div>
-          {qty > 1 && (
-            <span className="text-xs font-semibold text-slate-500">
-              = ₵{(unitPrice * qty).toFixed(2)}
-            </span>
-          )}
+          {qty > 1 && <span className="text-[10px] font-semibold text-slate-500">₵{(unitPrice * qty).toFixed(2)}</span>}
         </div>
 
         <button
           onClick={addToCart}
           disabled={!inStock}
-          className={`mt-1 w-full rounded-full py-2 text-sm font-semibold transition active:scale-95 disabled:cursor-not-allowed disabled:opacity-50 ${
-            isWholesaleQty
-              ? 'bg-emerald-600 text-white hover:bg-emerald-700'
-              : 'bg-brand-gold text-slate-900 hover:bg-yellow-400'
+          className={`mt-1 w-full rounded-full py-1.5 text-xs font-semibold transition active:scale-95 disabled:cursor-not-allowed disabled:opacity-50 sm:text-sm sm:py-2 ${
+            isWholesaleQty ? 'bg-emerald-600 text-white hover:bg-emerald-700' : 'bg-brand-gold text-slate-900 hover:bg-yellow-400'
           }`}
         >
-          {inStock
-            ? isWholesaleQty
-              ? `Add ${qty} at Wholesale Price`
-              : `Add ${qty > 1 ? qty + ' to' : 'to'} Cart`
-            : 'Out of Stock'}
+          {inStock ? (isWholesaleQty ? 'Wholesale' : 'Add to Cart') : 'Out of Stock'}
         </button>
       </div>
     </div>

@@ -253,14 +253,14 @@ export default function Shop() {
         {/* Product Grid */}
         <div ref={productsRef}>
           {loading ? (
-            <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
-              {Array.from({ length: 6 }).map((_, i) => (
-                <div key={i} className="animate-pulse rounded-sm border border-slate-200 bg-white overflow-hidden">
+            <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 xl:grid-cols-4">
+              {Array.from({ length: 8 }).map((_, i) => (
+                <div key={i} className="animate-pulse rounded border border-slate-200 bg-white overflow-hidden">
                   <div className="aspect-square bg-slate-200" />
-                  <div className="p-3 space-y-2">
-                    <div className="h-4 bg-slate-200 rounded w-3/4" />
+                  <div className="p-2 space-y-1.5">
+                    <div className="h-3 bg-slate-200 rounded w-3/4" />
                     <div className="h-3 bg-slate-200 rounded w-1/2" />
-                    <div className="h-8 bg-slate-200 rounded-full mt-3" />
+                    <div className="h-7 bg-slate-200 rounded-full mt-2" />
                   </div>
                 </div>
               ))}
@@ -276,7 +276,7 @@ export default function Shop() {
             </div>
           ) : (
             <>
-              <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
+              <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 xl:grid-cols-4">
                 {paginatedProducts.map((product) => (
                   <ProductCard key={product.id || product._id} product={product} />
                 ))}
