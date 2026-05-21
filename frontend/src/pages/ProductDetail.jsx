@@ -158,7 +158,7 @@ export default function ProductDetail() {
     } else {
       addToWishlist({ ...product, id: productId, image: productImage });
       setWishlisted(true);
-      showToast('Saved to wishlist ❤️');
+      showToast('Saved to wishlist');
     }
   };
 
@@ -240,8 +240,8 @@ export default function ProductDetail() {
           </div>
         </div>
 
-        {/* Right — Pricing & Purchase (shown first on mobile) */}
-        <div className="order-first space-y-4 lg:order-none lg:sticky lg:top-32 lg:self-start">
+        {/* Right — Pricing & Purchase */}
+        <div className="space-y-4 lg:sticky lg:top-32 lg:self-start">
 
           {/* Product name + price */}
           <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
@@ -300,7 +300,7 @@ export default function ProductDetail() {
                 onClick={() => setQuantity(product.wholesaleMinQty)}
                 className="mt-3 w-full rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-2.5 text-sm text-emerald-800 transition hover:bg-emerald-100"
               >
-                🏭 Add {product.wholesaleMinQty - quantity} more to unlock wholesale price (₵{product.wholesalePrice}/unit)
+                <i className="fas fa-warehouse mr-1"></i> Add {product.wholesaleMinQty - quantity} more to unlock wholesale price (₵{product.wholesalePrice}/unit)
               </button>
             )}
 
@@ -348,14 +348,37 @@ export default function ProductDetail() {
                 onClick={handleWishlist}
                 className={`w-full rounded-full border py-3 text-sm font-semibold transition ${wishlisted ? 'border-red-300 bg-red-50 text-red-600 hover:bg-red-100' : 'border-slate-200 text-slate-700 hover:bg-slate-50'}`}
               >
-                {wishlisted ? '❤️ Saved to Wishlist' : '🤍 Save to Wishlist'}
+                {wishlisted ? <><i className="fas fa-heart mr-1"></i>Saved to Wishlist</> : <><i className="far fa-heart mr-1"></i>Save to Wishlist</>}
               </button>
             </div>
 
             <p className="mt-4 text-center text-xs text-slate-400">
-              🔒 Secure checkout · 📞 Call 0257543723 for bulk orders
+              <i className="fas fa-lock mr-1"></i>Secure checkout · <i className="fas fa-phone mr-1"></i>Call 0257543723 for bulk orders
             </p>
           </div>
+        </div>
+      </div>
+      {/* Sticky add-to-cart bar — mobile only (below lg) */}
+      <div className="fixed inset-x-0 bottom-0 z-40 border-t border-slate-200 bg-white px-4 py-3 shadow-xl lg:hidden">
+        <div className="mx-auto flex max-w-lg items-center gap-3">
+          <div className="min-w-0 flex-1">
+            <p className="text-xs text-slate-500">{quantity} × ₵{unitPrice.toFixed(2)}</p>
+            <p className="text-base font-bold text-slate-900">₵{lineTotal.toFixed(2)}</p>
+          </div>
+          <button
+            onClick={addToCart}
+            disabled={!inStock}
+            className={`shrink-0 rounded-full px-4 py-2.5 text-sm font-extrabold transition hover:opacity-90 disabled:opacity-50 ${isWholesaleQty ? 'bg-emerald-600 text-white' : 'bg-brand-gold text-black'}`}
+          >
+            {inStock ? 'Add to Cart' : 'Out of Stock'}
+          </button>
+          <button
+            onClick={buyNow}
+            disabled={!inStock}
+            className="shrink-0 rounded-full bg-[#131921] px-4 py-2.5 text-sm font-extrabold text-white transition hover:bg-slate-800 disabled:opacity-50"
+          >
+            Buy Now
+          </button>
         </div>
       </div>
     </section>

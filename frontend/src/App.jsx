@@ -51,7 +51,7 @@ function App() {
       <LiveChat />
       <Toast />
     </div>
-  );
+  );                                                                      
 }
 
 export default App;

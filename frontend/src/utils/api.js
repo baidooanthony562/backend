@@ -58,6 +58,7 @@ export const fetchAdminSessions = (token) => api.get('/admin/sessions', authConf
 export const fetchDashboard = (token) => api.get('/admin/dashboard', authConfig(token));
 export const fetchDailySales = (token, days = 30) => api.get(`/admin/sales/daily?days=${days}`, authConfig(token));
 export const fetchAllUsers = (token) => api.get('/admin/users', authConfig(token));
+export const adminVerifyUser = (id, token) => api.put(`/admin/users/${id}/verify`, {}, authConfig(token));
 export const fetchAllOrders = (token) => api.get('/orders', authConfig(token));
 export const updateOrderStatus = (id, status, token) => api.put(`/orders/${id}/status`, { status }, authConfig(token));
 export const createProduct = (payload, token) => api.post('/products', payload, authConfig(token));

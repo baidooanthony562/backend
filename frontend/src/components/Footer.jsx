@@ -10,7 +10,7 @@ export default function Footer() {
 
       {/* Main footer */}
       <div className="bg-[#232F3E] px-4 py-10 text-slate-300 md:px-8">
-        <div className="mx-auto grid max-w-7xl gap-8 md:grid-cols-4">
+        <div className="mx-auto grid max-w-7xl gap-8 grid-cols-2 md:grid-cols-4">
           <div>
             <p className="mb-3 font-bold text-white">Get to Know Us</p>
             <ul className="space-y-2 text-sm">
@@ -41,12 +41,12 @@ export default function Footer() {
           <div>
             <p className="mb-3 font-bold text-white">Help & Support</p>
             <ul className="space-y-2 text-sm">
-              <li className="flex items-center gap-2"><span>📱</span> 0257543723</li>
-              <li className="flex items-center gap-2"><span>📧</span> baidooanthony562@gmail.com</li>
-              <li className="flex items-center gap-2"><span>📍</span> Adum & Alabar, Kumasi</li>
+              <li className="flex items-center gap-2"><i className="fas fa-phone w-4 text-center"></i> 0257543723</li>
+              <li className="flex items-center gap-2"><i className="fas fa-envelope w-4 text-center"></i> baidooanthony562@gmail.com</li>
+              <li className="flex items-center gap-2"><i className="fas fa-map-marker-alt w-4 text-center"></i> Adum & Alabar, Kumasi</li>
               <li>
                 <a href="https://wa.me/233257543723" target="_blank" rel="noreferrer" className="mt-2 inline-flex items-center gap-1 rounded bg-green-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-green-700">
-                  💬 WhatsApp Us
+                  <i className="fab fa-whatsapp mr-1"></i> WhatsApp Us
                 </a>
               </li>
             </ul>
@@ -54,24 +54,6 @@ export default function Footer() {
         </div>
       </div>
 
-      {/* Bottom bar */}
-      <div className="bg-[#131921] px-4 py-6 text-center md:px-8">
-        <div className="flex items-center justify-center gap-2 mb-3">
-          <span className="flex h-7 w-7 items-center justify-center rounded bg-brand-gold text-xs font-extrabold text-black">CN</span>
-          <span className="text-sm font-bold text-white">Cindy Nat Enterprise</span>
-        </div>
-        <div className="flex flex-wrap justify-center gap-4 text-xs text-slate-400 mb-3">
-          <span className="rounded bg-slate-700 px-2 py-1">📱 MTN Mobile Money</span>
-          <span className="rounded bg-slate-700 px-2 py-1">🏦 Bank Transfer</span>
-          <span className="rounded bg-slate-700 px-2 py-1">💵 Cash on Delivery</span>
-        </div>
-        <div className="flex flex-wrap justify-center gap-4 text-xs text-slate-500 mb-2">
-          <Link to="/privacy-policy" className="hover:text-slate-300 hover:underline">Privacy Policy</Link>
-          <span>·</span>
-          <Link to="/terms" className="hover:text-slate-300 hover:underline">Terms & Conditions</Link>
-        </div>
-        <p className="text-xs text-slate-500">© 2026 Cindy Nat Enterprise. All rights reserved. Adum & Alabar, Kumasi, Ghana.</p>
-      </div>
     </footer>
   );
 }

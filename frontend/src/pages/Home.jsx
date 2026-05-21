@@ -138,7 +138,7 @@ export default function Home() {
         {bestSellers.length > 0 && (
           <div className="rounded-xl bg-white shadow-sm overflow-hidden">
             <div className="flex items-center justify-between border-b border-slate-100 px-5 py-3">
-              <h2 className="flex items-center gap-2 text-base font-extrabold text-slate-900">🏆 Best Sellers</h2>
+              <h2 className="flex items-center gap-2 text-base font-extrabold text-slate-900"><i className="fas fa-trophy text-brand-gold"></i> Best Sellers</h2>
               <Link to="/shop" className="text-sm font-semibold text-[#C7511F] hover:underline">See all →</Link>
             </div>
             <div className="grid grid-cols-2 gap-3 p-4 md:grid-cols-4">
@@ -163,13 +163,13 @@ export default function Home() {
         {/* ── TRUST BAR ── */}
         <div className="grid grid-cols-2 gap-2 md:grid-cols-4">
           {[
-            { icon: '🚚', title: 'Fast Delivery', sub: 'Free on orders over ₵5,000' },
-            { icon: '↩️', title: 'Easy Returns', sub: '30-day return policy' },
-            { icon: '🔒', title: 'Secure Checkout', sub: '100% safe & encrypted' },
-            { icon: '📞', title: '24/7 Support', sub: '0257543723 — Kumasi' },
+            { icon: 'fas fa-truck', title: 'Fast Delivery', sub: 'Free on orders over ₵5,000' },
+            { icon: 'fas fa-undo', title: 'Easy Returns', sub: '30-day return policy' },
+            { icon: 'fas fa-lock', title: 'Secure Checkout', sub: '100% safe & encrypted' },
+            { icon: 'fas fa-phone', title: '24/7 Support', sub: '0257543723 — Kumasi' },
           ].map(({ icon, title, sub }) => (
             <div key={title} className="flex items-center gap-3 rounded-xl bg-white p-4 shadow-sm">
-              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-slate-100 text-xl">{icon}</span>
+              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-slate-100"><i className={`${icon} text-slate-600`}></i></span>
               <div>
                 <p className="text-sm font-bold text-slate-900">{title}</p>
                 <p className="text-xs text-slate-500">{sub}</p>
@@ -190,9 +190,9 @@ export default function Home() {
                 Based in the UK, US, Canada or Europe? Pay online and we deliver straight to your family in Ghana.
               </p>
               <ul className="mt-3 space-y-1 text-sm text-slate-300">
-                <li className="flex items-center gap-2"><span className="text-brand-gold">✓</span> Pay with MoMo or international card</li>
-                <li className="flex items-center gap-2"><span className="text-brand-gold">✓</span> Delivered to any address in Ghana</li>
-                <li className="flex items-center gap-2"><span className="text-brand-gold">✓</span> WhatsApp updates every step of the way</li>
+                <li className="flex items-center gap-2"><i className="fas fa-check text-brand-gold"></i> Pay with MoMo or international card</li>
+                <li className="flex items-center gap-2"><i className="fas fa-check text-brand-gold"></i> Delivered to any address in Ghana</li>
+                <li className="flex items-center gap-2"><i className="fas fa-check text-brand-gold"></i> WhatsApp updates every step of the way</li>
               </ul>
             </div>
             <div className="flex shrink-0 flex-col gap-2">
@@ -201,7 +201,7 @@ export default function Home() {
               </Link>
               <a href="https://wa.me/233257543723" target="_blank" rel="noreferrer"
                 className="rounded-full border border-white/30 px-7 py-3 text-center text-sm font-semibold text-white transition hover:bg-white/10">
-                💬 WhatsApp Us
+                <i className="fab fa-whatsapp mr-1"></i> WhatsApp Us
               </a>
             </div>
           </div>

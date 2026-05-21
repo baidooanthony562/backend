@@ -214,7 +214,7 @@ export default function UserDashboard() {
                       className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5 pr-10 text-sm outline-none focus:border-brand-gold focus:bg-white"
                     />
                     <button type="button" onClick={() => setShowCurrent(!showCurrent)} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
-                      {showCurrent ? '🙈' : '👁️'}
+                      <i className={showCurrent ? 'fas fa-eye-slash' : 'fas fa-eye'}></i>
                     </button>
                   </div>
                 </div>
@@ -230,7 +230,7 @@ export default function UserDashboard() {
                       className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5 pr-10 text-sm outline-none focus:border-brand-gold focus:bg-white"
                     />
                     <button type="button" onClick={() => setShowNew(!showNew)} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
-                      {showNew ? '🙈' : '👁️'}
+                      <i className={showNew ? 'fas fa-eye-slash' : 'fas fa-eye'}></i>
                     </button>
                   </div>
                   <PasswordStrength password={passwordForm.newPassword} userInfo={{ name: profile?.name, email: profile?.email }} />

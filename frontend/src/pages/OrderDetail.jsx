@@ -6,10 +6,10 @@ import { getToken } from '../utils/auth';
 const STEPS = ['Pending', 'Processing', 'Shipped', 'Delivered'];
 
 const STEP_ICONS = {
-  Pending:    '🕐',
-  Processing: '📦',
-  Shipped:    '🚚',
-  Delivered:  '✅',
+  Pending:    'fas fa-clock',
+  Processing: 'fas fa-box',
+  Shipped:    'fas fa-truck',
+  Delivered:  'fas fa-check-circle',
 };
 
 const STEP_DESC = {
@@ -26,7 +26,7 @@ function StatusTracker({ status }) {
   if (isCancelled) {
     return (
       <div className="flex items-center gap-3 rounded-xl border border-red-200 bg-red-50 px-5 py-4">
-        <span className="text-2xl">❌</span>
+        <i className="fas fa-times-circle text-2xl text-red-600"></i>
         <div>
           <p className="font-bold text-red-800">Order Cancelled</p>
           <p className="text-sm text-red-600">This order has been cancelled.</p>
@@ -58,7 +58,7 @@ function StatusTracker({ status }) {
                   active  ? 'border-brand-gold bg-white shadow-md' :
                             'border-slate-200 bg-white text-slate-300'
                 }`}>
-                  {done ? '✓' : STEP_ICONS[step]}
+                  {done ? <i className="fas fa-check" /> : <i className={STEP_ICONS[step]} />}
                 </div>
                 <div className={active ? '' : done ? 'opacity-70' : 'opacity-40'}>
                   <p className={`font-semibold ${active ? 'text-slate-900' : 'text-slate-700'}`}>{step}</p>

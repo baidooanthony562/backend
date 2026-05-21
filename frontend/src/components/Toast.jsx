@@ -30,7 +30,7 @@ export default function Toast() {
             t.type === 'error' ? 'bg-red-600 text-white' : 'bg-[#131921] text-white'
           }`}
         >
-          <span>{t.type === 'error' ? '⚠️' : '✓'}</span>
+          <i className={t.type === 'error' ? 'fas fa-exclamation-triangle' : 'fas fa-check'}></i>
           {t.message}
         </div>
       ))}

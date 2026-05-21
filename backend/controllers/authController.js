@@ -39,7 +39,7 @@ const registerUser = asyncHandler(async (req, res) => {
       await User.deleteOne({ _id: existingUser._id });
     } else if (existingUser.isVerified === false) {
       res.status(400);
-      throw new Error('A verification email was already sent to this address. Please check your inbox (expires in 10 minutes).');
+      throw new Error('A verification email was already sent to this address. Please check your inbox (expires in 30 minutes).');
     } else {
       res.status(400);
       throw new Error('User already exists');
@@ -61,7 +61,7 @@ const registerUser = asyncHandler(async (req, res) => {
     country,
     isVerified: false,
     verifyToken,
-    verifyTokenExpiry: Date.now() + 10 * 60 * 1000, // 10 minutes
+    verifyTokenExpiry: Date.now() + 30 * 60 * 1000, // 30 minutes
   });
 
   if (!user) {
@@ -76,7 +76,7 @@ const registerUser = asyncHandler(async (req, res) => {
       <div style="font-family:sans-serif;max-width:480px;margin:0 auto;padding:32px">
         <h2 style="color:#131921">Welcome to Cindy Nat!</h2>
         <p>Hi ${String(name).trim()},</p>
-        <p>Use the code below to verify your email address. It expires in <strong>10 minutes</strong>.</p>
+        <p>Use the code below to verify your email address. It expires in <strong>30 minutes</strong>.</p>
         <div style="margin:28px 0;text-align:center">
           <span style="display:inline-block;letter-spacing:10px;font-size:40px;font-weight:900;color:#131921;background:#f5f5f5;padding:16px 24px;border-radius:12px;border:2px solid #D4AF37">
             ${code}
@@ -191,7 +191,7 @@ const resendVerification = asyncHandler(async (req, res) => {
       <div style="font-family:sans-serif;max-width:480px;margin:0 auto;padding:32px">
         <h2 style="color:#131921">New Verification Code</h2>
         <p>Hi ${user.name},</p>
-        <p>Here is your new verification code. It expires in <strong>10 minutes</strong>.</p>
+        <p>Here is your new verification code. It expires in <strong>30 minutes</strong>.</p>
         <div style="margin:28px 0;text-align:center">
           <span style="display:inline-block;letter-spacing:10px;font-size:40px;font-weight:900;color:#131921;background:#f5f5f5;padding:16px 24px;border-radius:12px;border:2px solid #D4AF37">
             ${code}

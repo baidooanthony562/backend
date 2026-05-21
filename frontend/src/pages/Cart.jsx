@@ -273,7 +273,7 @@ export default function Cart() {
                   <div className="flex flex-1 flex-col min-w-0">
                     <div className="flex items-start justify-between gap-2">
                       <h2 className="text-sm font-semibold text-slate-900 line-clamp-2 sm:text-base">{item.name}</h2>
-                      <button onClick={() => removeItem(itemId)} className="shrink-0 rounded-full p-1 text-slate-400 hover:bg-rose-50 hover:text-rose-500">✕</button>
+                      <button onClick={() => removeItem(itemId)} className="shrink-0 rounded-full p-1 text-slate-400 hover:bg-rose-50 hover:text-rose-500"><i className="fas fa-times"></i></button>
                     </div>
                     <p className="text-xs text-slate-500">{typeof item.category === 'string' ? item.category : item.category?.name || 'Product'}</p>
                     {isWholesale && (
@@ -380,10 +380,10 @@ export default function Cart() {
                 onChange={(e) => { setPaymentMethod(e.target.value); setMomoStatus(''); setCheckoutMessage(''); }}
                 className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm outline-none focus:border-brand-gold"
               >
-                <option value="paystack">💳 Pay Online (Card / MoMo) — Paystack</option>
-                {isAuthenticated() && <option value="momo">📱 MTN MoMo (Direct)</option>}
-                <option value="bank-transfer">🏦 Bank Transfer</option>
-                <option value="cash-on-delivery">💵 Cash on Delivery</option>
+                <option value="paystack">Pay Online (Card / MoMo) — Paystack</option>
+                {isAuthenticated() && <option value="momo">MTN MoMo (Direct)</option>}
+                <option value="bank-transfer">Bank Transfer</option>
+                <option value="cash-on-delivery">Cash on Delivery</option>
               </select>
 
               {paymentMethod === 'momo' && (
@@ -405,7 +405,7 @@ export default function Cart() {
                   )}
                   {momoStatus === 'success' && (
                     <div className="rounded-2xl bg-green-50 px-3 py-2.5 text-sm font-semibold text-green-700">
-                      ✓ Payment confirmed! Creating your order...
+                      <i className="fas fa-check mr-1"></i> Payment confirmed! Creating your order...
                     </div>
                   )}
                   {momoStatus === 'failed' && (
@@ -438,7 +438,7 @@ export default function Cart() {
             </div>
 
             <button onClick={handleCheckout} disabled={placingOrder || momoStatus === 'pending'} className={`w-full rounded-full px-6 py-3 text-sm font-semibold transition disabled:opacity-60 ${paymentMethod === 'paystack' ? 'bg-[#0BA4DB] text-white hover:bg-[#0993c5]' : 'bg-brand-dark text-white hover:bg-slate-800'}`}>
-              {momoStatus === 'pending' ? 'Awaiting MoMo approval...' : placingOrder ? (paymentMethod === 'paystack' ? 'Redirecting to Paystack...' : 'Placing order...') : paymentMethod === 'paystack' ? '💳 Pay securely with Paystack' : paymentMethod === 'momo' ? '📱 Pay with MoMo' : 'Proceed to checkout'}
+              {momoStatus === 'pending' ? 'Awaiting MoMo approval...' : placingOrder ? (paymentMethod === 'paystack' ? 'Redirecting to Paystack...' : 'Placing order...') : paymentMethod === 'paystack' ? 'Pay securely with Paystack' : paymentMethod === 'momo' ? 'Pay with MoMo' : 'Proceed to checkout'}
             </button>
             <button
               onClick={whatsappOrder}
@@ -478,7 +478,7 @@ export default function Cart() {
               disabled={placingOrder || momoStatus === 'pending'}
               className={`shrink-0 rounded-full px-4 py-2.5 text-sm font-semibold text-white transition disabled:opacity-60 ${paymentMethod === 'paystack' ? 'bg-[#0BA4DB] hover:bg-[#0993c5]' : 'bg-brand-dark hover:bg-slate-800'}`}
             >
-              {placingOrder || momoStatus === 'pending' ? 'Processing...' : paymentMethod === 'paystack' ? '💳 Pay' : 'Checkout'}
+              {placingOrder || momoStatus === 'pending' ? 'Processing...' : paymentMethod === 'paystack' ? 'Pay' : 'Checkout'}
             </button>
           </div>
         </div>

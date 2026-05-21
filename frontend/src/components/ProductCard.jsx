@@ -130,7 +130,7 @@ export default function ProductCard({ product }) {
         </div>
 
         <p className={`text-[10px] font-semibold sm:text-xs ${!inStock ? 'text-red-500' : maxStock <= 5 ? 'text-red-600' : maxStock <= 10 ? 'text-amber-600' : 'text-[#007185]'}`}>
-          {!inStock ? '✗ Out of stock' : maxStock <= 10 ? `⚡ Only ${maxStock} left` : '✓ In stock'}
+          {!inStock ? <><i className="fas fa-times mr-1"></i>Out of stock</> : maxStock <= 10 ? <><i className="fas fa-bolt mr-1"></i>Only {maxStock} left</> : <><i className="fas fa-check mr-1"></i>In stock</>}
         </p>
 
         {/* Quantity stepper */}

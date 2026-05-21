@@ -6,6 +6,36 @@ const Product = require('../models/Product');
 const Order = require('../models/Order');
 const AdminSession = require('../models/AdminSession');
 const generateToken = require('../utils/generateToken');
+const { sendResendEmail } = require('../utils/email');
+
+function sendLoginAlert(ip) {
+  const to = process.env.ADMIN_EMAIL;
+  if (!to) return;
+  const time = new Date().toLocaleString('en-GH', { timeZone: 'Africa/Accra', dateStyle: 'full', timeStyle: 'short' });
+  sendResendEmail({
+    to,
+    subject: 'Admin login — Cindy Nat',
+    html: `
+      <div style="font-family:sans-serif;max-width:480px;margin:0 auto;padding:32px">
+        <h2 style="color:#131921;margin-bottom:4px">Admin panel login</h2>
+        <p style="color:#555;margin-top:0">Someone just signed in to your Cindy Nat admin panel.</p>
+        <table style="width:100%;border-collapse:collapse;margin:24px 0;font-size:14px">
+          <tr style="border-bottom:1px solid #eee">
+            <td style="padding:10px 0;color:#888;width:120px">Time</td>
+            <td style="padding:10px 0;font-weight:600;color:#131921">${time}</td>
+          </tr>
+          <tr>
+            <td style="padding:10px 0;color:#888">IP address</td>
+            <td style="padding:10px 0;font-weight:600;color:#131921">${ip}</td>
+          </tr>
+        </table>
+        <p style="color:#c00;font-size:13px">If this wasn't you, change your admin password immediately.</p>
+        <hr style="border:none;border-top:1px solid #eee;margin:24px 0"/>
+        <p style="color:#999;font-size:12px">Cindy Nat Enterprise &mdash; Kumasi, Ghana</p>
+      </div>
+    `,
+  }).catch((err) => console.error('[AdminAlert] Login email failed:', err.message));
+}
 
 // Constant-time string comparison — always runs both sides, no short-circuit
 function safeEqual(a, b) {
@@ -39,6 +69,7 @@ const adminLogin = asyncHandler(async (req, res) => {
     const passwordMatch = safeEqual(password, adminPassword);
     if (emailMatch && passwordMatch) {
       const session = await AdminSession.create({ email, ip });
+      sendLoginAlert(ip);
       return res.json({
         token: generateToken('admin'),
         email,
@@ -53,6 +84,7 @@ const adminLogin = asyncHandler(async (req, res) => {
   const user = await User.findOne({ email: String(email).toLowerCase().trim() });
   if (user && user.isAdmin && (await bcrypt.compare(password, user.password))) {
     const session = await AdminSession.create({ email: user.email, ip });
+    sendLoginAlert(ip);
     return res.json({
       token: generateToken(user._id),
       email: user.email,
@@ -91,6 +123,19 @@ const getDashboardStats = asyncHandler(async (req, res) => {
 const getUsers = asyncHandler(async (req, res) => {
   const users = await User.find({}).select('-password').sort({ createdAt: -1 }).limit(500);
   res.json(users);
+});
+
+const verifyUser = asyncHandler(async (req, res) => {
+  const user = await User.findById(req.params.id);
+  if (!user) {
+    res.status(404);
+    throw new Error('User not found');
+  }
+  user.isVerified = true;
+  user.verifyToken = undefined;
+  user.verifyTokenExpiry = undefined;
+  await user.save();
+  res.json({ message: `${user.name} (${user.email}) has been manually verified.` });
 });
 
 const adminLogout = asyncHandler(async (req, res) => {
@@ -146,4 +191,4 @@ const getDailySales = asyncHandler(async (req, res) => {
   res.json(result);
 });
 
-module.exports = { adminLogin, adminLogout, getAdminSessions, getDashboardStats, getUsers, getDailySales };
+module.exports = { adminLogin, adminLogout, getAdminSessions, getDashboardStats, getUsers, verifyUser, getDailySales };

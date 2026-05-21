@@ -69,7 +69,7 @@ export default function Register() {
   if (done) {
     return (
       <section className="mx-auto max-w-md px-4 pb-24 pt-8 md:px-0">
-        <div className="rounded-xl border border-slate-200 bg-white p-8 shadow-sm">
+        <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm sm:p-8">
           <div className="mb-6 text-center">
             <span className="inline-flex h-12 w-12 items-center justify-center rounded-xl bg-brand-gold text-lg font-extrabold text-black">CN</span>
             <h1 className="mt-3 text-2xl font-extrabold text-slate-900">Verify your email</h1>
@@ -80,7 +80,7 @@ export default function Register() {
 
           {codeError && (
             <div className="mb-4 flex items-center gap-2 rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700">
-              <span>⚠️</span> {codeError}
+              <i className="fas fa-exclamation-triangle"></i> {codeError}
             </div>
           )}
 
@@ -131,7 +131,7 @@ export default function Register() {
 
         {error && (
           <div className="mb-4 flex items-center gap-2 rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700">
-            <span>⚠️</span> {error}
+            <i className="fas fa-exclamation-triangle"></i> {error}
           </div>
         )}
 
@@ -173,7 +173,7 @@ export default function Register() {
                 className="w-full rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 pr-11 text-sm outline-none focus:border-brand-gold focus:bg-white"
               />
               <button type="button" onClick={() => setShowPass(!showPass)} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700">
-                {showPass ? '🙈' : '👁️'}
+                <i className={showPass ? 'fas fa-eye-slash' : 'fas fa-eye'}></i>
               </button>
             </div>
             <PasswordStrength password={form.password} userInfo={{ name: form.name, email: form.email }} />

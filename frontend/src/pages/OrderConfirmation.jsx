@@ -59,7 +59,7 @@ export default function OrderConfirmation() {
 
   return (
     <section className="mx-auto max-w-6xl px-4 pb-24 pt-8 md:px-8">
-      <div className="rounded-[2rem] border border-slate-200 bg-white p-10 shadow-sm">
+      <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm sm:rounded-[2rem] sm:p-10">
         {error ? (
           <div className="rounded-3xl bg-rose-50 p-8 text-center text-rose-700">{error}</div>
         ) : !order ? (
@@ -67,7 +67,7 @@ export default function OrderConfirmation() {
         ) : (
           <>
             <div className="flex items-center gap-3">
-              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-green-100 text-2xl">✓</div>
+              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-green-100 text-2xl text-green-600"><i className="fas fa-check"></i></div>
               <div>
                 <h1 className="text-2xl font-extrabold text-slate-900">Order confirmed!</h1>
                 <p className="mt-0.5 text-sm text-slate-500">A confirmation email has been sent to you.</p>
@@ -82,7 +82,7 @@ export default function OrderConfirmation() {
                 const latest = addBusinessDays(placed, 3);
                 return (
                   <div className="flex items-center gap-4 rounded-xl border border-green-200 bg-green-50 px-5 py-4">
-                    <span className="text-2xl">🚚</span>
+                    <i className="fas fa-truck text-2xl text-green-700"></i>
                     <div>
                       <p className="text-sm font-bold text-green-800">Estimated delivery</p>
                       <p className="text-base font-extrabold text-green-900">

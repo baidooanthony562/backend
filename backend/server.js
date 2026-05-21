@@ -85,7 +85,7 @@ process.on('unhandledRejection', (reason) => {
   console.error('[unhandledRejection]', reason);
 });
 
-// Purge unverified accounts whose 10-minute window has expired — runs every 5 minutes
+// Purge unverified accounts whose 30-minute window has expired — runs every 10 minutes
 setInterval(async () => {
   try {
     const result = await User.deleteMany({
@@ -98,7 +98,7 @@ setInterval(async () => {
   } catch (err) {
     console.error('[Cleanup] Failed to purge unverified accounts:', err.message);
   }
-}, 5 * 60 * 1000);
+}, 10 * 60 * 1000);
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {

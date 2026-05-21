@@ -1,8 +1,7 @@
-import { useEffect, useRef, useCallback } from 'react';
+import { useEffect, useCallback } from 'react';
 import { getAdminToken, getAdminSessionId, logout } from '../utils/auth';
 
 const API = 'https://backend-9m2y.onrender.com/api';
-const AWAY_LIMIT = 10 * 60 * 1000; // 10 minutes
 
 function fireLogoutBeacon(reason) {
   const token = getAdminToken();
@@ -21,8 +20,6 @@ function fireLogoutBeacon(reason) {
 }
 
 export function useAdminSessionGuard(onTerminate) {
-  const hiddenAt = useRef(null);
-
   const terminateSession = useCallback((reason) => {
     fireLogoutBeacon(reason);
     logout();
@@ -30,30 +27,11 @@ export function useAdminSessionGuard(onTerminate) {
   }, [onTerminate]);
 
   useEffect(() => {
-    const handleVisibilityChange = () => {
-      if (document.visibilityState === 'hidden') {
-        hiddenAt.current = Date.now();
-      } else {
-        if (hiddenAt.current !== null) {
-          const elapsed = Date.now() - hiddenAt.current;
-          hiddenAt.current = null;
-          if (elapsed >= AWAY_LIMIT) {
-            terminateSession('inactivity');
-          }
-        }
-      }
-    };
-
     const handleBeforeUnload = () => {
       fireLogoutBeacon('tab_closed');
     };
 
-    document.addEventListener('visibilitychange', handleVisibilityChange);
     window.addEventListener('beforeunload', handleBeforeUnload);
-
-    return () => {
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
-      window.removeEventListener('beforeunload', handleBeforeUnload);
-    };
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
   }, [terminateSession]);
 }

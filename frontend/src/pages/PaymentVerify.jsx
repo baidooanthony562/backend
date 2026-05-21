@@ -79,8 +79,8 @@ export default function PaymentVerify() {
 
         {status === 'success' && (
           <>
-            <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-green-100 text-3xl">
-              ✓
+            <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-green-100 text-3xl text-green-600">
+              <i className="fas fa-check"></i>
             </div>
             <h1 className="text-xl font-bold text-green-800">Payment successful!</h1>
             <p className="mt-2 text-sm text-slate-500">Redirecting to your order confirmation...</p>
@@ -89,8 +89,8 @@ export default function PaymentVerify() {
 
         {status === 'failed' && (
           <>
-            <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-red-100 text-3xl">
-              ✗
+            <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-red-100 text-3xl text-red-600">
+              <i className="fas fa-times"></i>
             </div>
             <h1 className="text-xl font-bold text-red-800">Something went wrong</h1>
             <p className="mt-2 text-sm text-slate-600">{message}</p>

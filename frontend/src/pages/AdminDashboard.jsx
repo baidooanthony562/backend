@@ -4,7 +4,7 @@ import {
   fetchDashboard, fetchAllUsers, fetchAllOrders, fetchProducts,
   updateOrderStatus, createProduct, updateProduct, deleteProduct,
   fetchPromos, createPromoAdmin, deletePromoAdmin,
-  adminLogout, fetchAdminSessions, fetchDailySales,
+  adminLogout, fetchAdminSessions, fetchDailySales, adminVerifyUser,
 } from '../utils/api';
 import { isAdmin, getAdminToken, getAdminSessionId, logout } from '../utils/auth';
 import { getProducts, saveProducts } from '../utils/productStore';
@@ -135,6 +135,16 @@ export default function AdminDashboard() {
     navigate('/admin/login');
   };
 
+  const handleVerifyUser = async (userId) => {
+    try {
+      const { data } = await adminVerifyUser(userId, token);
+      setUsers((prev) => prev.map((u) => u._id === userId ? { ...u, isVerified: true } : u));
+      showToast(data.message);
+    } catch (err) {
+      showToast(err.response?.data?.message || 'Could not verify user.');
+    }
+  };
+
   const openAdd = () => {
     setEditing(null);
     setForm(EMPTY);
@@ -165,7 +175,19 @@ export default function AdminDashboard() {
     const file = e.target.files[0];
     if (!file) return;
     const reader = new FileReader();
-    reader.onloadend = () => setForm((f) => ({ ...f, image: reader.result }));
+    reader.onloadend = () => {
+      const img = new Image();
+      img.onload = () => {
+        const MAX = 800;
+        const scale = Math.min(1, MAX / Math.max(img.width, img.height));
+        const canvas = document.createElement('canvas');
+        canvas.width = Math.round(img.width * scale);
+        canvas.height = Math.round(img.height * scale);
+        canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
+        setForm((f) => ({ ...f, image: canvas.toDataURL('image/jpeg', 0.8) }));
+      };
+      img.src = reader.result;
+    };
     reader.readAsDataURL(file);
   };
 
@@ -345,12 +367,12 @@ export default function AdminDashboard() {
   };
 
   const statCards = stats ? [
-    { label: 'Total Users', value: stats.totalUsers, icon: '👥', color: 'bg-blue-50 text-blue-700' },
-    { label: 'Total Products', value: stats.totalProducts || products.length, icon: '📦', color: 'bg-amber-50 text-amber-700' },
-    { label: 'Total Orders', value: stats.totalOrders, icon: '🛒', color: 'bg-purple-50 text-purple-700' },
-    { label: 'Revenue', value: `₵${Number(stats.revenue || 0).toLocaleString()}`, icon: '💰', color: 'bg-green-50 text-green-700' },
+    { label: 'Total Users', value: stats.totalUsers, icon: 'fas fa-users', color: 'bg-blue-50 text-blue-700' },
+    { label: 'Total Products', value: stats.totalProducts || products.length, icon: 'fas fa-box', color: 'bg-amber-50 text-amber-700' },
+    { label: 'Total Orders', value: stats.totalOrders, icon: 'fas fa-shopping-cart', color: 'bg-purple-50 text-purple-700' },
+    { label: 'Revenue', value: `₵${Number(stats.revenue || 0).toLocaleString()}`, icon: 'fas fa-coins', color: 'bg-green-50 text-green-700' },
   ] : [
-    { label: 'Total Products', value: products.length, icon: '📦', color: 'bg-amber-50 text-amber-700' },
+    { label: 'Total Products', value: products.length, icon: 'fas fa-box', color: 'bg-amber-50 text-amber-700' },
   ];
 
   return (
@@ -360,8 +382,8 @@ export default function AdminDashboard() {
       {terminated && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm">
           <div className="mx-4 w-full max-w-sm rounded-2xl bg-white p-8 text-center shadow-2xl">
-            <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-red-100 text-3xl">
-              🔒
+            <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-red-100 text-2xl text-red-600">
+              <i className="fas fa-lock"></i>
             </div>
             <h2 className="text-xl font-extrabold text-slate-900">Session Terminated</h2>
             <p className="mt-2 text-sm text-slate-500">
@@ -406,9 +428,7 @@ export default function AdminDashboard() {
             shopAlert.type === 'warn'   ? 'bg-amber-100 text-amber-800' :
                                           'bg-blue-50 text-blue-700'
           }`}>
-            <span className="text-lg">
-              {shopAlert.type === 'closed' ? '🔒' : shopAlert.type === 'warn' ? '⏰' : 'ℹ️'}
-            </span>
+            <i className={`text-lg ${shopAlert.type === 'closed' ? 'fas fa-lock' : shopAlert.type === 'warn' ? 'fas fa-clock' : 'fas fa-info-circle'}`}></i>
             {shopAlert.msg}
           </div>
         )}
@@ -417,13 +437,13 @@ export default function AdminDashboard() {
 
         {/* Tabs */}
         {(() => {
-          const TAB_ICONS = { Overview: '📊', Products: '📦', Orders: '🛒', Users: '👥', Promos: '🎟️' };
+          const TAB_ICONS = { Overview: 'fas fa-chart-bar', Products: 'fas fa-box', Orders: 'fas fa-shopping-cart', Users: 'fas fa-users', Promos: 'fas fa-ticket-alt' };
           return (
             <div className="mb-6 flex overflow-x-auto rounded-lg bg-white shadow-sm">
               {TABS.map((t) => (
                 <button key={t} onClick={() => { setTab(t); if (t === 'Orders') loadAll(); }}
                   className={`flex flex-1 flex-col items-center justify-center gap-0.5 whitespace-nowrap px-2 py-2.5 sm:flex-row sm:gap-1.5 sm:px-5 sm:py-3 text-xs sm:text-sm font-semibold transition ${tab === t ? 'border-b-2 border-brand-gold bg-white text-[#131921]' : 'text-slate-500 hover:text-slate-800'}`}>
-                  <span className="text-base sm:text-sm leading-none">{TAB_ICONS[t]}</span>
+                  <i className={`${TAB_ICONS[t]} text-base sm:text-sm leading-none`}></i>
                   <span>{t}</span>
                 </button>
               ))}
@@ -441,7 +461,7 @@ export default function AdminDashboard() {
                 <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
                   {statCards.map((s) => (
                     <div key={s.label} className={`rounded-lg p-6 shadow-sm ${s.color}`}>
-                      <p className="text-3xl">{s.icon}</p>
+                      <i className={`text-3xl ${s.icon}`}></i>
                       <p className="mt-3 text-3xl font-extrabold">{s.value}</p>
                       <p className="mt-1 text-sm font-semibold">{s.label}</p>
                     </div>
@@ -461,7 +481,7 @@ export default function AdminDashboard() {
                     <div className="rounded-lg bg-white p-6 shadow-sm">
                       <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
                         <h2 className="text-lg font-bold text-slate-900">
-                          ✅ Today's Delivered Orders
+                          <i className="fas fa-check-circle text-green-600 mr-1"></i> Today's Delivered Orders
                           <span className="ml-2 text-sm font-normal text-slate-500">
                             {new Date().toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' })}
                           </span>
@@ -550,7 +570,7 @@ export default function AdminDashboard() {
                 {/* ── DAILY SALES ── */}
                 <div className="rounded-lg bg-white p-6 shadow-sm">
                   <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-                    <h2 className="text-lg font-bold text-slate-900">📈 Daily Sales</h2>
+                    <h2 className="text-lg font-bold text-slate-900"><i className="fas fa-chart-line mr-1"></i> Daily Sales</h2>
                     <div className="flex gap-2">
                       {[7, 14, 30].map((d) => (
                         <button
@@ -645,7 +665,7 @@ export default function AdminDashboard() {
                 </div>
 
                 <div className="rounded-lg bg-white p-6 shadow-sm">
-                  <h2 className="mb-4 text-lg font-bold text-slate-900">⚠️ Low Stock Alerts</h2>
+                  <h2 className="mb-4 text-lg font-bold text-slate-900"><i className="fas fa-exclamation-triangle text-red-500 mr-1"></i> Low Stock Alerts</h2>
                   {(() => {
                     const low = products.filter((p) => Number(p.stock) <= 5);
                     return low.length === 0
@@ -661,7 +681,7 @@ export default function AdminDashboard() {
 
                 {/* Session Log */}
                 <div className="rounded-lg bg-white p-6 shadow-sm">
-                  <h2 className="mb-4 text-lg font-bold text-slate-900">🔐 Admin Session Log</h2>
+                  <h2 className="mb-4 text-lg font-bold text-slate-900"><i className="fas fa-shield-alt mr-1"></i> Admin Session Log</h2>
                   {sessions.length === 0 ? (
                     <p className="text-sm text-slate-500">No sessions recorded yet.</p>
                   ) : (
@@ -711,7 +731,7 @@ export default function AdminDashboard() {
                 </div>
 
                 <div className="rounded-lg bg-white p-6 shadow-sm">
-                  <h2 className="mb-4 text-lg font-bold text-slate-900">🛒 Recent Orders</h2>
+                  <h2 className="mb-4 text-lg font-bold text-slate-900"><i className="fas fa-shopping-cart mr-1"></i> Recent Orders</h2>
                   <div className="overflow-x-auto">
                     <table className="w-full text-sm">
                       <thead><tr className="border-b text-left text-xs font-bold uppercase text-slate-500">
@@ -765,7 +785,7 @@ export default function AdminDashboard() {
                               onClick={() => fileRef.current?.click()}
                               className="flex w-full items-center justify-center gap-2 rounded-lg border-2 border-dashed border-slate-300 py-3 text-sm text-slate-500 transition hover:border-brand-gold hover:text-slate-800"
                             >
-                              📁 Upload photo from your device
+                              <i className="fas fa-folder-open mr-2"></i> Upload photo from your device
                             </button>
                             <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handleImageFile} />
 
@@ -804,7 +824,7 @@ export default function AdminDashboard() {
                                   onClick={() => setForm({ ...form, image: '' })}
                                   className="absolute right-2 top-2 rounded-full bg-red-500 px-2 py-0.5 text-xs font-bold text-white hover:bg-red-600"
                                 >
-                                  ✕ Remove
+                                  <i className="fas fa-times mr-1"></i> Remove
                                 </button>
                               </div>
                             )}
@@ -921,7 +941,7 @@ export default function AdminDashboard() {
                                 <div className="flex items-center gap-3">
                                   {imgSrc
                                     ? <img src={imgSrc} alt={p.name} className="h-14 w-14 rounded-lg border object-cover bg-slate-100 shrink-0" onError={(e) => { e.target.style.display = 'none'; }} />
-                                    : <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-lg bg-slate-100 text-2xl">📦</div>
+                                    : <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-lg bg-slate-100"><i className="fas fa-box text-2xl text-slate-400"></i></div>
                                   }
                                   <div className="min-w-0">
                                     <p className="font-semibold text-slate-900 truncate">{p.name}</p>
@@ -982,7 +1002,7 @@ export default function AdminDashboard() {
                                     <div className="flex items-center gap-3">
                                       {imgSrc
                                         ? <img src={imgSrc} alt={p.name} className="h-12 w-12 rounded-lg border object-cover bg-slate-100" onError={(e) => { e.target.style.display = 'none'; }} />
-                                        : <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-slate-100 text-xl">📦</div>
+                                        : <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-slate-100"><i className="fas fa-box text-xl text-slate-400"></i></div>
                                       }
                                       <span className="max-w-[180px] truncate font-medium text-slate-900">{p.name}</span>
                                     </div>
@@ -1269,10 +1289,23 @@ export default function AdminDashboard() {
                             {u.isAdmin ? 'Admin' : 'Customer'}
                           </span>
                         </div>
-                        <div className="mt-2 flex gap-4 text-xs text-slate-500">
-                          <span>📞 {u.phone || '—'}</span>
-                          <span>📍 {u.city || '—'}</span>
+                        <div className="mt-2 flex flex-wrap items-center gap-3 text-xs text-slate-500">
+                          <span><i className="fas fa-phone mr-1"></i>{u.phone || '—'}</span>
+                          <span><i className="fas fa-map-marker-alt mr-1"></i>{u.city || '—'}</span>
                           <span className="ml-auto font-semibold text-slate-700">{orderCountByUser[u._id] || 0} orders</span>
+                        </div>
+                        <div className="mt-2 flex items-center justify-between">
+                          <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${u.isVerified ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'}`}>
+                            {u.isVerified ? <><i className="fas fa-check mr-1"></i>Verified</> : <><i className="fas fa-clock mr-1"></i>Unverified</>}
+                          </span>
+                          {!u.isVerified && (
+                            <button
+                              onClick={() => handleVerifyUser(u._id)}
+                              className="rounded-full bg-brand-gold px-3 py-1 text-xs font-bold text-black hover:bg-yellow-400"
+                            >
+                              Verify now
+                            </button>
+                          )}
                         </div>
                       </div>
                     ))}
@@ -1288,12 +1321,13 @@ export default function AdminDashboard() {
                         <th className="px-4 py-3">Phone</th>
                         <th className="px-4 py-3">City</th>
                         <th className="px-4 py-3">Orders</th>
+                        <th className="px-4 py-3">Status</th>
                         <th className="px-4 py-3">Role</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y">
                       {users.length === 0
-                        ? <tr><td colSpan="6" className="px-4 py-8 text-center text-slate-500">No users registered yet.</td></tr>
+                        ? <tr><td colSpan="7" className="px-4 py-8 text-center text-slate-500">No users registered yet.</td></tr>
                         : users.map((u) => (
                           <tr key={u._id} className="hover:bg-slate-50">
                             <td className="px-4 py-3 font-medium">{u.name}</td>
@@ -1301,6 +1335,18 @@ export default function AdminDashboard() {
                             <td className="px-4 py-3 text-slate-600">{u.phone || '—'}</td>
                             <td className="px-4 py-3 text-slate-600">{u.city || '—'}</td>
                             <td className="px-4 py-3">{orderCountByUser[u._id] || 0}</td>
+                            <td className="px-4 py-3">
+                              {u.isVerified ? (
+                                <span className="rounded-full bg-green-100 px-2 py-1 text-xs font-semibold text-green-700"><i className="fas fa-check mr-1"></i>Verified</span>
+                              ) : (
+                                <button
+                                  onClick={() => handleVerifyUser(u._id)}
+                                  className="rounded-full bg-amber-100 px-2 py-1 text-xs font-semibold text-amber-800 hover:bg-brand-gold hover:text-black transition"
+                                >
+                                  Verify now
+                                </button>
+                              )}
+                            </td>
                             <td className="px-4 py-3">
                               <span className={`rounded-full px-2 py-1 text-xs font-semibold ${u.isAdmin ? 'bg-purple-100 text-purple-700' : 'bg-slate-100 text-slate-600'}`}>
                                 {u.isAdmin ? 'Admin' : 'Customer'}

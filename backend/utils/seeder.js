@@ -3,14 +3,14 @@ const Product = require('../models/Product');
 const PromoCode = require('../models/PromoCode');
 
 const categories = [
-  { name: 'Blenders & Juicers', slug: 'blenders-juicers', description: 'High-performance blenders and juicers for smoothies, sauces, and soups.', icon: '🧃' },
-  { name: 'Rice Cookers', slug: 'rice-cookers', description: 'Smart rice cookers for perfect texture every time.', icon: '🍚' },
-  { name: 'Pots & Pans', slug: 'pots-pans', description: 'Premium nonstick cookware sets for every kitchen.', icon: '🍳' },
-  { name: 'Water Dispensers', slug: 'water-dispensers', description: 'Hot and cold water dispensers for home and office.', icon: '🚰' },
-  { name: 'Irons & Steamers', slug: 'irons-steamers', description: 'Professional steam irons and garment steamers.', icon: '👔' },
-  { name: 'Toasters & Grills', slug: 'toasters-grills', description: 'Electric toasters, sandwich makers, and grill pans.', icon: '🍞' },
-  { name: 'Fans & Coolers', slug: 'fans-coolers', description: 'Standing fans, table fans, and air coolers.', icon: '💨' },
-  { name: 'Food Processors', slug: 'food-processors', description: 'Multi-function food processors and choppers.', icon: '⚙️' },
+  { name: 'Blenders & Juicers', slug: 'blenders-juicers', description: 'High-performance blenders and juicers for smoothies, sauces, and soups.', icon: 'fas fa-blender' },
+  { name: 'Rice Cookers', slug: 'rice-cookers', description: 'Smart rice cookers for perfect texture every time.', icon: 'fas fa-utensils' },
+  { name: 'Pots & Pans', slug: 'pots-pans', description: 'Premium nonstick cookware sets for every kitchen.', icon: 'fas fa-fire' },
+  { name: 'Water Dispensers', slug: 'water-dispensers', description: 'Hot and cold water dispensers for home and office.', icon: 'fas fa-tint' },
+  { name: 'Irons & Steamers', slug: 'irons-steamers', description: 'Professional steam irons and garment steamers.', icon: 'fas fa-tshirt' },
+  { name: 'Toasters & Grills', slug: 'toasters-grills', description: 'Electric toasters, sandwich makers, and grill pans.', icon: 'fas fa-fire-alt' },
+  { name: 'Fans & Coolers', slug: 'fans-coolers', description: 'Standing fans, table fans, and air coolers.', icon: 'fas fa-wind' },
+  { name: 'Food Processors', slug: 'food-processors', description: 'Multi-function food processors and choppers.', icon: 'fas fa-cog' },
 ];
 
 const products = [

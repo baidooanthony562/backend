@@ -79,7 +79,7 @@ export default function PasswordStrength({ password, userInfo = {} }) {
         <ul className="space-y-0.5">
           {rules.filter((r) => !r.ok).map((r) => (
             <li key={r.id} className="flex items-center gap-1.5 text-xs text-red-600">
-              <span className="text-red-400">✗</span> {r.label}
+              <i className="fas fa-times text-red-400"></i> {r.label}
             </li>
           ))}
         </ul>
@@ -87,7 +87,7 @@ export default function PasswordStrength({ password, userInfo = {} }) {
 
       {strength === 'Strong' && (
         <p className="flex items-center gap-1 text-xs font-semibold text-green-600">
-          <span>✓</span> Strong password
+          <i className="fas fa-check"></i> Strong password
         </p>
       )}
     </div>

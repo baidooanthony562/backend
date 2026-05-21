@@ -48,7 +48,7 @@ export default function AdminLogin() {
 
           {error && (
             <div className="mt-4 flex items-center gap-2 rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700">
-              <span>⚠️</span> {error}
+              <i className="fas fa-exclamation-triangle"></i> {error}
             </div>
           )}
 
@@ -76,7 +76,7 @@ export default function AdminLogin() {
                   className="w-full rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 pr-12 text-sm outline-none focus:border-brand-gold focus:bg-white"
                 />
                 <button type="button" onClick={() => setShowPass(!showPass)} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700">
-                  {showPass ? '🙈' : '👁️'}
+                  <i className={showPass ? 'fas fa-eye-slash' : 'fas fa-eye'}></i>
                 </button>
               </div>
             </div>

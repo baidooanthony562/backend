@@ -70,7 +70,7 @@ export default function NavBar() {
 
           {/* Deliver to */}
           <Link to="/dashboard" className="hidden shrink-0 items-center gap-1 rounded border-2 border-transparent px-1 hover:border-white lg:flex">
-            <span className="text-lg">📍</span>
+            <i className="fas fa-map-marker-alt text-brand-gold"></i>
             <div>
               <p className="text-xs text-slate-400">Deliver to</p>
               <p className="text-sm font-bold text-white">Kumasi, GH</p>
@@ -163,7 +163,7 @@ export default function NavBar() {
       <div className="hidden bg-[#232F3E] px-4 md:block md:px-6">
         <div className="mx-auto flex max-w-7xl items-center gap-1 overflow-x-auto py-1.5">
           <Link to="/shop" className="flex shrink-0 items-center gap-1 rounded border-2 border-transparent px-3 py-1 text-sm font-semibold text-white hover:border-white">
-            ☰ All
+            <i className="fas fa-bars mr-1"></i> All
           </Link>
           {[
             ['Blenders & Juicers', 'Blenders & Juicers'],
@@ -180,7 +180,7 @@ export default function NavBar() {
             </Link>
           ))}
           <Link to="/shop?sort=popular" className="shrink-0 rounded border-2 border-transparent px-3 py-1 text-sm font-semibold text-brand-gold hover:border-white">
-            🔥 Today's Deals
+            <i className="fas fa-fire mr-1"></i> Today's Deals
           </Link>
           <Link to="/shop?sort=newest" className="shrink-0 rounded border-2 border-transparent px-3 py-1 text-sm text-white hover:border-white">
             New Arrivals

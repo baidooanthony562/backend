@@ -113,7 +113,7 @@ export default function ForgotPassword() {
                 ['email','code','password'].indexOf(s) < ['email','code','password'].indexOf(step)
                   ? 'bg-slate-800 text-white' : 'bg-slate-200 text-slate-500'
               }`}>
-                {['email','code','password'].indexOf(s) < ['email','code','password'].indexOf(step) ? '✓' : i + 1}
+                {['email','code','password'].indexOf(s) < ['email','code','password'].indexOf(step) ? <i className="fas fa-check" /> : i + 1}
               </div>
               {i < 2 && <div className={`h-px w-8 ${['email','code','password'].indexOf(s) < ['email','code','password'].indexOf(step) ? 'bg-slate-800' : 'bg-slate-200'}`} />}
             </div>
@@ -122,7 +122,7 @@ export default function ForgotPassword() {
 
         {error && (
           <div className="mb-4 flex items-center gap-2 rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700">
-            <span>⚠️</span> {error}
+            <i className="fas fa-exclamation-triangle"></i> {error}
           </div>
         )}
 
@@ -203,7 +203,7 @@ export default function ForgotPassword() {
                 />
                 <button type="button" onClick={() => setShowPass(!showPass)}
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700">
-                  {showPass ? '🙈' : '👁️'}
+                  <i className={showPass ? 'fas fa-eye-slash' : 'fas fa-eye'}></i>
                 </button>
               </div>
             </div>

@@ -267,13 +267,13 @@ const STATUS_EMAIL = {
   },
   Shipped: {
     subject: 'Your order is on its way!',
-    heading: 'Order Shipped 🚚',
+    heading: 'Order Shipped',
     body: 'Your order has been handed over to our delivery team and is on its way to you. Please be available to receive it.',
     color: '#8B5CF6',
   },
   Delivered: {
     subject: 'Your order has been delivered',
-    heading: 'Order Delivered ✓',
+    heading: 'Order Delivered',
     body: 'Your order has been marked as delivered. We hope you love your purchase! If you have any issues, please contact us.',
     color: '#10B981',
   },
