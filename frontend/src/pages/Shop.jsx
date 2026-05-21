@@ -224,7 +224,7 @@ export default function Shop() {
                     onClick={() => handleCategorySelect(cat.name)}
                     className={`flex w-full items-center gap-3 rounded-xl px-4 py-2.5 text-left text-sm transition ${selectedCategory === cat.name ? 'bg-brand-dark font-semibold text-white' : 'bg-slate-50 text-slate-700 hover:bg-slate-100'}`}
                   >
-                    <span>{cat.icon}</span>
+                    <i className={cat.icon}></i>
                     <span className="flex-1">{cat.name}</span>
                     <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${selectedCategory === cat.name ? 'bg-white/20 text-white' : 'bg-slate-200 text-slate-600'}`}>{count}</span>
                   </button>
