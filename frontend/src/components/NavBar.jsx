@@ -143,6 +143,13 @@ export default function NavBar() {
             <span className="hidden text-sm font-bold text-white sm:block">Cart</span>
           </Link>
 
+          {/* Mobile: quick account link */}
+          <Link to={authenticated ? '/dashboard' : '/login'} className="shrink-0 rounded border-2 border-transparent p-1 text-white hover:border-white md:hidden">
+            <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
+            </svg>
+          </Link>
+
           {/* Mobile menu toggle */}
           <button onClick={() => setOpen(!open)} className="shrink-0 rounded border-2 border-transparent p-1 text-white hover:border-white md:hidden">
             <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
