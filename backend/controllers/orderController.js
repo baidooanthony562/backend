@@ -6,10 +6,40 @@ const User = require('../models/User');
 const { sendResendEmail } = require('../utils/email');
 
 const VALID_STATUSES = ['Pending', 'Processing', 'Shipped', 'Delivered', 'Cancelled'];
+const VALID_PAYMENT_METHODS = ['cash-on-delivery', 'bank-transfer', 'momo', 'Paystack'];
 const MAX_ORDER_ITEMS = 50;
 
+function sanitizeAddress(addr) {
+  return {
+    address: String(addr?.address || '').trim().slice(0, 200),
+    city:    String(addr?.city    || '').trim().slice(0, 100),
+    phone:   String(addr?.phone   || '').trim().slice(0, 30),
+  };
+}
+
+async function verifyPaystackRef(reference, expectedTotal) {
+  const response = await fetch(
+    `https://api.paystack.co/transaction/verify/${encodeURIComponent(String(reference))}`,
+    { headers: { Authorization: `Bearer ${process.env.PAYSTACK_SECRET_KEY}` } }
+  );
+  const data = await response.json();
+  if (!data.status || data.data?.status !== 'success') {
+    const err = new Error('Paystack payment could not be verified. Contact support if money was deducted.');
+    err.statusCode = 400;
+    throw err;
+  }
+  // Paystack amounts are in pesewas (GHS × 100); allow 1 pesewa tolerance for rounding
+  const paidPesewas = Number(data.data.amount);
+  const expectedPesewas = Math.round(expectedTotal * 100);
+  if (Math.abs(paidPesewas - expectedPesewas) > 1) {
+    const err = new Error('Payment amount does not match order total. Contact support.');
+    err.statusCode = 400;
+    throw err;
+  }
+}
+
 const createOrder = asyncHandler(async (req, res) => {
-  const { orderItems, shippingAddress, paymentMethod, promoCode } = req.body;
+  const { orderItems, shippingAddress, paymentMethod, promoCode, paystackReference } = req.body;
 
   if (!orderItems || orderItems.length === 0) {
     res.status(400);
@@ -18,6 +48,14 @@ const createOrder = asyncHandler(async (req, res) => {
   if (orderItems.length > MAX_ORDER_ITEMS) {
     res.status(400);
     throw new Error(`Order cannot exceed ${MAX_ORDER_ITEMS} items`);
+  }
+  if (paymentMethod && !VALID_PAYMENT_METHODS.includes(paymentMethod)) {
+    res.status(400);
+    throw new Error('Invalid payment method');
+  }
+  if (paymentMethod === 'Paystack' && !paystackReference) {
+    res.status(400);
+    throw new Error('Paystack reference is required for online payments');
   }
 
   const validatedItems = [];
@@ -107,10 +145,15 @@ const createOrder = asyncHandler(async (req, res) => {
 
     const serverTotal = Math.max(0, Math.round((serverSubtotal - serverDiscount) * 100) / 100);
 
+    // Verify Paystack payment server-side — prevents order creation without actual payment
+    if (paymentMethod === 'Paystack') {
+      await verifyPaystackRef(paystackReference, serverTotal);
+    }
+
     const order = new Order({
       user: req.user._id,
       orderItems: validatedItems,
-      shippingAddress,
+      shippingAddress: sanitizeAddress(shippingAddress),
       paymentMethod,
       subtotalPrice: serverSubtotal,
       discountPrice: serverDiscount,
@@ -317,12 +360,15 @@ const updateOrderStatus = asyncHandler(async (req, res) => {
 });
 
 const createGuestOrder = asyncHandler(async (req, res) => {
-  const { guestName, guestEmail, orderItems, shippingAddress, paymentMethod, promoCode } = req.body;
+  const { guestName, guestEmail, orderItems, shippingAddress, paymentMethod, promoCode, paystackReference } = req.body;
 
-  if (!guestName || !guestName.trim()) { res.status(400); throw new Error('Name is required'); }
+  if (!guestName || !String(guestName).trim()) { res.status(400); throw new Error('Name is required'); }
+  if (String(guestName).trim().length > 100) { res.status(400); throw new Error('Name is too long'); }
   if (!guestEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(guestEmail)) { res.status(400); throw new Error('Valid email is required'); }
   if (!orderItems || orderItems.length === 0) { res.status(400); throw new Error('Order items required'); }
   if (orderItems.length > MAX_ORDER_ITEMS) { res.status(400); throw new Error(`Order cannot exceed ${MAX_ORDER_ITEMS} items`); }
+  if (paymentMethod && !VALID_PAYMENT_METHODS.includes(paymentMethod)) { res.status(400); throw new Error('Invalid payment method'); }
+  if (paymentMethod === 'Paystack' && !paystackReference) { res.status(400); throw new Error('Paystack reference is required for online payments'); }
 
   const validatedItems = [];
   const decremented = [];
@@ -366,11 +412,15 @@ const createGuestOrder = asyncHandler(async (req, res) => {
     }
     const serverTotal = Math.max(0, Math.round((serverSubtotal - serverDiscount) * 100) / 100);
 
+    if (paymentMethod === 'Paystack') {
+      await verifyPaystackRef(paystackReference, serverTotal);
+    }
+
     const order = await new Order({
-      guestName: String(guestName).trim(),
+      guestName: String(guestName).trim().slice(0, 100),
       guestEmail: String(guestEmail).toLowerCase().trim(),
       orderItems: validatedItems,
-      shippingAddress,
+      shippingAddress: sanitizeAddress(shippingAddress),
       paymentMethod,
       subtotalPrice: serverSubtotal,
       discountPrice: serverDiscount,

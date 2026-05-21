@@ -4,6 +4,13 @@ const Category = require('../models/Category');
 
 const MAX_IMAGES = 10;
 
+function sanitizeImageUrls(urls) {
+  return (Array.isArray(urls) ? urls : [])
+    .map((u) => String(u).trim())
+    .filter((u) => /^https?:\/\/.{4,}/i.test(u))
+    .slice(0, MAX_IMAGES);
+}
+
 const getProducts = asyncHandler(async (req, res) => {
   const { search, category, minPrice, maxPrice, sort, featured, limit } = req.query;
   let filter = { active: true };
@@ -100,9 +107,8 @@ const createProduct = asyncHandler(async (req, res) => {
     { price, stock, discount, wholesalePrice, wholesaleMinQty }, res
   );
 
-  // Cap images array to prevent bloated documents
   const rawImages = images?.length ? images : image ? [image] : [];
-  const productImages = rawImages.slice(0, MAX_IMAGES);
+  const productImages = sanitizeImageUrls(rawImages);
 
   const categoryId = await resolveCategory(category);
   const product = new Product({
@@ -155,7 +161,7 @@ const updateProduct = asyncHandler(async (req, res) => {
   }
   if (req.body.discount !== undefined) product.discount = Number(req.body.discount);
   if (req.body.category) product.category = (await resolveCategory(req.body.category)) || product.category;
-  if (req.body.images !== undefined) product.images = req.body.images.slice(0, MAX_IMAGES);
+  if (req.body.images !== undefined) product.images = sanitizeImageUrls(req.body.images);
   if (req.body.wholesalePrice !== undefined) product.wholesalePrice = Number(req.body.wholesalePrice);
   if (req.body.wholesaleMinQty !== undefined) product.wholesaleMinQty = Number(req.body.wholesaleMinQty);
   if (req.body.featured !== undefined) product.featured = Boolean(req.body.featured);

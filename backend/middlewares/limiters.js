@@ -32,4 +32,22 @@ const supportLimiter = rateLimit({
   legacyHeaders: false,
 });
 
-module.exports = { authLimiter, passwordResetLimiter, promoLimiter, supportLimiter };
+// Prevents bots from flooding order creation and depleting stock
+const orderLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000,
+  max: 30,
+  message: { message: 'Too many orders placed. Please try again later.' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+// Prevents spam initialization of payment sessions
+const paymentLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 20,
+  message: { message: 'Too many payment requests. Please try again shortly.' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+module.exports = { authLimiter, passwordResetLimiter, promoLimiter, supportLimiter, orderLimiter, paymentLimiter };
