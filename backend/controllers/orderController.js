@@ -147,6 +147,7 @@ const createOrder = asyncHandler(async (req, res) => {
 
     // Verify Paystack payment server-side — prevents order creation without actual payment
     if (paymentMethod === 'Paystack') {
+      res.status(400); // pre-set so errorHandler returns 400 if verification throws
       await verifyPaystackRef(paystackReference, serverTotal);
     }
 
@@ -413,6 +414,7 @@ const createGuestOrder = asyncHandler(async (req, res) => {
     const serverTotal = Math.max(0, Math.round((serverSubtotal - serverDiscount) * 100) / 100);
 
     if (paymentMethod === 'Paystack') {
+      res.status(400);
       await verifyPaystackRef(paystackReference, serverTotal);
     }
 
