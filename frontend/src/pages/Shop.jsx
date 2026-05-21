@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import ProductCard from '../components/ProductCard';
 import { categories } from '../data/categories';
@@ -88,15 +88,86 @@ export default function Shop() {
   const totalPages = Math.ceil(filteredProducts.length / PAGE_SIZE);
   const paginatedProducts = filteredProducts.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
 
+  const productsRef = useRef(null);
+
   const handleCategorySelect = (cat) => {
     setSelectedCategory(cat);
     setSearchParams(cat === 'All' ? {} : { category: cat });
+    // On mobile scroll straight to products
+    if (window.innerWidth < 1024) {
+      setTimeout(() => productsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50);
+    }
+  };
+
+  const handlePriceSelect = (val) => {
+    setPriceRange(val);
+    if (window.innerWidth < 1024) {
+      setTimeout(() => productsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50);
+    }
   };
 
   return (
     <section className="mx-auto max-w-7xl px-4 pb-24 pt-4 md:px-8">
-      {/* Page Header */}
-      <div className="mb-6 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+
+      {/* ── MOBILE FILTERS (hidden on lg+) ── */}
+      <div className="lg:hidden">
+        {/* Horizontal category pills */}
+        <div className="mb-3 -mx-4 px-4 overflow-x-auto">
+          <div className="flex gap-2 pb-2" style={{ width: 'max-content' }}>
+            <button
+              onClick={() => handleCategorySelect('All')}
+              className={`flex shrink-0 items-center gap-1.5 rounded-full px-4 py-2 text-sm font-semibold transition ${selectedCategory === 'All' ? 'bg-brand-dark text-white' : 'bg-white border border-slate-200 text-slate-700'}`}
+            >
+              🏪 All
+            </button>
+            {categories.map((cat) => {
+              const count = allProducts.filter((p) => {
+                const c = typeof p.category === 'string' ? p.category : p.category?.name || '';
+                return c.toLowerCase() === cat.name.toLowerCase();
+              }).length;
+              const active = selectedCategory === cat.name;
+              return (
+                <button
+                  key={cat.id}
+                  onClick={() => handleCategorySelect(cat.name)}
+                  className={`flex shrink-0 items-center gap-1.5 rounded-full px-4 py-2 text-sm font-semibold transition ${active ? 'bg-brand-dark text-white' : 'bg-white border border-slate-200 text-slate-700'}`}
+                >
+                  <span>{cat.icon}</span>
+                  <span>{cat.name}</span>
+                  {count > 0 && <span className={`rounded-full px-1.5 text-xs ${active ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-500'}`}>{count}</span>}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Filter + sort bar */}
+        <div className="mb-4 flex gap-2">
+          <select
+            value={priceRange}
+            onChange={(e) => handlePriceSelect(e.target.value)}
+            className="flex-1 rounded-full border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 outline-none"
+          >
+            {priceOptions.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+          </select>
+          <select
+            value={sort}
+            onChange={(e) => setSort(e.target.value)}
+            className="flex-1 rounded-full border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 outline-none"
+          >
+            {sortOptions.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+          </select>
+        </div>
+
+        {/* Result count */}
+        <p className="mb-3 text-sm text-slate-500">
+          <span className="font-semibold text-slate-800">{filteredProducts.length}</span> product{filteredProducts.length !== 1 ? 's' : ''}
+          {selectedCategory !== 'All' && <span> in <span className="font-semibold text-brand-gold">{selectedCategory}</span></span>}
+        </p>
+      </div>
+
+      {/* ── PAGE HEADER (desktop only) ── */}
+      <div className="hidden lg:mb-6 lg:flex lg:items-center lg:justify-between">
         <div>
           <p className="text-xs font-bold uppercase tracking-widest text-brand-gold">
             {selectedCategory !== 'All' ? 'Category' : 'Shop'}
@@ -119,8 +190,8 @@ export default function Shop() {
       </div>
 
       <div className="grid gap-6 lg:grid-cols-[260px_1fr]">
-        {/* Sidebar */}
-        <aside className="space-y-6 self-start rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+        {/* Sidebar — desktop only */}
+        <aside className="hidden lg:block space-y-6 self-start rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
           {/* Search */}
           <div>
             <h3 className="mb-3 font-bold text-slate-900">Search</h3>
@@ -180,7 +251,7 @@ export default function Shop() {
         </aside>
 
         {/* Product Grid */}
-        <div>
+        <div ref={productsRef}>
           {loading ? (
             <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
               {Array.from({ length: 6 }).map((_, i) => (
