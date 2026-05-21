@@ -132,7 +132,6 @@ export default function Shop() {
                   onClick={() => handleCategorySelect(cat.name)}
                   className={`flex shrink-0 items-center gap-1.5 rounded-full px-4 py-2 text-sm font-semibold transition ${active ? 'bg-brand-dark text-white' : 'bg-white border border-slate-200 text-slate-700'}`}
                 >
-                  <i className={cat.icon}></i>
                   <span>{cat.name}</span>
                   {count > 0 && <span className={`rounded-full px-1.5 text-xs ${active ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-500'}`}>{count}</span>}
                 </button>
@@ -224,7 +223,6 @@ export default function Shop() {
                     onClick={() => handleCategorySelect(cat.name)}
                     className={`flex w-full items-center gap-3 rounded-xl px-4 py-2.5 text-left text-sm transition ${selectedCategory === cat.name ? 'bg-brand-dark font-semibold text-white' : 'bg-slate-50 text-slate-700 hover:bg-slate-100'}`}
                   >
-                    <i className={cat.icon}></i>
                     <span className="flex-1">{cat.name}</span>
                     <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${selectedCategory === cat.name ? 'bg-white/20 text-white' : 'bg-slate-200 text-slate-600'}`}>{count}</span>
                   </button>
