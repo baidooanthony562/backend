@@ -8,11 +8,41 @@ import { isInWishlist, addToWishlist, removeFromWishlist } from '../utils/wishli
 
 const PLACEHOLDER = 'https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?auto=format&fit=crop&w=800&q=80';
 
+const STAR_PATH = 'M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z';
+
 function StarFull() {
   return (
     <svg className="h-4 w-4 text-brand-gold" fill="currentColor" viewBox="0 0 20 20">
-      <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+      <path d={STAR_PATH} />
     </svg>
+  );
+}
+
+function StarPicker({ value, onChange }) {
+  const [hovered, setHovered] = useState(null);
+  const display = hovered ?? value;
+  const labels = ['Terrible', 'Poor', 'OK', 'Good', 'Excellent'];
+  return (
+    <div className="flex flex-col gap-1">
+      <div className="flex items-center gap-1">
+        {[1, 2, 3, 4, 5].map((star) => (
+          <button
+            key={star}
+            type="button"
+            onClick={() => onChange(star)}
+            onMouseEnter={() => setHovered(star)}
+            onMouseLeave={() => setHovered(null)}
+            className="p-1 transition-transform active:scale-110"
+            aria-label={`${star} star${star > 1 ? 's' : ''}`}
+          >
+            <svg className={`h-8 w-8 transition-colors ${star <= display ? 'text-brand-gold' : 'text-slate-300'}`} fill="currentColor" viewBox="0 0 20 20">
+              <path d={STAR_PATH} />
+            </svg>
+          </button>
+        ))}
+        <span className="ml-1 text-sm font-semibold text-slate-600">{labels[display - 1]}</span>
+      </div>
+    </div>
   );
 }
 
@@ -200,9 +230,7 @@ export default function ProductDetail() {
 
             <form onSubmit={handleReviewSubmit} className="mt-5 space-y-3 border-t border-slate-100 pt-5">
               <p className="text-sm font-bold text-slate-700">Write a review</p>
-              <select value={reviewRating} onChange={(e) => setReviewRating(Number(e.target.value))} className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm outline-none focus:border-brand-gold">
-                {[5,4,3,2,1].map((r) => <option key={r} value={r}>{r} stars</option>)}
-              </select>
+              <StarPicker value={reviewRating} onChange={setReviewRating} />
               <textarea value={reviewComment} onChange={(e) => setReviewComment(e.target.value)} rows="3" placeholder="Share your experience..." className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm outline-none focus:border-brand-gold" />
               <button type="submit" disabled={submittingReview} className="rounded-full bg-[#131921] px-6 py-2.5 text-sm font-semibold text-white hover:bg-slate-800 disabled:opacity-60">
                 {submittingReview ? 'Submitting...' : 'Submit review'}
