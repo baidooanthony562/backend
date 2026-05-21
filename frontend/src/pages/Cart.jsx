@@ -35,13 +35,8 @@ export default function Cart() {
     try {
       const stored = JSON.parse(localStorage.getItem('cart') || '[]');
       if (!Array.isArray(stored)) { localStorage.removeItem('cart'); return; }
-      const isValidId = (id) => /^[a-f\d]{24}$/i.test(id);
-      const valid = stored.filter((item) => item && isValidId(item._id || item.id));
-      const removed = stored.length - valid.length;
-      if (removed > 0) {
-        localStorage.setItem('cart', JSON.stringify(valid));
-        setCheckoutMessage(`${removed} item${removed > 1 ? 's were' : ' was'} removed from your cart (outdated). Please re-add from the shop.`);
-      }
+      const hasId = (item) => !!(item._id || item.id);
+      const valid = stored.filter((item) => item && hasId(item));
       setCartItems(valid.map((item) => ({
         ...item,
         unitPrice: resolveUnitPrice(item),
@@ -247,16 +242,15 @@ export default function Cart() {
   };
 
   return (
-    <section className="mx-auto max-w-6xl px-4 pb-20 pt-6 md:px-8">
-      <div className="mb-6 flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
-        <div>
-          <p className="text-xs font-bold uppercase tracking-widest text-brand-gold">Your cart</p>
-          <h1 className="mt-1 text-2xl font-bold text-slate-900">Review &amp; Checkout</h1>
-        </div>
+    <section className="mx-auto max-w-6xl px-4 pb-32 pt-4 md:px-8 xl:pb-20">
+      <div className="mb-4">
+        <p className="text-xs font-bold uppercase tracking-widest text-brand-gold">Your cart</p>
+        <h1 className="mt-1 text-xl font-bold text-slate-900 sm:text-2xl">Review &amp; Checkout</h1>
       </div>
 
       <div className="grid gap-6 xl:grid-cols-[1.8fr_0.9fr]">
-        <div className="space-y-3">
+        {/* Cart items */}
+        <div className="space-y-2">
           {cartItems.length === 0 ? (
             <div className="rounded-xl border border-slate-200 bg-white p-8 text-center text-slate-600">
               Your cart is empty. <Link to="/shop" className="text-brand-dark underline">Browse products</Link>.
@@ -269,44 +263,40 @@ export default function Cart() {
               const toWholesale = hasWholesale && !isWholesale ? item.wholesaleMinQty - item.quantity : 0;
 
               return (
-                <div key={itemId} className="flex flex-col gap-3 rounded-xl border border-slate-200 bg-white p-4 sm:flex-row sm:items-center">
-                  <img src={item.image} alt={item.name} className="h-24 w-24 rounded-lg object-cover" onError={(e) => { e.target.src = 'https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?auto=format&fit=crop&w=800&q=80'; }} />
-                  <div className="flex-1">
-                    <h2 className="text-xl font-semibold text-slate-900">{item.name}</h2>
-                    <p className="mt-1 text-sm text-slate-500">{typeof item.category === 'string' ? item.category : item.category?.name || 'Product'}</p>
-
-                    <div className="mt-2 flex items-center gap-2">
-                      <p className={`text-lg font-semibold ${isWholesale ? 'text-emerald-600' : 'text-brand-dark'}`}>
-                        ₵{(item.unitPrice || 0).toFixed(2)}/unit
-                      </p>
-                      {isWholesale && (
-                        <span className="rounded-full bg-emerald-100 px-2.5 py-0.5 text-xs font-bold text-emerald-700">
-                          Wholesale Price
-                        </span>
-                      )}
+                <div key={itemId} className="flex gap-3 rounded-xl border border-slate-200 bg-white p-3">
+                  <img
+                    src={item.image}
+                    alt={item.name}
+                    className="h-16 w-16 shrink-0 rounded-lg object-cover sm:h-20 sm:w-20"
+                    onError={(e) => { e.target.src = 'https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?auto=format&fit=crop&w=800&q=80'; }}
+                  />
+                  <div className="flex flex-1 flex-col min-w-0">
+                    <div className="flex items-start justify-between gap-2">
+                      <h2 className="text-sm font-semibold text-slate-900 line-clamp-2 sm:text-base">{item.name}</h2>
+                      <button onClick={() => removeItem(itemId)} className="shrink-0 rounded-full p-1 text-slate-400 hover:bg-rose-50 hover:text-rose-500">✕</button>
                     </div>
-
+                    <p className="text-xs text-slate-500">{typeof item.category === 'string' ? item.category : item.category?.name || 'Product'}</p>
+                    {isWholesale && (
+                      <span className="mt-0.5 w-fit rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-bold text-emerald-700">Wholesale</span>
+                    )}
+                    <div className="mt-auto flex items-center justify-between pt-2">
+                      <div>
+                        <p className={`text-sm font-bold ${isWholesale ? 'text-emerald-600' : 'text-slate-900'}`}>
+                          ₵{((item.unitPrice || 0) * item.quantity).toFixed(2)}
+                        </p>
+                        <p className="text-[10px] text-slate-400">₵{(item.unitPrice || 0).toFixed(2)}/unit</p>
+                      </div>
+                      <div className="flex items-center gap-1 rounded-full border border-slate-200 bg-slate-50 px-2 py-1">
+                        <button onClick={() => updateQuantity(itemId, 'subtract')} className="rounded px-1.5 text-sm font-bold text-slate-700 hover:bg-slate-200">−</button>
+                        <span className="min-w-[1.5rem] text-center text-xs font-semibold text-slate-900">{item.quantity}</span>
+                        <button onClick={() => updateQuantity(itemId, 'add')} className="rounded px-1.5 text-sm font-bold text-slate-700 hover:bg-slate-200">+</button>
+                      </div>
+                    </div>
                     {toWholesale > 0 && (
-                      <button
-                        onClick={() => updateQuantity(itemId, 'add')}
-                        className="mt-1 text-xs text-[#007185] hover:underline"
-                      >
-                        Add {toWholesale} more to unlock wholesale (₵{item.wholesalePrice}/unit)
+                      <button onClick={() => updateQuantity(itemId, 'add')} className="mt-1 text-left text-[10px] text-[#007185] hover:underline">
+                        Add {toWholesale} more for wholesale price (₵{item.wholesalePrice}/unit)
                       </button>
                     )}
-
-                    <p className="mt-1 text-sm font-semibold text-slate-700">
-                      Total: ₵{((item.unitPrice || 0) * item.quantity).toFixed(2)}
-                    </p>
-                  </div>
-
-                  <div className="flex flex-col gap-3">
-                    <div className="flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50 p-2">
-                      <button onClick={() => updateQuantity(itemId, 'subtract')} className="rounded-full bg-white px-3 py-1 text-slate-700 hover:bg-slate-100">−</button>
-                      <span className="min-w-[2rem] text-center text-sm font-semibold text-slate-900">{item.quantity}</span>
-                      <button onClick={() => updateQuantity(itemId, 'add')} className="rounded-full bg-white px-3 py-1 text-slate-700 hover:bg-slate-100">+</button>
-                    </div>
-                    <button onClick={() => removeItem(itemId)} className="text-sm text-rose-600 transition hover:text-rose-800">Remove</button>
                   </div>
                 </div>
               );
@@ -314,9 +304,10 @@ export default function Cart() {
           )}
         </div>
 
-        <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+        {/* Order summary */}
+        <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
           <h2 className="text-base font-bold text-slate-900">Order Summary</h2>
-          <div className="mt-4 space-y-3">
+          <div className="mt-3 space-y-2">
             <div className="flex items-center justify-between text-sm text-slate-600">
               <span>Subtotal</span>
               <span>₵{total.toFixed(2)}</span>
@@ -331,62 +322,63 @@ export default function Cart() {
               <span>Delivery</span>
               <span>Free over ₵5,000</span>
             </div>
-            <div className="border-t border-slate-200 pt-4 text-lg font-semibold text-slate-900">
+            <div className="border-t border-slate-200 pt-3 text-base font-bold text-slate-900 sm:text-lg">
               <span>Total</span>
               <span className="float-right">₵{finalTotal.toFixed(2)}</span>
             </div>
           </div>
 
-          <div className="mt-6 space-y-4">
+          <div className="mt-5 space-y-3">
             {!isAuthenticated() && (
-              <div className="rounded-xl border border-amber-200 bg-amber-50 p-4">
-                <p className="mb-3 text-sm font-semibold text-amber-800">Checking out as guest</p>
+              <div className="rounded-xl border border-amber-200 bg-amber-50 p-3">
+                <p className="mb-2 text-sm font-semibold text-amber-800">Checking out as guest</p>
                 <input
                   value={guestName}
                   onChange={(e) => setGuestName(e.target.value)}
                   placeholder="Your full name"
-                  className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none focus:border-brand-gold"
+                  className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm outline-none focus:border-brand-gold"
                 />
                 <input
                   type="email"
                   value={guestEmail}
                   onChange={(e) => setGuestEmail(e.target.value)}
                   placeholder="Email (for order confirmation)"
-                  className="mt-3 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none focus:border-brand-gold"
+                  className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm outline-none focus:border-brand-gold"
                 />
                 <p className="mt-2 text-xs text-amber-700">
                   Have an account? <Link to="/login?redirect=/cart" className="font-semibold underline">Sign in</Link> to track orders and use MoMo.
                 </p>
               </div>
             )}
-            <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+
+            <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
               <label className="block text-sm font-medium text-slate-700">Shipping address</label>
               <input
                 value={shipping.address}
                 onChange={(e) => setShipping({ ...shipping, address: e.target.value })}
                 placeholder="Street address"
-                className="mt-3 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 outline-none focus:border-brand-gold"
+                className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm outline-none focus:border-brand-gold"
               />
               <input
                 value={shipping.city}
                 onChange={(e) => setShipping({ ...shipping, city: e.target.value })}
                 placeholder="City"
-                className="mt-3 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 outline-none focus:border-brand-gold"
+                className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm outline-none focus:border-brand-gold"
               />
               <input
                 value={shipping.phone}
                 onChange={(e) => setShipping({ ...shipping, phone: e.target.value })}
                 placeholder="Phone number"
-                className="mt-3 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 outline-none focus:border-brand-gold"
+                className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm outline-none focus:border-brand-gold"
               />
             </div>
 
-            <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+            <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
               <label className="block text-sm font-medium text-slate-700">Payment method</label>
               <select
                 value={paymentMethod}
                 onChange={(e) => { setPaymentMethod(e.target.value); setMomoStatus(''); setCheckoutMessage(''); }}
-                className="mt-3 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 outline-none focus:border-brand-gold"
+                className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm outline-none focus:border-brand-gold"
               >
                 <option value="paystack">💳 Pay Online (Card / MoMo) — Paystack</option>
                 {isAuthenticated() && <option value="momo">📱 MTN MoMo (Direct)</option>}
@@ -395,15 +387,15 @@ export default function Cart() {
               </select>
 
               {paymentMethod === 'momo' && (
-                <div className="mt-3 space-y-2">
+                <div className="mt-2 space-y-2">
                   <input
                     value={momoPhone}
                     onChange={(e) => setMomoPhone(e.target.value)}
                     placeholder="MoMo number e.g. 0241234567"
-                    className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 outline-none focus:border-brand-gold"
+                    className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm outline-none focus:border-brand-gold"
                   />
                   {momoStatus === 'pending' && (
-                    <div className="flex items-center gap-3 rounded-2xl bg-yellow-50 px-4 py-3 text-sm text-yellow-800">
+                    <div className="flex items-center gap-3 rounded-2xl bg-yellow-50 px-3 py-2.5 text-sm text-yellow-800">
                       <svg className="h-5 w-5 animate-spin text-yellow-600" fill="none" viewBox="0 0 24 24">
                         <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
                         <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/>
@@ -412,12 +404,12 @@ export default function Cart() {
                     </div>
                   )}
                   {momoStatus === 'success' && (
-                    <div className="rounded-2xl bg-green-50 px-4 py-3 text-sm font-semibold text-green-700">
+                    <div className="rounded-2xl bg-green-50 px-3 py-2.5 text-sm font-semibold text-green-700">
                       ✓ Payment confirmed! Creating your order...
                     </div>
                   )}
                   {momoStatus === 'failed' && (
-                    <div className="rounded-2xl bg-red-50 px-4 py-3 text-sm text-red-700">
+                    <div className="rounded-2xl bg-red-50 px-3 py-2.5 text-sm text-red-700">
                       Payment failed or was declined.
                     </div>
                   )}
@@ -425,46 +417,72 @@ export default function Cart() {
               )}
             </div>
 
-            <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+            <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
               <label className="block text-sm font-medium text-slate-700">Promo code</label>
-              <div className="mt-3 flex gap-2">
+              <div className="mt-2 flex gap-2">
                 <input
                   value={promoCode}
                   onChange={(e) => setPromoCode(e.target.value)}
                   placeholder="Enter code"
-                  className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 outline-none focus:border-brand-gold"
+                  className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm outline-none focus:border-brand-gold"
                 />
-                <button onClick={applyPromo} disabled={applying} className="rounded-full bg-brand-dark px-5 py-3 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:opacity-60">
+                <button onClick={applyPromo} disabled={applying} className="rounded-full bg-brand-dark px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:opacity-60">
                   Apply
                 </button>
               </div>
               {promoMessage.text && (
-                <p className={`mt-3 text-sm font-medium ${promoMessage.success ? 'text-emerald-600' : 'text-red-600'}`}>
+                <p className={`mt-2 text-xs font-medium ${promoMessage.success ? 'text-emerald-600' : 'text-red-600'}`}>
                   {promoMessage.text}
                 </p>
               )}
             </div>
 
-            <button onClick={handleCheckout} disabled={placingOrder || momoStatus === 'pending'} className={`w-full rounded-full px-6 py-4 text-sm font-semibold transition disabled:opacity-60 ${paymentMethod === 'paystack' ? 'bg-[#0BA4DB] text-white hover:bg-[#0993c5]' : 'bg-brand-dark text-white hover:bg-slate-800'}`}>
+            <button onClick={handleCheckout} disabled={placingOrder || momoStatus === 'pending'} className={`w-full rounded-full px-6 py-3 text-sm font-semibold transition disabled:opacity-60 ${paymentMethod === 'paystack' ? 'bg-[#0BA4DB] text-white hover:bg-[#0993c5]' : 'bg-brand-dark text-white hover:bg-slate-800'}`}>
               {momoStatus === 'pending' ? 'Awaiting MoMo approval...' : placingOrder ? (paymentMethod === 'paystack' ? 'Redirecting to Paystack...' : 'Placing order...') : paymentMethod === 'paystack' ? '💳 Pay securely with Paystack' : paymentMethod === 'momo' ? '📱 Pay with MoMo' : 'Proceed to checkout'}
             </button>
             <button
               onClick={whatsappOrder}
               disabled={cartItems.length === 0}
-              className="flex w-full items-center justify-center gap-2 rounded-full bg-green-600 px-6 py-4 text-sm font-semibold text-white transition hover:bg-green-700 disabled:opacity-50"
+              className="flex w-full items-center justify-center gap-2 rounded-full bg-green-600 px-6 py-3 text-sm font-semibold text-white transition hover:bg-green-700 disabled:opacity-50"
             >
               <svg viewBox="0 0 24 24" className="h-4 w-4 fill-current"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
               Order via WhatsApp
             </button>
             {checkoutMessage && (
-              <div className="rounded-2xl bg-red-50 px-4 py-3 text-sm font-medium text-red-700">
+              <div className="rounded-2xl bg-red-50 px-3 py-2.5 text-sm font-medium text-red-700">
                 {checkoutMessage}
               </div>
             )}
           </div>
-          <p className="mt-4 text-sm text-slate-500">Secure support available through our live chat while you check out.</p>
+          <p className="mt-4 text-xs text-slate-500">Secure support available through our live chat while you check out.</p>
         </div>
       </div>
+
+      {/* Sticky checkout bar — mobile only */}
+      {cartItems.length > 0 && (
+        <div className="fixed bottom-0 left-0 right-0 z-40 border-t border-slate-200 bg-white px-4 py-3 shadow-xl xl:hidden">
+          <div className="mx-auto flex max-w-lg items-center gap-3">
+            <div className="min-w-0 flex-1">
+              <p className="text-xs text-slate-500">{cartItems.length} item{cartItems.length !== 1 ? 's' : ''}</p>
+              <p className="text-base font-bold text-slate-900">₵{finalTotal.toFixed(2)}</p>
+            </div>
+            <button
+              onClick={whatsappOrder}
+              className="flex shrink-0 items-center gap-1.5 rounded-full bg-green-600 px-3 py-2.5 text-xs font-semibold text-white hover:bg-green-700"
+            >
+              <svg viewBox="0 0 24 24" className="h-3.5 w-3.5 fill-current"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+              WhatsApp
+            </button>
+            <button
+              onClick={handleCheckout}
+              disabled={placingOrder || momoStatus === 'pending'}
+              className={`shrink-0 rounded-full px-4 py-2.5 text-sm font-semibold text-white transition disabled:opacity-60 ${paymentMethod === 'paystack' ? 'bg-[#0BA4DB] hover:bg-[#0993c5]' : 'bg-brand-dark hover:bg-slate-800'}`}
+            >
+              {placingOrder || momoStatus === 'pending' ? 'Processing...' : paymentMethod === 'paystack' ? '💳 Pay' : 'Checkout'}
+            </button>
+          </div>
+        </div>
+      )}
     </section>
   );
 }

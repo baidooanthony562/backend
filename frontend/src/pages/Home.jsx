@@ -128,7 +128,7 @@ export default function Home() {
               </div>
               <Link to="/shop?sort=popular" className="text-sm font-semibold text-brand-gold hover:underline">See all →</Link>
             </div>
-            <div className="grid gap-3 p-4 sm:grid-cols-2 md:grid-cols-4">
+            <div className="grid grid-cols-2 gap-3 p-4 md:grid-cols-4">
               {deals.map((p) => <ProductCard key={p.id || p._id} product={p} />)}
             </div>
           </div>
@@ -141,7 +141,7 @@ export default function Home() {
               <h2 className="flex items-center gap-2 text-base font-extrabold text-slate-900">🏆 Best Sellers</h2>
               <Link to="/shop" className="text-sm font-semibold text-[#C7511F] hover:underline">See all →</Link>
             </div>
-            <div className="grid gap-3 p-4 sm:grid-cols-2 md:grid-cols-4">
+            <div className="grid grid-cols-2 gap-3 p-4 md:grid-cols-4">
               {bestSellers.map((p) => <ProductCard key={p.id || p._id} product={p} />)}
             </div>
           </div>
@@ -154,7 +154,7 @@ export default function Home() {
               <h2 className="text-base font-extrabold text-slate-900">New Arrivals</h2>
               <Link to="/shop?sort=newest" className="text-sm font-semibold text-[#C7511F] hover:underline">See all →</Link>
             </div>
-            <div className="grid gap-3 p-4 sm:grid-cols-2 md:grid-cols-4">
+            <div className="grid grid-cols-2 gap-3 p-4 md:grid-cols-4">
               {rest.map((p) => <ProductCard key={p.id || p._id} product={p} />)}
             </div>
           </div>

@@ -212,8 +212,8 @@ export default function ProductDetail() {
           </div>
         </div>
 
-        {/* Right — Pricing & Purchase */}
-        <div className="space-y-4 lg:sticky lg:top-32 lg:self-start">
+        {/* Right — Pricing & Purchase (shown first on mobile) */}
+        <div className="order-first space-y-4 lg:order-none lg:sticky lg:top-32 lg:self-start">
 
           {/* Product name + price */}
           <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
