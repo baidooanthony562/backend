@@ -32,12 +32,12 @@ export default function Shop() {
   const [currentPage, setCurrentPage] = useState(1);
   const PAGE_SIZE = 12;
 
+  // Keep filters in sync with the URL — clear search/category when their
+  // params are absent so a stale filter never lingers after navigation.
   useEffect(() => {
-    const cat = searchParams.get('category');
-    const q = searchParams.get('search');
+    setSelectedCategory(searchParams.get('category') || 'All');
+    setSearch(searchParams.get('search') || '');
     const s = searchParams.get('sort');
-    if (cat) setSelectedCategory(cat);
-    if (q) setSearch(q);
     if (s) setSort(s);
   }, [searchParams]);
 
@@ -111,6 +111,27 @@ export default function Shop() {
 
       {/* ── MOBILE FILTERS (hidden on lg+) ── */}
       <div className="lg:hidden">
+        {/* Search */}
+        <div className="relative mb-3">
+          <i className="fas fa-search pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-sm text-slate-400"></i>
+          <input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search products..."
+            className="w-full rounded-full border border-slate-200 bg-white py-2.5 pl-10 pr-10 text-sm outline-none focus:border-brand-gold"
+          />
+          {search && (
+            <button
+              type="button"
+              onClick={() => setSearch('')}
+              aria-label="Clear search"
+              className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-slate-400 hover:text-slate-700"
+            >
+              <i className="fas fa-times"></i>
+            </button>
+          )}
+        </div>
+
         {/* Horizontal category pills */}
         <div className="mb-3 -mx-4 px-4 overflow-x-auto">
           <div className="flex gap-2 pb-2" style={{ width: 'max-content' }}>
@@ -194,12 +215,25 @@ export default function Shop() {
           {/* Search */}
           <div>
             <h3 className="mb-3 font-bold text-slate-900">Search</h3>
-            <input
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Product name..."
-              className="w-full rounded-full border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm outline-none focus:border-brand-gold"
-            />
+            <div className="relative">
+              <i className="fas fa-search pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-sm text-slate-400"></i>
+              <input
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Product name..."
+                className="w-full rounded-full border border-slate-200 bg-slate-50 py-2.5 pl-10 pr-10 text-sm outline-none focus:border-brand-gold"
+              />
+              {search && (
+                <button
+                  type="button"
+                  onClick={() => setSearch('')}
+                  aria-label="Clear search"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-slate-400 hover:text-slate-700"
+                >
+                  <i className="fas fa-times"></i>
+                </button>
+              )}
+            </div>
           </div>
 
           {/* Categories */}
