@@ -67,25 +67,25 @@ export default function Home() {
       {/* ── HERO ── */}
       <div className="relative overflow-hidden text-white transition-all duration-700" style={{ background: slide.bg }}>
         <div className="absolute inset-0 opacity-5" style={{ backgroundImage: 'radial-gradient(circle, #fff 1px, transparent 1px)', backgroundSize: '28px 28px' }} />
-        <div className="relative mx-auto max-w-7xl px-6 py-14 md:py-20">
+        <div className="relative mx-auto max-w-7xl px-5 py-10 md:px-6 md:py-20">
           <div className="max-w-2xl">
             <span className="inline-block rounded-full px-4 py-1.5 text-xs font-bold uppercase tracking-widest"
               style={{ backgroundColor: `${slide.accent}22`, color: slide.accent, border: `1px solid ${slide.accent}44` }}>
               {slide.badge}
             </span>
-            <h1 className="mt-4 text-4xl font-extrabold leading-tight md:text-6xl">
+            <h1 className="mt-4 text-3xl font-extrabold leading-tight sm:text-4xl md:text-6xl">
               {slide.headline[0]}<br />
               <span style={{ color: slide.accent }}>{slide.headline[1]}</span>
             </h1>
             <p className="mt-4 max-w-lg text-base text-slate-300 md:text-lg">{slide.sub}</p>
             <div className="mt-8 flex flex-wrap gap-3">
               <Link to={slide.cta1.to}
-                className="rounded-full px-8 py-3.5 text-sm font-extrabold text-black transition hover:opacity-90"
+                className="rounded-full px-6 py-3 sm:px-8 sm:py-3.5 text-sm font-extrabold text-black transition hover:opacity-90"
                 style={{ backgroundColor: slide.accent }}>
                 {slide.cta1.label}
               </Link>
               <Link to={slide.cta2.to}
-                className="rounded-full border border-white/30 px-8 py-3.5 text-sm font-semibold text-white transition hover:bg-white/10">
+                className="rounded-full border border-white/30 px-6 py-3 sm:px-8 sm:py-3.5 text-sm font-semibold text-white transition hover:bg-white/10">
                 {slide.cta2.label}
               </Link>
             </div>

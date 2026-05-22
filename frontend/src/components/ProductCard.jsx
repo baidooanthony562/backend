@@ -137,10 +137,10 @@ export default function ProductCard({ product }) {
         <div className="flex items-center gap-1.5">
           <div className="flex items-center rounded border border-slate-200 overflow-hidden">
             <button onClick={(e) => { e.preventDefault(); changeQty(-1); }} disabled={qty <= 1}
-              className="px-2 py-0.5 text-slate-600 hover:bg-slate-100 disabled:opacity-30 disabled:cursor-not-allowed text-sm font-bold">−</button>
-            <span className="px-2 py-0.5 text-xs font-bold text-slate-900 min-w-[1.5rem] text-center border-x border-slate-200">{qty}</span>
+              className="px-3 py-1.5 text-slate-600 hover:bg-slate-100 disabled:opacity-30 disabled:cursor-not-allowed text-base font-bold">−</button>
+            <span className="px-2.5 py-1.5 text-sm font-bold text-slate-900 min-w-[2rem] text-center border-x border-slate-200">{qty}</span>
             <button onClick={(e) => { e.preventDefault(); changeQty(1); }} disabled={qty >= maxStock}
-              className="px-2 py-0.5 text-slate-600 hover:bg-slate-100 disabled:opacity-30 disabled:cursor-not-allowed text-sm font-bold">+</button>
+              className="px-3 py-1.5 text-slate-600 hover:bg-slate-100 disabled:opacity-30 disabled:cursor-not-allowed text-base font-bold">+</button>
           </div>
           {qty > 1 && <span className="text-[10px] font-semibold text-slate-500">₵{(unitPrice * qty).toFixed(2)}</span>}
         </div>
@@ -148,7 +148,7 @@ export default function ProductCard({ product }) {
         <button
           onClick={addToCart}
           disabled={!inStock}
-          className={`mt-1 w-full rounded-full py-1.5 text-xs font-semibold transition active:scale-95 disabled:cursor-not-allowed disabled:opacity-50 sm:text-sm sm:py-2 ${
+          className={`mt-1 w-full rounded-full py-2.5 text-xs font-semibold transition active:scale-95 disabled:cursor-not-allowed disabled:opacity-50 sm:text-sm ${
             isWholesaleQty ? 'bg-emerald-600 text-white hover:bg-emerald-700' : 'bg-brand-gold text-slate-900 hover:bg-yellow-400'
           }`}
         >

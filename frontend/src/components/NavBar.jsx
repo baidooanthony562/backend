@@ -57,7 +57,7 @@ export default function NavBar() {
     <header className="fixed inset-x-0 top-0 z-40">
       {/* Main bar */}
       <div className="bg-[#131921] px-4 py-2 md:px-6">
-        <div className="mx-auto flex max-w-7xl items-center gap-3">
+        <div className="mx-auto flex max-w-7xl items-center gap-2 sm:gap-3">
 
           {/* Logo */}
           <Link to="/" className="flex shrink-0 items-center gap-1.5 rounded border-2 border-transparent px-1 py-1 hover:border-white">
@@ -190,12 +190,8 @@ export default function NavBar() {
 
       {/* Mobile menu */}
       {open && (
-        <div className="border-t border-slate-700 bg-[#131921] px-4 py-4 md:hidden">
-          <form onSubmit={handleSearch} className="mb-4 flex overflow-hidden rounded-lg">
-            <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search..." className="flex-1 px-4 py-2 text-sm outline-none" />
-            <button type="submit" className="bg-brand-gold px-4 text-sm font-bold">Go</button>
-          </form>
-          <div className="space-y-1">
+        <div className="max-h-[calc(100vh-4rem)] overflow-y-auto border-t border-slate-700 bg-[#131921] px-4 py-3 md:hidden">
+          <div className="space-y-0.5">
             {[
               ['Home', '/'],
               ['Shop All', '/shop'],

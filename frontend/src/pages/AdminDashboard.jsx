@@ -163,9 +163,9 @@ export default function AdminDashboard() {
       discount: p.discount || 0,
       wholesalePrice: p.wholesalePrice || '',
       wholesaleMinQty: p.wholesaleMinQty || '',
-      category: p.category?.name || p.category || '',
       image: p.images?.[0] || p.image || '',
       bestseller: p.bestseller || false,
+      restock: '',
     });
     setFormError('');
     setShowForm(true);
