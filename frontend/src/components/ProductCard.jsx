@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { showToast } from './Toast';
+import { readCart, writeCart } from '../utils/cart';
 
 const PLACEHOLDER = 'https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?auto=format&fit=crop&w=800&q=80';
 
@@ -48,7 +49,7 @@ export default function ProductCard({ product }) {
   const addToCart = (e) => {
     e.preventDefault();
     if (!inStock) return;
-    const cart = JSON.parse(localStorage.getItem('cart') || '[]');
+    const cart = readCart();
     const existing = cart.find((item) => (item.id || item._id) === productId);
     if (existing) {
       existing.quantity += qty;
@@ -68,8 +69,7 @@ export default function ProductCard({ product }) {
         category: typeof product.category === 'string' ? product.category : product.category?.name || '',
       });
     }
-    localStorage.setItem('cart', JSON.stringify(cart));
-    window.dispatchEvent(new Event('storage'));
+    writeCart(cart);
     const label = qty > 1 ? `${qty}x ${product.name}` : product.name;
     showToast(`${label} added to cart${isWholesaleQty ? ' at wholesale price' : ''}`);
   };

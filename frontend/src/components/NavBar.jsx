@@ -1,6 +1,7 @@
 import { Link, useNavigate } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import { getAuthUser, isAuthenticated, isAdmin, logout } from '../utils/auth';
+import { getCartCount } from '../utils/cart';
 
 export default function NavBar() {
   const [open, setOpen] = useState(false);
@@ -19,8 +20,7 @@ export default function NavBar() {
   };
 
   const updateCart = () => {
-    const cart = JSON.parse(localStorage.getItem('cart') || '[]');
-    setCartCount(cart.reduce((sum, i) => sum + i.quantity, 0));
+    setCartCount(getCartCount());
   };
 
   useEffect(() => {

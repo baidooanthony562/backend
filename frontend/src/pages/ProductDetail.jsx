@@ -5,6 +5,7 @@ import { getToken, isAuthenticated } from '../utils/auth';
 import { getProducts } from '../utils/productStore';
 import { showToast } from '../components/Toast';
 import { isInWishlist, addToWishlist, removeFromWishlist } from '../utils/wishlist';
+import { readCart, writeCart } from '../utils/cart';
 
 const PLACEHOLDER = 'https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?auto=format&fit=crop&w=800&q=80';
 
@@ -104,7 +105,7 @@ export default function ProductDetail() {
   const changeQty = (delta) => setQuantity((q) => Math.min(maxStock, Math.max(1, q + delta)));
 
   const addToCart = () => {
-    const cart = JSON.parse(localStorage.getItem('cart') || '[]');
+    const cart = readCart();
     const existing = cart.find((item) => (item.id || item._id) === productId);
     if (existing) {
       existing.quantity += quantity;
@@ -123,8 +124,7 @@ export default function ProductDetail() {
         isWholesale: isWholesaleQty,
       });
     }
-    localStorage.setItem('cart', JSON.stringify(cart));
-    window.dispatchEvent(new Event('storage'));
+    writeCart(cart);
     showToast(`${quantity}x ${product.name} added to cart${isWholesaleQty ? ' at wholesale price' : ''}`);
   };
 
