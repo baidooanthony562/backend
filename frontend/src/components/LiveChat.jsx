@@ -39,11 +39,12 @@ export default function LiveChat() {
     <div className="fixed bottom-20 right-4 z-50 sm:bottom-6 sm:right-6">
       <div className="flex justify-end">
         <button
-          className="inline-flex items-center gap-1.5 rounded-full bg-brand-dark px-3 py-2 text-xs font-semibold text-white shadow-lg transition hover:bg-slate-800 sm:gap-2 sm:px-4 sm:py-3 sm:text-sm"
+          className="inline-flex h-12 w-12 items-center justify-center rounded-full bg-brand-dark text-base font-semibold text-white shadow-lg transition hover:bg-slate-800 sm:h-auto sm:w-auto sm:gap-2 sm:px-4 sm:py-3 sm:text-sm"
           onClick={() => setOpen((prev) => !prev)}
+          aria-label={open ? 'Close live chat' : 'Open live support chat'}
         >
           <i className={open ? 'fas fa-times' : 'fas fa-comment-alt'}></i>
-          <span>{open ? 'Close' : 'Live support'}</span>
+          <span className="hidden sm:inline">{open ? 'Close' : 'Live support'}</span>
         </button>
       </div>
       {open && (
