@@ -4,6 +4,7 @@ const Product = require('../models/Product');
 const PromoCode = require('../models/PromoCode');
 const User = require('../models/User');
 const { sendResendEmail } = require('../utils/email');
+const { getMoMoTransaction } = require('./paymentController');
 
 const VALID_STATUSES = ['Pending', 'Processing', 'Shipped', 'Delivered', 'Cancelled'];
 const VALID_PAYMENT_METHODS = ['cash-on-delivery', 'bank-transfer', 'momo', 'Paystack'];
@@ -32,14 +33,38 @@ async function verifyPaystackRef(reference, expectedTotal) {
   const paidPesewas = Number(data.data.amount);
   const expectedPesewas = Math.round(expectedTotal * 100);
   if (Math.abs(paidPesewas - expectedPesewas) > 1) {
-    const err = new Error('Payment amount does not match order total. Contact support.');
-    err.statusCode = 400;
-    throw err;
+    throw new Error('Payment amount does not match order total. Contact support.');
+  }
+}
+
+// Verify a MoMo payment server-side before trusting a 'momo' order.
+async function verifyMoMoRef(reference, expectedTotal) {
+  let data;
+  try {
+    data = await getMoMoTransaction(reference);
+  } catch {
+    throw new Error('MoMo payment could not be verified. Contact support if money was deducted.');
+  }
+  if (data.status !== 'SUCCESSFUL') {
+    throw new Error('MoMo payment was not completed. Contact support if money was deducted.');
+  }
+  // MoMo collects whole currency units; the order total may carry pesewas.
+  if (Math.abs(Number(data.amount) - Math.round(expectedTotal)) > 1) {
+    throw new Error('Payment amount does not match order total. Contact support.');
+  }
+}
+
+// A successful payment reference may back exactly one order. Reject any
+// reference already attached to an existing order (payment replay).
+async function assertReferenceUnused(field, reference) {
+  const existing = await Order.findOne({ [field]: reference }).select('_id');
+  if (existing) {
+    throw new Error('This payment has already been used for an order.');
   }
 }
 
 const createOrder = asyncHandler(async (req, res) => {
-  const { orderItems, shippingAddress, paymentMethod, promoCode, paystackReference } = req.body;
+  const { orderItems, shippingAddress, paymentMethod, promoCode, paystackReference, momoReference } = req.body;
 
   if (!orderItems || orderItems.length === 0) {
     res.status(400);
@@ -56,6 +81,20 @@ const createOrder = asyncHandler(async (req, res) => {
   if (paymentMethod === 'Paystack' && !paystackReference) {
     res.status(400);
     throw new Error('Paystack reference is required for online payments');
+  }
+  if (paymentMethod === 'momo' && !momoReference) {
+    res.status(400);
+    throw new Error('MoMo payment reference is required');
+  }
+
+  // Reject replayed payment references before touching stock or payment APIs.
+  if (paymentMethod === 'Paystack') {
+    res.status(400);
+    await assertReferenceUnused('paystackReference', String(paystackReference));
+  }
+  if (paymentMethod === 'momo') {
+    res.status(400);
+    await assertReferenceUnused('momoReference', String(momoReference));
   }
 
   const validatedItems = [];
@@ -145,10 +184,13 @@ const createOrder = asyncHandler(async (req, res) => {
 
     const serverTotal = Math.max(0, Math.round((serverSubtotal - serverDiscount) * 100) / 100);
 
-    // Verify Paystack payment server-side — prevents order creation without actual payment
+    // Verify payment server-side — prevents order creation without actual payment
     if (paymentMethod === 'Paystack') {
       res.status(400); // pre-set so errorHandler returns 400 if verification throws
       await verifyPaystackRef(paystackReference, serverTotal);
+    } else if (paymentMethod === 'momo') {
+      res.status(400);
+      await verifyMoMoRef(momoReference, serverTotal);
     }
 
     const order = new Order({
@@ -160,6 +202,8 @@ const createOrder = asyncHandler(async (req, res) => {
       discountPrice: serverDiscount,
       promoCode: validPromoCode,
       totalPrice: serverTotal,
+      ...(paymentMethod === 'Paystack' && { paystackReference: String(paystackReference), isPaid: true, paidAt: new Date() }),
+      ...(paymentMethod === 'momo' && { momoReference: String(momoReference), isPaid: true, paidAt: new Date() }),
     });
 
     const created = await order.save();
@@ -218,6 +262,11 @@ const createOrder = asyncHandler(async (req, res) => {
   } catch (err) {
     // If an error occurred after some stock was decremented, restore it
     await rollback();
+    // Duplicate-key = the unique reference index caught a payment replay race
+    if (err.code === 11000) {
+      res.status(400);
+      throw new Error('This payment has already been used for an order.');
+    }
     throw err;
   }
 });
@@ -236,7 +285,8 @@ const getOrderById = asyncHandler(async (req, res) => {
   if (req.user.isAdmin) {
     return res.json(order);
   }
-  if (!req.user._id || order.user._id.toString() !== req.user._id.toString()) {
+  // Guest orders have no `user` — they are retrieved via the guest endpoint only
+  if (!order.user || !req.user._id || order.user._id.toString() !== req.user._id.toString()) {
     res.status(403);
     throw new Error('Access denied');
   }
@@ -361,7 +411,7 @@ const updateOrderStatus = asyncHandler(async (req, res) => {
 });
 
 const createGuestOrder = asyncHandler(async (req, res) => {
-  const { guestName, guestEmail, orderItems, shippingAddress, paymentMethod, promoCode, paystackReference } = req.body;
+  const { guestName, guestEmail, orderItems, shippingAddress, paymentMethod, promoCode, paystackReference, momoReference } = req.body;
 
   if (!guestName || !String(guestName).trim()) { res.status(400); throw new Error('Name is required'); }
   if (String(guestName).trim().length > 100) { res.status(400); throw new Error('Name is too long'); }
@@ -370,6 +420,11 @@ const createGuestOrder = asyncHandler(async (req, res) => {
   if (orderItems.length > MAX_ORDER_ITEMS) { res.status(400); throw new Error(`Order cannot exceed ${MAX_ORDER_ITEMS} items`); }
   if (paymentMethod && !VALID_PAYMENT_METHODS.includes(paymentMethod)) { res.status(400); throw new Error('Invalid payment method'); }
   if (paymentMethod === 'Paystack' && !paystackReference) { res.status(400); throw new Error('Paystack reference is required for online payments'); }
+  if (paymentMethod === 'momo' && !momoReference) { res.status(400); throw new Error('MoMo payment reference is required'); }
+
+  // Reject replayed payment references before touching stock or payment APIs.
+  if (paymentMethod === 'Paystack') { res.status(400); await assertReferenceUnused('paystackReference', String(paystackReference)); }
+  if (paymentMethod === 'momo') { res.status(400); await assertReferenceUnused('momoReference', String(momoReference)); }
 
   const validatedItems = [];
   const decremented = [];
@@ -416,6 +471,9 @@ const createGuestOrder = asyncHandler(async (req, res) => {
     if (paymentMethod === 'Paystack') {
       res.status(400);
       await verifyPaystackRef(paystackReference, serverTotal);
+    } else if (paymentMethod === 'momo') {
+      res.status(400);
+      await verifyMoMoRef(momoReference, serverTotal);
     }
 
     const order = await new Order({
@@ -428,6 +486,8 @@ const createGuestOrder = asyncHandler(async (req, res) => {
       discountPrice: serverDiscount,
       promoCode: validPromoCode,
       totalPrice: serverTotal,
+      ...(paymentMethod === 'Paystack' && { paystackReference: String(paystackReference), isPaid: true, paidAt: new Date() }),
+      ...(paymentMethod === 'momo' && { momoReference: String(momoReference), isPaid: true, paidAt: new Date() }),
     }).save();
 
     // Confirmation email to guest
@@ -471,6 +531,10 @@ const createGuestOrder = asyncHandler(async (req, res) => {
     res.status(201).json(order);
   } catch (err) {
     await rollback();
+    if (err.code === 11000) {
+      res.status(400);
+      throw new Error('This payment has already been used for an order.');
+    }
     throw err;
   }
 });

@@ -24,6 +24,8 @@ const orderSchema = mongoose.Schema(
     },
     paymentMethod: { type: String, default: 'card' },
     paymentResult: { id: String, status: String, email_address: String },
+    paystackReference: { type: String },
+    momoReference: { type: String },
     taxPrice: { type: Number, default: 0 },
     shippingPrice: { type: Number, default: 0 },
     subtotalPrice: { type: Number, default: 0 },
@@ -38,5 +40,9 @@ const orderSchema = mongoose.Schema(
   },
   { timestamps: true }
 );
+
+// A successful payment reference may back exactly one order — blocks payment replay.
+orderSchema.index({ paystackReference: 1 }, { unique: true, sparse: true });
+orderSchema.index({ momoReference: 1 }, { unique: true, sparse: true });
 
 module.exports = mongoose.model('Order', orderSchema);

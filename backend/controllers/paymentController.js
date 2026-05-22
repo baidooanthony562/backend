@@ -74,12 +74,12 @@ const initiateMoMoPayment = asyncHandler(async (req, res) => {
   res.json({ referenceId, status: 'PENDING' });
 });
 
-const checkMoMoStatus = asyncHandler(async (req, res) => {
-  const { referenceId } = req.params;
+// Reusable MoMo transaction lookup — used by the status endpoint and by
+// orderController to verify a payment server-side before creating an order.
+async function getMoMoTransaction(referenceId) {
   const token = await getMoMoToken();
-
   const response = await fetch(
-    `${MOMO_BASE}/collection/v1_0/requesttopay/${referenceId}`,
+    `${MOMO_BASE}/collection/v1_0/requesttopay/${encodeURIComponent(String(referenceId))}`,
     {
       headers: {
         Authorization: `Bearer ${token}`,
@@ -88,13 +88,21 @@ const checkMoMoStatus = asyncHandler(async (req, res) => {
       },
     }
   );
-
   if (!response.ok) {
+    throw new Error('Failed to check payment status');
+  }
+  return response.json();
+}
+
+const checkMoMoStatus = asyncHandler(async (req, res) => {
+  const { referenceId } = req.params;
+  let data;
+  try {
+    data = await getMoMoTransaction(referenceId);
+  } catch {
     res.status(400);
     throw new Error('Failed to check payment status');
   }
-
-  const data = await response.json();
   res.json({ status: data.status, financialTransactionId: data.financialTransactionId });
 });
 
@@ -144,12 +152,9 @@ const verifyPaystackPayment = asyncHandler(async (req, res) => {
     throw new Error('Payment not successful or could not be verified');
   }
 
-  res.json({
-    success: true,
-    reference: data.data.reference,
-    amount: data.data.amount / 100,
-    email: data.data.customer?.email,
-  });
+  // Endpoint is unauthenticated (guest checkout needs it) — do not leak
+  // the payer's email or amount. Order creation re-verifies independently.
+  res.json({ success: true, reference: data.data.reference });
 });
 
-module.exports = { initiateMoMoPayment, checkMoMoStatus, initializePaystackPayment, verifyPaystackPayment };
+module.exports = { initiateMoMoPayment, checkMoMoStatus, getMoMoTransaction, initializePaystackPayment, verifyPaystackPayment };
