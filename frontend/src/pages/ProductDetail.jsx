@@ -105,27 +105,32 @@ export default function ProductDetail() {
   const changeQty = (delta) => setQuantity((q) => Math.min(maxStock, Math.max(1, q + delta)));
 
   const addToCart = () => {
-    const cart = readCart();
-    const existing = cart.find((item) => (item.id || item._id) === productId);
-    if (existing) {
-      existing.quantity += quantity;
-      existing.unitPrice = unitPrice;
-      existing.isWholesale = isWholesaleQty;
-    } else {
-      cart.push({
-        ...product,
-        id: productId,
-        image: productImage,
-        quantity,
-        unitPrice,
-        retailPrice: product.price,
-        wholesalePrice: product.wholesalePrice,
-        wholesaleMinQty: product.wholesaleMinQty,
-        isWholesale: isWholesaleQty,
-      });
+    try {
+      const cart = readCart();
+      const existing = cart.find((item) => (item.id || item._id) === productId);
+      if (existing) {
+        existing.quantity += quantity;
+        existing.unitPrice = unitPrice;
+        existing.isWholesale = isWholesaleQty;
+      } else {
+        cart.push({
+          ...product,
+          id: productId,
+          image: productImage,
+          quantity,
+          unitPrice,
+          retailPrice: product.price,
+          wholesalePrice: product.wholesalePrice,
+          wholesaleMinQty: product.wholesaleMinQty,
+          isWholesale: isWholesaleQty,
+        });
+      }
+      writeCart(cart);
+      showToast(`${quantity}x ${product.name} added to cart${isWholesaleQty ? ' at wholesale price' : ''}`);
+    } catch (err) {
+      console.error('Add to cart failed:', err);
+      showToast('Could not save your cart. Please refresh the page and try again.', 'error');
     }
-    writeCart(cart);
-    showToast(`${quantity}x ${product.name} added to cart${isWholesaleQty ? ' at wholesale price' : ''}`);
   };
 
   const buyNow = () => { addToCart(); navigate('/cart'); };

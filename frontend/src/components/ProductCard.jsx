@@ -49,29 +49,34 @@ export default function ProductCard({ product }) {
   const addToCart = (e) => {
     e.preventDefault();
     if (!inStock) return;
-    const cart = readCart();
-    const existing = cart.find((item) => (item.id || item._id) === productId);
-    if (existing) {
-      existing.quantity += qty;
-      existing.unitPrice = unitPrice;
-      existing.isWholesale = isWholesaleQty;
-    } else {
-      cart.push({
-        ...product,
-        id: productId,
-        image: productImage,
-        quantity: qty,
-        unitPrice,
-        retailPrice: product.price,
-        wholesalePrice: product.wholesalePrice,
-        wholesaleMinQty: product.wholesaleMinQty,
-        isWholesale: isWholesaleQty,
-        category: typeof product.category === 'string' ? product.category : product.category?.name || '',
-      });
+    try {
+      const cart = readCart();
+      const existing = cart.find((item) => (item.id || item._id) === productId);
+      if (existing) {
+        existing.quantity += qty;
+        existing.unitPrice = unitPrice;
+        existing.isWholesale = isWholesaleQty;
+      } else {
+        cart.push({
+          ...product,
+          id: productId,
+          image: productImage,
+          quantity: qty,
+          unitPrice,
+          retailPrice: product.price,
+          wholesalePrice: product.wholesalePrice,
+          wholesaleMinQty: product.wholesaleMinQty,
+          isWholesale: isWholesaleQty,
+          category: typeof product.category === 'string' ? product.category : product.category?.name || '',
+        });
+      }
+      writeCart(cart);
+      const label = qty > 1 ? `${qty}x ${product.name}` : product.name;
+      showToast(`${label} added to cart${isWholesaleQty ? ' at wholesale price' : ''}`);
+    } catch (err) {
+      console.error('Add to cart failed:', err);
+      showToast('Could not save your cart. Please refresh the page and try again.', 'error');
     }
-    writeCart(cart);
-    const label = qty > 1 ? `${qty}x ${product.name}` : product.name;
-    showToast(`${label} added to cart${isWholesaleQty ? ' at wholesale price' : ''}`);
   };
 
   return (
