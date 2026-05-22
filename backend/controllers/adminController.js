@@ -6,7 +6,7 @@ const Product = require('../models/Product');
 const Order = require('../models/Order');
 const AdminSession = require('../models/AdminSession');
 const generateToken = require('../utils/generateToken');
-const { sendResendEmail } = require('../utils/email');
+const { sendResendEmail, escapeHtml } = require('../utils/email');
 
 function sendLoginAlert(ip) {
   const to = process.env.ADMIN_EMAIL;
@@ -26,7 +26,7 @@ function sendLoginAlert(ip) {
           </tr>
           <tr>
             <td style="padding:10px 0;color:#888">IP address</td>
-            <td style="padding:10px 0;font-weight:600;color:#131921">${ip}</td>
+            <td style="padding:10px 0;font-weight:600;color:#131921">${escapeHtml(ip)}</td>
           </tr>
         </table>
         <p style="color:#c00;font-size:13px">If this wasn't you, change your admin password immediately.</p>

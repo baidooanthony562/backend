@@ -1,6 +1,7 @@
 const asyncHandler = require('express-async-handler');
 const Review = require('../models/Review');
 const Product = require('../models/Product');
+const Order = require('../models/Order');
 
 const OBJECT_ID_RE = /^[a-f\d]{24}$/i;
 
@@ -35,6 +36,18 @@ const createProductReview = asyncHandler(async (req, res) => {
     res.status(404);
     throw new Error('Product not found');
   }
+
+  // Verified-purchase only: the reviewer must have an order containing this
+  // product. (Cancelled orders are deleted, so any match is a real purchase.)
+  const purchased = await Order.findOne({
+    user: req.user._id,
+    'orderItems.product': product._id,
+  }).select('_id');
+  if (!purchased) {
+    res.status(403);
+    throw new Error('You can only review products you have purchased.');
+  }
+
   const existingReview = await Review.findOne({ product: product._id, user: req.user._id });
   if (existingReview) {
     res.status(400);

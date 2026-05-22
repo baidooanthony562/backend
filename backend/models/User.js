@@ -15,8 +15,10 @@ const userSchema = mongoose.Schema(
     isVerified: { type: Boolean, default: false },
     verifyToken: { type: String },
     verifyTokenExpiry: { type: Date },
+    verifyAttempts: { type: Number, default: 0 },
     resetToken: { type: String },
     resetTokenExpiry: { type: Date },
+    resetAttempts: { type: Number, default: 0 },
   },
   { timestamps: true }
 );

@@ -7,7 +7,12 @@ const MAX_IMAGES = 10;
 function sanitizeImageUrls(urls) {
   return (Array.isArray(urls) ? urls : [])
     .map((u) => String(u).trim())
-    .filter((u) => /^https?:\/\/.{4,}/i.test(u))
+    .filter((u) =>
+      // An external http(s) URL, or a base64 image uploaded from the device.
+      (/^https?:\/\/.{4,}/i.test(u) ||
+        /^data:image\/(jpeg|jpg|png|webp|gif);base64,[A-Za-z0-9+/=]{16,}$/i.test(u))
+      && u.length <= 2_000_000
+    )
     .slice(0, MAX_IMAGES);
 }
 
@@ -82,13 +87,13 @@ function validateProductFields(fields, res) {
     res.status(400);
     throw new Error('Discount must be between 0 and 100');
   }
-  if (wholesalePrice !== undefined && Number(wholesalePrice) < 0) {
+  if (wholesalePrice !== undefined && (isNaN(Number(wholesalePrice)) || Number(wholesalePrice) < 0)) {
     res.status(400);
-    throw new Error('Wholesale price cannot be negative');
+    throw new Error('Wholesale price must be a non-negative number');
   }
-  if (wholesaleMinQty !== undefined && Number(wholesaleMinQty) < 0) {
+  if (wholesaleMinQty !== undefined && (isNaN(Number(wholesaleMinQty)) || Number(wholesaleMinQty) < 0)) {
     res.status(400);
-    throw new Error('Wholesale minimum quantity cannot be negative');
+    throw new Error('Wholesale minimum quantity must be a non-negative number');
   }
   return { priceNum, stockNum, discountNum };
 }
@@ -139,7 +144,9 @@ const updateProduct = asyncHandler(async (req, res) => {
   // Validate numeric fields whenever any of them is provided
   const hasNumericUpdate =
     req.body.price !== undefined ||
-    req.body.discount !== undefined;
+    req.body.discount !== undefined ||
+    req.body.wholesalePrice !== undefined ||
+    req.body.wholesaleMinQty !== undefined;
 
   if (hasNumericUpdate) {
     validateProductFields({

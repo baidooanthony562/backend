@@ -3,7 +3,9 @@ const asyncHandler = require('express-async-handler');
 const bcrypt = require('bcryptjs');
 const User = require('../models/User');
 const generateToken = require('../utils/generateToken');
-const { sendResendEmail } = require('../utils/email');
+const { sendResendEmail, escapeHtml } = require('../utils/email');
+
+const MAX_CODE_ATTEMPTS = 5;
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const FRONTEND = process.env.FRONTEND_URL || 'https://backend-alpha-seven-54.vercel.app';
@@ -75,7 +77,7 @@ const registerUser = asyncHandler(async (req, res) => {
     html: `
       <div style="font-family:sans-serif;max-width:480px;margin:0 auto;padding:32px">
         <h2 style="color:#131921">Welcome to Cindy Nat!</h2>
-        <p>Hi ${String(name).trim()},</p>
+        <p>Hi ${escapeHtml(String(name).trim())},</p>
         <p>Use the code below to verify your email address. It expires in <strong>30 minutes</strong>.</p>
         <div style="margin:28px 0;text-align:center">
           <span style="display:inline-block;letter-spacing:10px;font-size:40px;font-weight:900;color:#131921;background:#f5f5f5;padding:16px 24px;border-radius:12px;border:2px solid #D4AF37">
@@ -117,7 +119,7 @@ const authUser = asyncHandler(async (req, res) => {
       throw new Error('Your account was not verified in time and has been removed. Please register again.');
     }
     res.status(403);
-    throw new Error('Please verify your email before logging in. Check your inbox (link expires in 10 minutes).');
+    throw new Error('Please verify your email before logging in. Check your inbox for the 6-digit code.');
   }
 
   res.json({
@@ -151,19 +153,35 @@ const verifyEmailCode = asyncHandler(async (req, res) => {
     throw new Error('Email and code are required');
   }
   const normalizedEmail = String(email).toLowerCase().trim();
-  const hashedCode = crypto.createHash('sha256').update(String(code).trim()).digest('hex');
-  const user = await User.findOne({
-    email: normalizedEmail,
-    verifyToken: hashedCode,
-    verifyTokenExpiry: { $gt: Date.now() },
-  });
-  if (!user) {
+  const user = await User.findOne({ email: normalizedEmail });
+
+  // No usable code: never registered, already verified, or window expired
+  if (!user || user.isVerified || !user.verifyToken || !user.verifyTokenExpiry || user.verifyTokenExpiry < Date.now()) {
     res.status(400);
     throw new Error('Code is invalid or has expired. Please register again.');
   }
+
+  const hashedCode = crypto.createHash('sha256').update(String(code).trim()).digest('hex');
+  if (user.verifyToken !== hashedCode) {
+    user.verifyAttempts = (user.verifyAttempts || 0) + 1;
+    // Burn the code after too many wrong guesses so it cannot be brute-forced
+    if (user.verifyAttempts >= MAX_CODE_ATTEMPTS) {
+      user.verifyToken = undefined;
+      user.verifyTokenExpiry = undefined;
+      user.verifyAttempts = 0;
+      await user.save();
+      res.status(400);
+      throw new Error('Too many incorrect attempts. Please request a new code.');
+    }
+    await user.save();
+    res.status(400);
+    throw new Error('Code is invalid or has expired. Please register again.');
+  }
+
   user.isVerified = true;
   user.verifyToken = undefined;
   user.verifyTokenExpiry = undefined;
+  user.verifyAttempts = 0;
   await user.save();
   res.json({ message: 'Email verified successfully. You can now sign in.' });
 });
@@ -181,7 +199,8 @@ const resendVerification = asyncHandler(async (req, res) => {
 
   const code = String(Math.floor(100000 + Math.random() * 900000));
   user.verifyToken = crypto.createHash('sha256').update(code).digest('hex');
-  user.verifyTokenExpiry = Date.now() + 10 * 60 * 1000; // 10 minutes
+  user.verifyTokenExpiry = Date.now() + 30 * 60 * 1000; // 30 minutes
+  user.verifyAttempts = 0;
   await user.save();
 
   sendResendEmail({
@@ -190,7 +209,7 @@ const resendVerification = asyncHandler(async (req, res) => {
     html: `
       <div style="font-family:sans-serif;max-width:480px;margin:0 auto;padding:32px">
         <h2 style="color:#131921">New Verification Code</h2>
-        <p>Hi ${user.name},</p>
+        <p>Hi ${escapeHtml(user.name)},</p>
         <p>Here is your new verification code. It expires in <strong>30 minutes</strong>.</p>
         <div style="margin:28px 0;text-align:center">
           <span style="display:inline-block;letter-spacing:10px;font-size:40px;font-weight:900;color:#131921;background:#f5f5f5;padding:16px 24px;border-radius:12px;border:2px solid #D4AF37">
@@ -246,6 +265,7 @@ const forgotPassword = asyncHandler(async (req, res) => {
 
   user.resetToken = hashedCode;
   user.resetTokenExpiry = Date.now() + 15 * 60 * 1000; // 15 minutes
+  user.resetAttempts = 0;
   await user.save();
 
   try {
@@ -255,7 +275,7 @@ const forgotPassword = asyncHandler(async (req, res) => {
       html: `
         <div style="font-family:sans-serif;max-width:480px;margin:0 auto;padding:32px">
           <h2 style="color:#131921">Password Reset Code</h2>
-          <p>Hi ${user.name},</p>
+          <p>Hi ${escapeHtml(user.name)},</p>
           <p>Use the code below to reset your Cindy Nat password. It expires in <strong>15 minutes</strong>.</p>
           <div style="margin:28px 0;text-align:center">
             <span style="display:inline-block;letter-spacing:10px;font-size:40px;font-weight:900;color:#131921;background:#f5f5f5;padding:16px 24px;border-radius:12px;border:2px solid #D4AF37">
@@ -283,13 +303,23 @@ const verifyResetCode = asyncHandler(async (req, res) => {
     throw new Error('Email and code are required');
   }
   const normalizedEmail = String(email).toLowerCase().trim();
+  const user = await User.findOne({ email: normalizedEmail });
+  if (!user || !user.resetToken || !user.resetTokenExpiry || user.resetTokenExpiry < Date.now()) {
+    res.status(400);
+    throw new Error('Code is invalid or has expired');
+  }
   const hashedCode = crypto.createHash('sha256').update(String(code).trim()).digest('hex');
-  const user = await User.findOne({
-    email: normalizedEmail,
-    resetToken: hashedCode,
-    resetTokenExpiry: { $gt: Date.now() },
-  });
-  if (!user) {
+  if (user.resetToken !== hashedCode) {
+    user.resetAttempts = (user.resetAttempts || 0) + 1;
+    if (user.resetAttempts >= MAX_CODE_ATTEMPTS) {
+      user.resetToken = undefined;
+      user.resetTokenExpiry = undefined;
+      user.resetAttempts = 0;
+      await user.save();
+      res.status(400);
+      throw new Error('Too many incorrect attempts. Please request a new code.');
+    }
+    await user.save();
     res.status(400);
     throw new Error('Code is invalid or has expired');
   }
@@ -312,15 +342,24 @@ const resetPassword = asyncHandler(async (req, res) => {
     throw new Error(`Password must: ${pwdErrors.join(', ')}`);
   }
 
+  const user = await User.findOne({ email: normalizedEmail });
+  if (!user || !user.resetToken || !user.resetTokenExpiry || user.resetTokenExpiry < Date.now()) {
+    res.status(400);
+    throw new Error('Code is invalid or has expired');
+  }
+
   const hashedCode = crypto.createHash('sha256').update(String(code).trim()).digest('hex');
-
-  const user = await User.findOne({
-    email: normalizedEmail,
-    resetToken: hashedCode,
-    resetTokenExpiry: { $gt: Date.now() },
-  });
-
-  if (!user) {
+  if (user.resetToken !== hashedCode) {
+    user.resetAttempts = (user.resetAttempts || 0) + 1;
+    if (user.resetAttempts >= MAX_CODE_ATTEMPTS) {
+      user.resetToken = undefined;
+      user.resetTokenExpiry = undefined;
+      user.resetAttempts = 0;
+      await user.save();
+      res.status(400);
+      throw new Error('Too many incorrect attempts. Please request a new code.');
+    }
+    await user.save();
     res.status(400);
     throw new Error('Code is invalid or has expired');
   }
@@ -328,6 +367,7 @@ const resetPassword = asyncHandler(async (req, res) => {
   user.password = await bcrypt.hash(password, 10);
   user.resetToken = undefined;
   user.resetTokenExpiry = undefined;
+  user.resetAttempts = 0;
   user.isVerified = true; // OTP proves email ownership
   user.verifyToken = undefined;
   user.verifyTokenExpiry = undefined;

@@ -37,4 +37,14 @@ function sendResendEmail({ to, subject, html }) {
   });
 }
 
-module.exports = { sendResendEmail };
+// Escape user-controlled text before interpolating it into email HTML.
+function escapeHtml(value) {
+  return String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+module.exports = { sendResendEmail, escapeHtml };

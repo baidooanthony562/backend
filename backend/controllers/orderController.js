@@ -3,7 +3,7 @@ const Order = require('../models/Order');
 const Product = require('../models/Product');
 const PromoCode = require('../models/PromoCode');
 const User = require('../models/User');
-const { sendResendEmail } = require('../utils/email');
+const { sendResendEmail, escapeHtml } = require('../utils/email');
 const { getMoMoTransaction } = require('./paymentController');
 
 const VALID_STATUSES = ['Pending', 'Processing', 'Shipped', 'Delivered', 'Cancelled'];
@@ -215,7 +215,7 @@ const createOrder = asyncHandler(async (req, res) => {
     if (req.user.email) {
       const itemRows = validatedItems.map((item) =>
         `<tr style="border-bottom:1px solid #f0f0f0">
-          <td style="padding:8px 4px">${item.name}</td>
+          <td style="padding:8px 4px">${escapeHtml(item.name)}</td>
           <td style="text-align:right;padding:8px 4px">${item.quantity}</td>
           <td style="text-align:right;padding:8px 4px">&#8373;${(item.quantity * item.price).toFixed(2)}</td>
         </tr>`
@@ -227,7 +227,7 @@ const createOrder = asyncHandler(async (req, res) => {
         html: `
           <div style="font-family:sans-serif;max-width:520px;margin:0 auto;padding:32px">
             <h2 style="color:#131921">Order Confirmed!</h2>
-            <p>Hi ${req.user.name || 'Customer'},</p>
+            <p>Hi ${escapeHtml(req.user.name || 'Customer')},</p>
             <p>Thank you for your order. Here is a summary:</p>
             <table style="width:100%;border-collapse:collapse;margin:16px 0">
               <thead>
@@ -243,8 +243,8 @@ const createOrder = asyncHandler(async (req, res) => {
             <p style="text-align:right;font-size:18px;font-weight:bold;margin:8px 0">Total: &#8373;${serverTotal.toFixed(2)}</p>
             <div style="margin:24px 0;padding:16px;background:#f9f9f9;border-radius:8px;font-size:14px;line-height:1.6">
               <strong>Order ID:</strong> #${created._id.toString().slice(-8).toUpperCase()}<br>
-              <strong>Payment:</strong> ${paymentMethod || 'N/A'}<br>
-              <strong>Ship to:</strong> ${shippingAddress?.address || ''}, ${shippingAddress?.city || ''}
+              <strong>Payment:</strong> ${escapeHtml(paymentMethod || 'N/A')}<br>
+              <strong>Ship to:</strong> ${escapeHtml(shippingAddress?.address || '')}, ${escapeHtml(shippingAddress?.city || '')}
             </div>
             <p style="color:#666;font-size:13px">We will notify you when your order is shipped.</p>
             <a href="${process.env.FRONTEND_URL || 'https://backend-alpha-seven-54.vercel.app'}/orders/${created._id}"
@@ -347,7 +347,7 @@ const sendStatusEmail = (userEmail, userName, order, status) => {
     html: `
       <div style="font-family:sans-serif;max-width:520px;margin:0 auto;padding:32px">
         <h2 style="color:${tpl.color};margin-bottom:4px">${tpl.heading}</h2>
-        <p>Hi ${userName || 'Customer'},</p>
+        <p>Hi ${escapeHtml(userName || 'Customer')},</p>
         <p>${tpl.body}</p>
         <div style="margin:20px 0;padding:16px;background:#f9f9f9;border-radius:8px;font-size:14px;line-height:1.8">
           <strong>Order ID:</strong> #${orderId}<br>
@@ -493,7 +493,7 @@ const createGuestOrder = asyncHandler(async (req, res) => {
     // Confirmation email to guest
     const itemRows = validatedItems.map((item) =>
       `<tr style="border-bottom:1px solid #f0f0f0">
-        <td style="padding:8px 4px">${item.name}</td>
+        <td style="padding:8px 4px">${escapeHtml(item.name)}</td>
         <td style="text-align:right;padding:8px 4px">${item.quantity}</td>
         <td style="text-align:right;padding:8px 4px">&#8373;${(item.quantity * item.price).toFixed(2)}</td>
       </tr>`
@@ -504,7 +504,7 @@ const createGuestOrder = asyncHandler(async (req, res) => {
       html: `
         <div style="font-family:sans-serif;max-width:520px;margin:0 auto;padding:32px">
           <h2 style="color:#131921">Order Confirmed!</h2>
-          <p>Hi ${String(guestName).trim()},</p>
+          <p>Hi ${escapeHtml(String(guestName).trim())},</p>
           <p>Thank you for your order. Here is a summary:</p>
           <table style="width:100%;border-collapse:collapse;margin:16px 0">
             <thead><tr style="border-bottom:2px solid #eee">
@@ -518,8 +518,8 @@ const createGuestOrder = asyncHandler(async (req, res) => {
           <p style="text-align:right;font-size:18px;font-weight:bold">Total: &#8373;${serverTotal.toFixed(2)}</p>
           <div style="margin:20px 0;padding:16px;background:#f9f9f9;border-radius:8px;font-size:14px;line-height:1.8">
             <strong>Order ID:</strong> #${order._id.toString().slice(-8).toUpperCase()}<br>
-            <strong>Payment:</strong> ${paymentMethod || 'N/A'}<br>
-            <strong>Ship to:</strong> ${shippingAddress?.address || ''}, ${shippingAddress?.city || ''}
+            <strong>Payment:</strong> ${escapeHtml(paymentMethod || 'N/A')}<br>
+            <strong>Ship to:</strong> ${escapeHtml(shippingAddress?.address || '')}, ${escapeHtml(shippingAddress?.city || '')}
           </div>
           <p style="color:#666;font-size:13px">We will notify you when your order is shipped.</p>
           <hr style="border:none;border-top:1px solid #eee;margin:24px 0"/>
