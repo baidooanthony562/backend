@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { createOrder, createGuestOrder, validatePromo, initiateMoMoPayment, checkMoMoStatus, initializePaystackPayment } from '../utils/api';
 import { getAuthUser, getToken, isAuthenticated } from '../utils/auth';
+import { readCart, writeCart, clearCart as clearStoredCart } from '../utils/cart';
 
 function resolveUnitPrice(item) {
   const qty = item.quantity || 1;
@@ -32,19 +33,13 @@ export default function Cart() {
   useEffect(() => () => clearInterval(pollRef.current), []);
 
   useEffect(() => {
-    try {
-      const stored = JSON.parse(localStorage.getItem('cart') || '[]');
-      if (!Array.isArray(stored)) { localStorage.removeItem('cart'); return; }
-      const hasId = (item) => !!(item._id || item.id);
-      const valid = stored.filter((item) => item && hasId(item));
-      setCartItems(valid.map((item) => ({
-        ...item,
-        unitPrice: resolveUnitPrice(item),
-        category: typeof item.category === 'string' ? item.category : item.category?.name || '',
-      })));
-    } catch {
-      localStorage.removeItem('cart');
-    }
+    const hasId = (item) => !!(item._id || item.id);
+    const valid = readCart().filter((item) => item && hasId(item));
+    setCartItems(valid.map((item) => ({
+      ...item,
+      unitPrice: resolveUnitPrice(item),
+      category: typeof item.category === 'string' ? item.category : item.category?.name || '',
+    })));
   }, []);
 
   const total = useMemo(
@@ -55,8 +50,7 @@ export default function Cart() {
 
   const persist = (next) => {
     setCartItems(next);
-    localStorage.setItem('cart', JSON.stringify(next));
-    window.dispatchEvent(new Event('storage'));
+    writeCart(next);
   };
 
   const updateQuantity = (id, action) => {
@@ -122,11 +116,10 @@ export default function Cart() {
   };
 
   const clearCart = () => {
-    localStorage.removeItem('cart');
+    clearStoredCart();
     setCartItems([]);
     setPromoResult(null);
     setPromoCode('');
-    window.dispatchEvent(new Event('storage'));
   };
 
   const placeOrder = async (method, momoRef = '') => {

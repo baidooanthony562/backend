@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { verifyPaystackPayment, createOrder, createGuestOrder } from '../utils/api';
 import { getToken, isAuthenticated } from '../utils/auth';
+import { clearCart } from '../utils/cart';
 
 export default function PaymentVerify() {
   const [searchParams] = useSearchParams();
@@ -45,9 +46,8 @@ export default function PaymentVerify() {
         }
 
         // Clear cart and pending data
-        localStorage.removeItem('cart');
+        clearCart();
         sessionStorage.removeItem('paystackPending');
-        window.dispatchEvent(new Event('storage'));
 
         setStatus('success');
         setTimeout(() => navigate(`/order-confirmation/${orderId}`), 1200);
