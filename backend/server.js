@@ -1,3 +1,5 @@
+// Sentry MUST come first so its auto-instrumentation can hook other modules.
+const Sentry = require('./sentry');
 const express = require('express');
 const dotenv = require('dotenv');
 const cors = require('cors');
@@ -78,6 +80,10 @@ app.use('/api/support', supportLimiter, supportRoutes);
 app.use('/api/payments', paymentLimiter, paymentRoutes);
 
 app.use(notFound);
+
+// Sentry's Express error capture must run BEFORE our error responder.
+if (process.env.SENTRY_DSN) Sentry.setupExpressErrorHandler(app);
+
 app.use(errorHandler);
 
 // Crash-safe: log unhandled rejections instead of silently dying
