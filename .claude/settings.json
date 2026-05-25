@@ -69,7 +69,10 @@
       "Bash(curl -s https://backend-alpha-seven-54.vercel.app/)",
       "Bash(node --check controllers/supportController.js)",
       "Bash(node --check routes/support.js)",
-      "Bash(git --no-pager diff .claude/settings.json)"
+      "Bash(git --no-pager diff .claude/settings.json)",
+      "Bash(curl -s -o /dev/null -w \"GET /api/support/messages: HTTP %{http_code}\\\\n\" https://backend-9m2y.onrender.com/api/support/messages)",
+      "Bash(grep -v \":0$\")",
+      "Bash(node --check backend/controllers/orderController.js)"
     ]
   }
 }
