@@ -107,6 +107,8 @@ export default function ProductCard({ product }) {
           <img
             src={productImage}
             alt={product.name}
+            loading="lazy"
+            decoding="async"
             className="h-full w-full object-contain transition duration-300 group-hover:scale-105"
             onError={(e) => { e.target.src = PLACEHOLDER; }}
           />

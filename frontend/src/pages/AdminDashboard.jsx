@@ -970,7 +970,7 @@ export default function AdminDashboard() {
                               <div key={p._id || p.id} className="rounded-lg bg-white p-4 shadow-sm">
                                 <div className="flex items-center gap-3">
                                   {imgSrc
-                                    ? <img src={imgSrc} alt={p.name} className="h-14 w-14 rounded-lg border object-cover bg-slate-100 shrink-0" onError={(e) => { e.target.style.display = 'none'; }} />
+                                    ? <img src={imgSrc} alt={p.name} loading="lazy" decoding="async" className="h-14 w-14 rounded-lg border object-cover bg-slate-100 shrink-0" onError={(e) => { e.target.style.display = 'none'; }} />
                                     : <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-lg bg-slate-100"><i className="fas fa-box text-2xl text-slate-400"></i></div>
                                   }
                                   <div className="min-w-0">
@@ -1031,7 +1031,7 @@ export default function AdminDashboard() {
                                   <td className="px-4 py-3">
                                     <div className="flex items-center gap-3">
                                       {imgSrc
-                                        ? <img src={imgSrc} alt={p.name} className="h-12 w-12 rounded-lg border object-cover bg-slate-100" onError={(e) => { e.target.style.display = 'none'; }} />
+                                        ? <img src={imgSrc} alt={p.name} loading="lazy" decoding="async" className="h-12 w-12 rounded-lg border object-cover bg-slate-100" onError={(e) => { e.target.style.display = 'none'; }} />
                                         : <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-slate-100"><i className="fas fa-box text-xl text-slate-400"></i></div>
                                       }
                                       <span className="max-w-[180px] truncate font-medium text-slate-900">{p.name}</span>

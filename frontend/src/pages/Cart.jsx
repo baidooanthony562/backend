@@ -259,6 +259,8 @@ export default function Cart() {
                   <img
                     src={item.image}
                     alt={item.name}
+                    loading="lazy"
+                    decoding="async"
                     className="h-16 w-16 shrink-0 rounded-lg object-cover sm:h-20 sm:w-20"
                     onError={(e) => { e.target.src = 'https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?auto=format&fit=crop&w=800&q=80'; }}
                   />

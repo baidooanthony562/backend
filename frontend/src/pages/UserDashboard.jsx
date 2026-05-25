@@ -317,7 +317,7 @@ export default function UserDashboard() {
                     <div key={pid} className="rounded-xl border border-slate-200 bg-slate-50 p-4">
                       <div className="flex items-center gap-3">
                         {(product.images?.[0] || product.image) && (
-                          <img src={product.images?.[0] || product.image} alt={product.name} className="h-12 w-12 rounded-xl object-contain bg-white border border-slate-100" onError={(e) => { e.target.style.display = 'none'; }} />
+                          <img src={product.images?.[0] || product.image} alt={product.name} loading="lazy" decoding="async" className="h-12 w-12 rounded-xl object-contain bg-white border border-slate-100" onError={(e) => { e.target.style.display = 'none'; }} />
                         )}
                         <div className="flex-1 min-w-0">
                           <p className="font-semibold text-slate-900 truncate">{product.name}</p>
