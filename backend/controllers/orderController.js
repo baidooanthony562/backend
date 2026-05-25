@@ -10,6 +10,46 @@ const { getMoMoTransaction } = require('./paymentController');
 const VALID_STATUSES = ['Pending', 'Processing', 'Shipped', 'Delivered', 'Cancelled'];
 const VALID_PAYMENT_METHODS = ['cash-on-delivery', 'bank-transfer', 'momo', 'Paystack'];
 const MAX_ORDER_ITEMS = 50;
+const LOW_STOCK_THRESHOLD = 5;
+
+// Email admin when an order pushes a product's stock down to or below the
+// threshold. Fired only on the *crossing* order (not every subsequent one
+// while stock is already low) so a busy product doesn't spam the inbox.
+function notifyLowStock(product) {
+  const to = process.env.ADMIN_EMAIL;
+  if (!to) return;
+  const FRONTEND = process.env.FRONTEND_URL || 'https://backend-alpha-seven-54.vercel.app';
+  sendResendEmail({
+    to,
+    subject: `Low stock: ${product.name} (${product.stock} left)`,
+    html: `
+      <div style="font-family:sans-serif;max-width:480px;margin:0 auto;padding:32px">
+        <h2 style="color:#b45309;margin-bottom:4px">Low stock alert</h2>
+        <p style="color:#555;margin-top:0">A recent order has dropped a product to the low-stock threshold.</p>
+        <table style="width:100%;border-collapse:collapse;margin:16px 0;font-size:14px">
+          <tr style="border-bottom:1px solid #eee">
+            <td style="padding:10px 0;color:#888;width:120px">Product</td>
+            <td style="padding:10px 0;font-weight:700;color:#131921">${escapeHtml(product.name)}</td>
+          </tr>
+          <tr style="border-bottom:1px solid #eee">
+            <td style="padding:10px 0;color:#888">Remaining stock</td>
+            <td style="padding:10px 0;font-weight:700;color:${product.stock === 0 ? '#dc2626' : '#b45309'}">${product.stock}</td>
+          </tr>
+          <tr>
+            <td style="padding:10px 0;color:#888">Total sold</td>
+            <td style="padding:10px 0;color:#131921">${product.totalSold || 0}</td>
+          </tr>
+        </table>
+        <a href="${FRONTEND}/admin"
+           style="display:inline-block;margin:8px 0 20px;padding:12px 24px;background:#D4AF37;color:#000;font-weight:700;border-radius:999px;text-decoration:none">
+          Open admin dashboard
+        </a>
+        <hr style="border:none;border-top:1px solid #eee;margin:24px 0"/>
+        <p style="color:#999;font-size:12px">Cindy Nat Enterprise &mdash; restock when convenient.</p>
+      </div>
+    `,
+  }).catch((err) => console.error('[LowStock] Alert email failed:', err.message));
+}
 
 function sanitizeAddress(addr) {
   return {
@@ -128,10 +168,12 @@ const createOrder = asyncHandler(async (req, res) => {
         throw new Error('One or more products are no longer available');
       }
 
-      // Atomic check-and-decrement — prevents overselling under concurrent load
+      // Atomic check-and-decrement — prevents overselling under concurrent load.
+      // `new: true` returns the post-update doc so we can detect threshold crossings.
       const reserved = await Product.findOneAndUpdate(
         { _id: product._id, active: true, stock: { $gte: qty } },
-        { $inc: { stock: -qty, totalSold: qty } }
+        { $inc: { stock: -qty, totalSold: qty } },
+        { new: true }
       );
       if (!reserved) {
         res.status(400);
@@ -392,7 +434,9 @@ const updateOrderStatus = asyncHandler(async (req, res) => {
         ? User.findByIdAndUpdate(order.user._id, { $pull: { orders: order._id } })
         : Promise.resolve(),
     ]);
-    sendStatusEmail(order.user?.email, order.user?.name, order, 'Cancelled');
+    // Fall back to guest fields so guests receive status emails too — they
+    // were silently skipped before since order.user is null for guest orders.
+    sendStatusEmail(order.user?.email || order.guestEmail, order.user?.name || order.guestName, order, 'Cancelled');
     await Order.findByIdAndDelete(order._id);
     return res.json({ deleted: true, message: 'Order cancelled and removed.' });
   }
