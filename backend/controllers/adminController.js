@@ -6,6 +6,7 @@ const Product = require('../models/Product');
 const Order = require('../models/Order');
 const AdminSession = require('../models/AdminSession');
 const generateToken = require('../utils/generateToken');
+const { setAuthCookie, clearAuthCookie } = require('../utils/generateToken');
 const { sendResendEmail, escapeHtml } = require('../utils/email');
 
 function sendLoginAlert(ip) {
@@ -70,8 +71,8 @@ const adminLogin = asyncHandler(async (req, res) => {
     if (emailMatch && passwordMatch) {
       const session = await AdminSession.create({ email, ip });
       sendLoginAlert(ip);
+      setAuthCookie(res, generateToken('admin'));
       return res.json({
-        token: generateToken('admin'),
         email,
         name: 'Cindy Nat Admin',
         isAdmin: true,
@@ -85,8 +86,8 @@ const adminLogin = asyncHandler(async (req, res) => {
   if (user && user.isAdmin && (await bcrypt.compare(password, user.password))) {
     const session = await AdminSession.create({ email: user.email, ip });
     sendLoginAlert(ip);
+    setAuthCookie(res, generateToken(user._id));
     return res.json({
-      token: generateToken(user._id),
       email: user.email,
       name: user.name,
       isAdmin: true,
@@ -143,6 +144,7 @@ const adminLogout = asyncHandler(async (req, res) => {
   if (sessionId) {
     await AdminSession.findByIdAndUpdate(sessionId, { logoutAt: new Date() });
   }
+  clearAuthCookie(res);
   res.json({ message: 'Logged out' });
 });
 

@@ -3,13 +3,16 @@ import axios from 'axios';
 const api = axios.create({
   baseURL: 'https://backend-9m2y.onrender.com/api',
   headers: { 'Content-Type': 'application/json' },
+  // Send the httpOnly auth cookie on every request — required for cross-site
+  // auth between the Vercel frontend and the Render backend.
+  withCredentials: true,
 });
 
 api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
-      ['cindyNutToken', 'cindyNutUser', 'cindyNutAdminToken'].forEach((k) => localStorage.removeItem(k));
+      ['cindyNutUser', 'cindyNutAdminUser', 'cindyNutAdminSession'].forEach((k) => localStorage.removeItem(k));
       window.dispatchEvent(new Event('storage'));
       if (!window.location.pathname.includes('/login')) {
         window.location.href = '/login';
@@ -19,13 +22,17 @@ api.interceptors.response.use(
   }
 );
 
-const authConfig = (token) => ({ headers: { Authorization: `Bearer ${token}` } });
+// Auth is now carried by the httpOnly `cnAuth` cookie set at login. The
+// `token` argument is ignored; kept on the existing call sites so the API
+// surface stayed source-compatible during the cookie migration.
+const authConfig = () => ({});
 
 export const fetchProducts = (params) => api.get('/products', { params });
 export const fetchProduct = (id) => api.get(`/products/${id}`);
 export const fetchFeaturedProducts = () => api.get('/products', { params: { featured: true, limit: 3 } });
 export const fetchCategories = () => api.get('/categories');
 export const loginUser = (payload) => api.post('/auth/login', payload);
+export const logoutUser = () => api.post('/auth/logout');
 export const registerUser = (payload) => api.post('/auth/register', payload);
 export const forgotPassword = (email) => api.post('/auth/forgot-password', { email });
 export const verifyResetCode = (payload) => api.post('/auth/verify-reset-code', payload);

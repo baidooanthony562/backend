@@ -1,19 +1,18 @@
 import { useEffect, useCallback } from 'react';
-import { getAdminToken, getAdminSessionId, logout } from '../utils/auth';
+import { getAdminSessionId, logout } from '../utils/auth';
 
 const API = 'https://backend-9m2y.onrender.com/api';
 
 function fireLogoutBeacon(reason) {
-  const token = getAdminToken();
   const sessionId = getAdminSessionId();
-  if (!token || !sessionId) return;
+  if (!sessionId) return;
 
+  // keepalive lets the request outlive the page unload; credentials sends
+  // the httpOnly auth cookie so the backend can authorise the logout.
   fetch(`${API}/admin/logout`, {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${token}`,
-    },
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
     body: JSON.stringify({ sessionId, reason }),
     keepalive: true,
   }).catch(() => {});

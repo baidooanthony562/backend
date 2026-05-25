@@ -3,6 +3,7 @@ const asyncHandler = require('express-async-handler');
 const bcrypt = require('bcryptjs');
 const User = require('../models/User');
 const generateToken = require('../utils/generateToken');
+const { setAuthCookie, clearAuthCookie } = require('../utils/generateToken');
 const { sendResendEmail, escapeHtml } = require('../utils/email');
 
 const MAX_CODE_ATTEMPTS = 5;
@@ -125,13 +126,18 @@ const authUser = asyncHandler(async (req, res) => {
     throw new Error('Please verify your email before logging in. Check your inbox for the 6-digit code.');
   }
 
+  setAuthCookie(res, generateToken(user._id));
   res.json({
     _id: user._id,
     name: user.name,
     email: user.email,
-    token: generateToken(user._id),
     isAdmin: user.isAdmin,
   });
+});
+
+const logout = asyncHandler(async (req, res) => {
+  clearAuthCookie(res);
+  res.json({ message: 'Logged out' });
 });
 
 const verifyEmail = asyncHandler(async (req, res) => {
@@ -379,4 +385,4 @@ const resetPassword = asyncHandler(async (req, res) => {
   res.json({ message: 'Password reset successfully. You can now sign in.' });
 });
 
-module.exports = { registerUser, authUser, verifyEmail, verifyEmailCode, resendVerification, getUserProfile, forgotPassword, verifyResetCode, resetPassword };
+module.exports = { registerUser, authUser, logout, verifyEmail, verifyEmailCode, resendVerification, getUserProfile, forgotPassword, verifyResetCode, resetPassword };

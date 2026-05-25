@@ -3,6 +3,7 @@ const Sentry = require('./sentry');
 const express = require('express');
 const dotenv = require('dotenv');
 const cors = require('cors');
+const cookieParser = require('cookie-parser');
 const helmet = require('helmet');
 const morgan = require('morgan');
 const connectDB = require('./config/db');
@@ -58,6 +59,7 @@ app.use(morgan(process.env.NODE_ENV === 'production' ? 'combined' : 'dev'));
 
 // 2mb cap — enough for base64 product images; blocks large payload DoS
 app.use(express.json({ limit: '2mb' }));
+app.use(cookieParser());
 
 app.get('/api/status', (req, res) => res.json({ status: 'ok', message: 'Cindy Nat backend running' }));
 

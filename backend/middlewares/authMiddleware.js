@@ -1,20 +1,21 @@
 const asyncHandler = require('express-async-handler');
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
+const { COOKIE_NAME } = require('../utils/generateToken');
 
 const protect = asyncHandler(async (req, res, next) => {
-  if (!req.headers.authorization || !req.headers.authorization.startsWith('Bearer')) {
+  const token = req.cookies?.[COOKIE_NAME];
+  if (!token) {
     res.status(401);
-    throw new Error('Not authorized, no token');
+    throw new Error('Not authorized, no session');
   }
 
-  const token = req.headers.authorization.split(' ')[1];
   let decoded;
   try {
     decoded = jwt.verify(token, process.env.JWT_SECRET);
   } catch {
     res.status(401);
-    throw new Error('Not authorized, token failed');
+    throw new Error('Not authorized, session invalid');
   }
 
   if (decoded.id === 'admin') {

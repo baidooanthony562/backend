@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { adminLogin } from '../utils/api';
-import { isAdmin, saveAdminToken, saveAdminSessionId } from '../utils/auth';
+import { isAdmin, saveAdminUser, saveAdminSessionId } from '../utils/auth';
 
 export default function AdminLogin() {
   const navigate = useNavigate();
@@ -21,7 +21,9 @@ export default function AdminLogin() {
     setError('');
     try {
       const { data } = await adminLogin({ email, password });
-      saveAdminToken(data.token);
+      // Backend set the httpOnly auth cookie; we only stash non-sensitive
+      // admin profile info locally so the dashboard can render before /profile.
+      saveAdminUser(data);
       if (data.sessionId) saveAdminSessionId(data.sessionId);
       navigate('/admin');
     } catch (err) {

@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { loginUser, resendVerification } from '../utils/api';
-import { isAuthenticated } from '../utils/auth';
+import { isAuthenticated, saveAuthUser } from '../utils/auth';
 import { showToast } from '../components/Toast';
 
 export default function Login() {
@@ -35,8 +35,9 @@ export default function Login() {
     setNotVerified(false);
     try {
       const { data } = await loginUser({ email, password });
-      localStorage.setItem('cindyNutToken', data.token);
-      localStorage.setItem('cindyNutUser', JSON.stringify(data));
+      // Backend set the httpOnly auth cookie; we only stash non-sensitive
+      // profile info locally for nav/dashboard rendering.
+      saveAuthUser(data);
       window.dispatchEvent(new Event('storage'));
       showToast(`Welcome back, ${data.name?.split(' ')[0] || 'there'}!`);
       navigate(redirectTo);
