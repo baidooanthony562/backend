@@ -58,7 +58,18 @@
       "Bash(node --check utils/generateToken.js)",
       "Bash(node --check routes/auth.js)",
       "Bash(git --no-pager diff -- frontend/package.json)",
-      "Bash(git --no-pager diff frontend/src/utils/api.js)"
+      "Bash(git --no-pager diff frontend/src/utils/api.js)",
+      "Bash(curl -s -o /dev/null -w \"Backend HTTP %{http_code} in %{time_total}s\\\\n\" https://backend-9m2y.onrender.com/api/status)",
+      "Bash(curl -s https://backend-9m2y.onrender.com/api/status)",
+      "Bash(curl -s -o /dev/null -w \"Frontend HTTP %{http_code} in %{time_total}s\\\\n\" https://new-web-cindy.vercel.app/)",
+      "Bash(curl -s -o /dev/null -w \"https://new-web-cindy.vercel.app HTTP %{http_code}\\\\n\" https://new-web-cindy.vercel.app)",
+      "Bash(curl -s -o /dev/null -w \"https://www.new-web-cindy.vercel.app HTTP %{http_code}\\\\n\" https://www.new-web-cindy.vercel.app)",
+      "Bash(curl -sL -o /dev/null -w \"follow redirects HTTP %{http_code} URL %{url_effective}\\\\n\" https://new-web-cindy.vercel.app)",
+      "Bash(curl -s -o /dev/null -w \"HTTP %{http_code}\\\\n\" https://backend-alpha-seven-54.vercel.app/)",
+      "Bash(curl -s https://backend-alpha-seven-54.vercel.app/)",
+      "Bash(node --check controllers/supportController.js)",
+      "Bash(node --check routes/support.js)",
+      "Bash(git --no-pager diff .claude/settings.json)"
     ]
   }
 }
