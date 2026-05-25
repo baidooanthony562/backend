@@ -181,6 +181,12 @@ const createOrder = asyncHandler(async (req, res) => {
       }
       decremented.push({ id: product._id, qty });
 
+      // Only fire when this order is what crossed the line — prevents repeat
+      // alerts while stock is already low.
+      if (reserved.stock <= LOW_STOCK_THRESHOLD && reserved.stock + qty > LOW_STOCK_THRESHOLD) {
+        notifyLowStock(reserved);
+      }
+
       // Server-side price — wholesale if quantity qualifies, otherwise discounted retail
       const isWholesale =
         product.wholesalePrice > 0 &&
@@ -398,7 +404,7 @@ const sendStatusEmail = (userEmail, userName, order, status) => {
           <strong>Items:</strong> ${order.orderItems?.length || 0}<br>
           <strong>Total:</strong> &#8373;${Number(order.totalPrice || 0).toFixed(2)}
         </div>
-        ${status !== 'Cancelled' ? `
+        ${(status !== 'Cancelled' && order.user) ? `
         <a href="${FRONTEND}/orders/${order._id}"
            style="display:inline-block;margin:8px 0 20px;padding:12px 28px;background:#D4AF37;color:#000;font-weight:700;border-radius:999px;text-decoration:none">
           View Order
@@ -449,7 +455,7 @@ const updateOrderStatus = asyncHandler(async (req, res) => {
 
   // Email customer only when status actually changes
   if (status && status !== prevStatus) {
-    sendStatusEmail(order.user?.email, order.user?.name, updated, status);
+    sendStatusEmail(order.user?.email || order.guestEmail, order.user?.name || order.guestName, updated, status);
   }
 
   res.json(updated);
@@ -488,10 +494,14 @@ const createGuestOrder = asyncHandler(async (req, res) => {
       if (!product || !product.active) { res.status(400); throw new Error('One or more products are no longer available'); }
       const reserved = await Product.findOneAndUpdate(
         { _id: product._id, active: true, stock: { $gte: qty } },
-        { $inc: { stock: -qty, totalSold: qty } }
+        { $inc: { stock: -qty, totalSold: qty } },
+        { new: true }
       );
       if (!reserved) { res.status(400); throw new Error(`"${product.name}" is out of stock`); }
       decremented.push({ id: product._id, qty });
+      if (reserved.stock <= LOW_STOCK_THRESHOLD && reserved.stock + qty > LOW_STOCK_THRESHOLD) {
+        notifyLowStock(reserved);
+      }
       const isWholesale = product.wholesalePrice > 0 && product.wholesaleMinQty > 0 && qty >= product.wholesaleMinQty;
       const serverPrice = isWholesale
         ? product.wholesalePrice
