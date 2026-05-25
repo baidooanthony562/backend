@@ -53,7 +53,12 @@
       "Bash(npx @sentry/cli@latest sourcemaps explain \"fakeevent\" --org cindy-nat-enterprise --project javascript-react)",
       "Bash(npx @sentry/cli@latest debug-files list --org cindy-nat-enterprise --project javascript-react)",
       "Bash(npm uninstall *)",
-      "Bash(git remote *)"
+      "Bash(git remote *)",
+      "Bash(node --check middlewares/authMiddleware.js)",
+      "Bash(node --check utils/generateToken.js)",
+      "Bash(node --check routes/auth.js)",
+      "Bash(git --no-pager diff -- frontend/package.json)",
+      "Bash(git --no-pager diff frontend/src/utils/api.js)"
     ]
   }
 }
