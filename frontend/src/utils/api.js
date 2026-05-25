@@ -59,6 +59,8 @@ export const createGuestOrder = (payload) => api.post('/orders/guest', payload);
 export const fetchOrderDetail = (id, token) => api.get(`/orders/${id}`, authConfig(token));
 export const fetchGuestOrder = (id, token) => api.get(`/orders/guest/${id}?token=${encodeURIComponent(token)}`);
 export const sendSupportMessage = (payload) => api.post('/support/message', payload);
+export const fetchSupportMessages = () => api.get('/support/messages');
+export const setSupportMessageStatus = (id, status) => api.patch(`/support/messages/${id}`, { status });
 export const adminLogin = (payload) => api.post('/admin/login', payload);
 export const adminLogout = (sessionId, token) => api.post('/admin/logout', { sessionId }, authConfig(token));
 export const fetchAdminSessions = (token) => api.get('/admin/sessions', authConfig(token));

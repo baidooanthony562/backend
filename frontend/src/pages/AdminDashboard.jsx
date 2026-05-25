@@ -5,13 +5,14 @@ import {
   updateOrderStatus, createProduct, updateProduct, deleteProduct,
   fetchPromos, createPromoAdmin, deletePromoAdmin,
   adminLogout, fetchAdminSessions, fetchDailySales, adminVerifyUser,
+  fetchSupportMessages, setSupportMessageStatus,
 } from '../utils/api';
 import { isAdmin, getAdminToken, getAdminSessionId, logout } from '../utils/auth';
 import { getProducts, saveProducts } from '../utils/productStore';
 import { showToast } from '../components/Toast';
 import { useAdminSessionGuard } from '../hooks/useAdminSessionGuard';
 
-const TABS = ['Overview', 'Products', 'Orders', 'Users', 'Promos'];
+const TABS = ['Overview', 'Products', 'Orders', 'Users', 'Promos', 'Support'];
 
 const PROMO_EMPTY = { code: '', discountType: 'percent', discountValue: '', minAmount: '', expiresAt: '', description: '' };
 
@@ -84,6 +85,11 @@ export default function AdminDashboard() {
   const [bulkStatus, setBulkStatus] = useState('');
   const [bulkUpdating, setBulkUpdating] = useState(false);
 
+  // Support inbox
+  const [supportMessages, setSupportMessages] = useState([]);
+  const [supportLoading, setSupportLoading] = useState(false);
+  const [supportFilter, setSupportFilter] = useState('pending'); // 'pending' | 'answered' | 'all'
+
   // Session termination
   const [terminated, setTerminated] = useState(false);
 
@@ -124,6 +130,30 @@ export default function AdminDashboard() {
       setProducts(getProducts());
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadSupport = async () => {
+    setSupportLoading(true);
+    try {
+      const { data } = await fetchSupportMessages();
+      setSupportMessages(data);
+    } catch {
+      setSupportMessages([]);
+    } finally {
+      setSupportLoading(false);
+    }
+  };
+
+  const toggleSupportStatus = async (id, currentStatus) => {
+    const next = currentStatus === 'answered' ? 'pending' : 'answered';
+    // Optimistic update — flip locally first, revert if the API call fails.
+    setSupportMessages((prev) => prev.map((m) => m._id === id ? { ...m, status: next } : m));
+    try {
+      await setSupportMessageStatus(id, next);
+    } catch {
+      setSupportMessages((prev) => prev.map((m) => m._id === id ? { ...m, status: currentStatus } : m));
+      showToast('Could not update message status. Please retry.');
     }
   };
 
@@ -437,11 +467,11 @@ export default function AdminDashboard() {
 
         {/* Tabs */}
         {(() => {
-          const TAB_ICONS = { Overview: 'fas fa-chart-bar', Products: 'fas fa-box', Orders: 'fas fa-shopping-cart', Users: 'fas fa-users', Promos: 'fas fa-ticket-alt' };
+          const TAB_ICONS = { Overview: 'fas fa-chart-bar', Products: 'fas fa-box', Orders: 'fas fa-shopping-cart', Users: 'fas fa-users', Promos: 'fas fa-ticket-alt', Support: 'fas fa-life-ring' };
           return (
             <div className="mb-6 flex overflow-x-auto rounded-lg bg-white shadow-sm">
               {TABS.map((t) => (
-                <button key={t} onClick={() => { setTab(t); if (t === 'Orders') loadAll(); }}
+                <button key={t} onClick={() => { setTab(t); if (t === 'Orders') loadAll(); if (t === 'Support') loadSupport(); }}
                   className={`flex flex-1 flex-col items-center justify-center gap-0.5 whitespace-nowrap px-2 py-2.5 sm:flex-row sm:gap-1.5 sm:px-5 sm:py-3 text-xs sm:text-sm font-semibold transition ${tab === t ? 'border-b-2 border-brand-gold bg-white text-[#131921]' : 'text-slate-500 hover:text-slate-800'}`}>
                   <i className={`${TAB_ICONS[t]} text-base sm:text-sm leading-none`}></i>
                   <span>{t}</span>
@@ -1490,6 +1520,92 @@ export default function AdminDashboard() {
                 </div>
               </div>
             )}
+
+            {/* ── SUPPORT ── */}
+            {tab === 'Support' && (() => {
+              const visible = supportMessages.filter((m) =>
+                supportFilter === 'all' ? true : m.status === supportFilter
+              );
+              const pendingCount = supportMessages.filter((m) => m.status === 'pending').length;
+              return (
+                <div className="space-y-4">
+                  <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg bg-white p-4 shadow-sm">
+                    <div>
+                      <h2 className="text-lg font-bold text-slate-900">Support inbox</h2>
+                      <p className="text-xs text-slate-500">
+                        {pendingCount} pending · {supportMessages.length} total
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <select
+                        value={supportFilter}
+                        onChange={(e) => setSupportFilter(e.target.value)}
+                        className="rounded-lg border border-slate-200 px-3 py-1.5 text-sm outline-none focus:border-brand-gold"
+                      >
+                        <option value="pending">Pending</option>
+                        <option value="answered">Answered</option>
+                        <option value="all">All</option>
+                      </select>
+                      <button
+                        onClick={loadSupport}
+                        className="rounded-full bg-slate-100 px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-200"
+                      >
+                        <i className="fas fa-sync mr-1"></i>Refresh
+                      </button>
+                    </div>
+                  </div>
+
+                  {supportLoading ? (
+                    <div className="rounded-lg bg-white p-12 text-center text-slate-500 shadow-sm">Loading messages…</div>
+                  ) : visible.length === 0 ? (
+                    <div className="rounded-lg bg-white p-12 text-center text-slate-500 shadow-sm">
+                      No {supportFilter === 'all' ? '' : supportFilter} messages.
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      {visible.map((m) => {
+                        const isAnswered = m.status === 'answered';
+                        const when = new Date(m.createdAt).toLocaleString('en-GH', { dateStyle: 'medium', timeStyle: 'short' });
+                        return (
+                          <div key={m._id} className={`rounded-lg border bg-white p-4 shadow-sm ${isAnswered ? 'border-slate-200' : 'border-amber-200'}`}>
+                            <div className="flex flex-wrap items-start justify-between gap-3">
+                              <div className="min-w-0">
+                                <p className="font-semibold text-slate-900">{m.name}</p>
+                                <p className="mt-0.5 text-xs text-slate-500">
+                                  {m.email ? (
+                                    <a href={`mailto:${m.email}?subject=Re%3A%20your%20Cindy%20Nat%20support%20request`} className="text-blue-600 hover:underline">
+                                      {m.email}
+                                    </a>
+                                  ) : (
+                                    <span className="text-slate-400">no email</span>
+                                  )}
+                                  <span className="mx-2 text-slate-300">·</span>
+                                  <span>{when}</span>
+                                </p>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${isAnswered ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'}`}>
+                                  {isAnswered ? 'Answered' : 'Pending'}
+                                </span>
+                                <button
+                                  onClick={() => toggleSupportStatus(m._id, m.status)}
+                                  className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700 hover:bg-slate-200"
+                                >
+                                  Mark {isAnswered ? 'pending' : 'answered'}
+                                </button>
+                              </div>
+                            </div>
+                            <p className="mt-3 whitespace-pre-wrap rounded-lg bg-slate-50 p-3 text-sm text-slate-700">
+                              {m.message}
+                            </p>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              );
+            })()}
           </>
         )}
       </div>
