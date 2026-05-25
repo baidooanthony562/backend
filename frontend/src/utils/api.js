@@ -50,7 +50,7 @@ export const deletePromoAdmin = (id, token) => api.delete(`/promos/${id}`, authC
 export const createOrder = (payload, token) => api.post('/orders', payload, authConfig(token));
 export const createGuestOrder = (payload) => api.post('/orders/guest', payload);
 export const fetchOrderDetail = (id, token) => api.get(`/orders/${id}`, authConfig(token));
-export const fetchGuestOrder = (id, email) => api.get(`/orders/guest/${id}?email=${encodeURIComponent(email)}`);
+export const fetchGuestOrder = (id, token) => api.get(`/orders/guest/${id}?token=${encodeURIComponent(token)}`);
 export const sendSupportMessage = (payload) => api.post('/support/message', payload);
 export const adminLogin = (payload) => api.post('/admin/login', payload);
 export const adminLogout = (sessionId, token) => api.post('/admin/logout', { sessionId }, authConfig(token));

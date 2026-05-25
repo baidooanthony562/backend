@@ -28,7 +28,7 @@ export default function PaymentVerify() {
         return;
       }
 
-      const { orderPayload, isGuest, guestEmail } = JSON.parse(pending);
+      const { orderPayload, isGuest } = JSON.parse(pending);
 
       try {
         // Verify with Paystack via backend
@@ -39,7 +39,7 @@ export default function PaymentVerify() {
         if (isGuest) {
           const { data } = await createGuestOrder({ ...orderPayload, paystackReference: reference });
           orderId = data._id;
-          sessionStorage.setItem('guestOrderEmail', guestEmail);
+          sessionStorage.setItem(`guestOrderToken:${orderId}`, data.guestOrderToken);
         } else {
           const { data } = await createOrder({ ...orderPayload, paystackReference: reference }, token);
           orderId = data._id;

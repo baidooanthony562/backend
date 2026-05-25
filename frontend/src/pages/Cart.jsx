@@ -132,7 +132,7 @@ export default function Cart() {
     const payload = { ...buildOrderPayload(method), guestName: guestName.trim(), guestEmail: guestEmail.trim() };
     const { data } = await createGuestOrder(payload);
     clearCart();
-    sessionStorage.setItem('guestOrderEmail', guestEmail.trim().toLowerCase());
+    sessionStorage.setItem(`guestOrderToken:${data._id}`, data.guestOrderToken);
     navigate(`/order-confirmation/${data._id}`);
   };
 
@@ -208,7 +208,6 @@ export default function Cart() {
             ? { ...buildOrderPayload('Paystack'), guestName: guestName.trim(), guestEmail: email }
             : buildOrderPayload('Paystack'),
           isGuest,
-          guestEmail: isGuest ? email : null,
         }));
         window.location.href = data.authorization_url;
       } catch (err) {

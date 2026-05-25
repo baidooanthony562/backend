@@ -1,3 +1,4 @@
+const crypto = require('crypto');
 const asyncHandler = require('express-async-handler');
 const Order = require('../models/Order');
 const Product = require('../models/Product');
@@ -476,9 +477,12 @@ const createGuestOrder = asyncHandler(async (req, res) => {
       await verifyMoMoRef(momoReference, serverTotal);
     }
 
+    const guestOrderToken = crypto.randomBytes(24).toString('hex');
+
     const order = await new Order({
       guestName: String(guestName).trim().slice(0, 100),
       guestEmail: String(guestEmail).toLowerCase().trim(),
+      guestOrderToken,
       orderItems: validatedItems,
       shippingAddress: sanitizeAddress(shippingAddress),
       paymentMethod,
@@ -528,7 +532,9 @@ const createGuestOrder = asyncHandler(async (req, res) => {
       `,
     }).catch((err) => console.error('[Email] Guest order confirmation failed:', err.message));
 
-    res.status(201).json(order);
+    // Expose the token to the immediate response so the frontend can stash it
+    // for the confirmation page. It is not persisted in any subsequent read.
+    res.status(201).json({ ...order.toObject(), guestOrderToken });
   } catch (err) {
     await rollback();
     if (err.code === 11000) {
@@ -540,12 +546,21 @@ const createGuestOrder = asyncHandler(async (req, res) => {
 });
 
 const getGuestOrder = asyncHandler(async (req, res) => {
-  const { email } = req.query;
-  if (!email) { res.status(400); throw new Error('Email is required'); }
-  const order = await Order.findById(req.params.id);
+  const { token } = req.query;
+  if (!token) { res.status(400); throw new Error('Access token is required'); }
+  // Need +guestOrderToken because the field is select:false by default.
+  const order = await Order.findById(req.params.id).select('+guestOrderToken');
   if (!order || !order.guestEmail) { res.status(404); throw new Error('Order not found'); }
-  if (order.guestEmail !== String(email).toLowerCase().trim()) { res.status(403); throw new Error('Access denied'); }
-  res.json(order);
+  // Constant-time compare avoids leaking token bytes via response timing.
+  const provided = Buffer.from(String(token), 'utf8');
+  const expected = Buffer.from(String(order.guestOrderToken || ''), 'utf8');
+  if (provided.length !== expected.length || !crypto.timingSafeEqual(provided, expected)) {
+    res.status(403);
+    throw new Error('Access denied');
+  }
+  // Strip the token from the response so it never appears in logs / proxies.
+  const { guestOrderToken: _t, ...safe } = order.toObject();
+  res.json(safe);
 });
 
 module.exports = { createOrder, createGuestOrder, getGuestOrder, getOrderById, getMyOrders, getOrders, updateOrderStatus };

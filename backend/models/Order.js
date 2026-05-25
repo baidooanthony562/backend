@@ -16,6 +16,10 @@ const orderSchema = mongoose.Schema(
     user: { type: mongoose.Schema.Types.ObjectId, required: false, ref: 'User' },
     guestName: { type: String },
     guestEmail: { type: String },
+    // Random per-order secret used to authorise guest reads of /orders/guest/:id.
+    // Replaces the old "email as access control" model, which let anyone with
+    // a guest's email + order ID view the full order PII.
+    guestOrderToken: { type: String, select: false },
     orderItems: [orderItemSchema],
     shippingAddress: {
       address: { type: String },

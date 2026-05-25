@@ -33,11 +33,11 @@ export default function OrderConfirmation() {
           const { data } = await fetchOrderDetail(id, token);
           setOrder(data);
         } else {
-          const guestEmail = sessionStorage.getItem('guestOrderEmail');
-          if (!guestEmail) { setError('Order not found.'); return; }
-          const { data } = await fetchGuestOrder(id, guestEmail);
+          const guestToken = sessionStorage.getItem(`guestOrderToken:${id}`);
+          if (!guestToken) { setError('Order not found.'); return; }
+          const { data } = await fetchGuestOrder(id, guestToken);
           setOrder(data);
-          sessionStorage.removeItem('guestOrderEmail');
+          sessionStorage.removeItem(`guestOrderToken:${id}`);
         }
       } catch (err) {
         setError(err.response?.data?.message || 'Unable to load order confirmation.');
