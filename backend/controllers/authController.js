@@ -14,6 +14,10 @@ const { validatePassword } = require('../utils/passwordStrength');
 const registerUser = asyncHandler(async (req, res) => {
   const { name, email, password, phone, address, city, country } = req.body;
 
+  // Generic response returned in every "account-exists" branch so attackers
+  // cannot enumerate registered emails by watching the register endpoint.
+  const genericResponse = { message: 'Account created. A 6-digit verification code has been sent to your email.' };
+
   if (!name || !email || !password) {
     res.status(400);
     throw new Error('Name, email and password are required');
@@ -36,15 +40,14 @@ const registerUser = asyncHandler(async (req, res) => {
 
   const existingUser = await User.findOne({ email: normalizedEmail });
   if (existingUser) {
-    // Allow re-registration if account exists but was never verified and window expired
     if (existingUser.isVerified === false && existingUser.verifyTokenExpiry < Date.now()) {
+      // Stale unverified record — drop it and fall through to create a fresh one
       await User.deleteOne({ _id: existingUser._id });
-    } else if (existingUser.isVerified === false) {
-      res.status(400);
-      throw new Error('A verification email was already sent to this address. Please check your inbox (expires in 30 minutes).');
     } else {
-      res.status(400);
-      throw new Error('User already exists');
+      // Either already verified, or unverified within the 30-minute window.
+      // Return the same generic response without sending an email or creating
+      // a new record; legitimate owners can sign in or use forgot-password.
+      return res.status(201).json(genericResponse);
     }
   }
 
@@ -92,7 +95,7 @@ const registerUser = asyncHandler(async (req, res) => {
     `,
   }).catch((err) => console.error('[Email] Verification email failed:', err.message));
 
-  res.status(201).json({ message: 'Account created. A 6-digit verification code has been sent to your email.' });
+  res.status(201).json(genericResponse);
 });
 
 const authUser = asyncHandler(async (req, res) => {
