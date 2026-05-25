@@ -6,7 +6,11 @@ const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 function notifyAdminOfSupportMessage(chat) {
   const to = process.env.ADMIN_EMAIL;
-  if (!to) return; // Nothing to do if no admin address is configured
+  if (!to) {
+    console.warn('[Support] Skipping admin notification — ADMIN_EMAIL is not set');
+    return;
+  }
+  console.log(`[Support] Sending admin notification to ${to} for message from ${chat.name}`);
 
   const time = new Date(chat.createdAt || Date.now()).toLocaleString('en-GH', {
     timeZone: 'Africa/Accra',
@@ -44,7 +48,9 @@ function notifyAdminOfSupportMessage(chat) {
         <p style="color:#999;font-size:12px">Cindy Nat Enterprise &mdash; Kumasi, Ghana</p>
       </div>
     `,
-  }).catch((err) => console.error('[Support] Admin notification email failed:', err.message));
+  })
+    .then(() => console.log('[Support] Admin notification email sent'))
+    .catch((err) => console.error('[Support] Admin notification email FAILED:', err.message));
 }
 
 const sendSupportMessage = asyncHandler(async (req, res) => {
