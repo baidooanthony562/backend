@@ -113,6 +113,14 @@ export default function LiveChat() {
               value={message}
               maxLength={MAX_MESSAGE_LEN + 100}
               onChange={(e) => setMessage(e.target.value)}
+              onKeyDown={(e) => {
+                // Enter sends, Shift+Enter inserts a newline — same convention as
+                // Slack, WhatsApp web, etc. so the textarea feels like a chat input.
+                if (e.key === 'Enter' && !e.shiftKey) {
+                  e.preventDefault();
+                  handleSend();
+                }
+              }}
               placeholder={user?.name ? `Hi ${user.name.split(' ')[0]}, how can we help?` : 'Type your question here...'}
               className={`w-full rounded-3xl border p-3 text-sm outline-none focus:border-brand-gold ${overLimit ? 'border-rose-400' : 'border-slate-200'}`}
             />
