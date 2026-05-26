@@ -72,7 +72,10 @@
       "Bash(git --no-pager diff .claude/settings.json)",
       "Bash(curl -s -o /dev/null -w \"GET /api/support/messages: HTTP %{http_code}\\\\n\" https://backend-9m2y.onrender.com/api/support/messages)",
       "Bash(grep -v \":0$\")",
-      "Bash(node --check backend/controllers/orderController.js)"
+      "Bash(node --check backend/controllers/orderController.js)",
+      "Bash(node --check backend/controllers/supportController.js)",
+      "Bash(node --check backend/routes/support.js)",
+      "Bash(node --check backend/models/ChatMessage.js)"
     ]
   }
 }
