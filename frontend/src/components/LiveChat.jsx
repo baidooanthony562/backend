@@ -63,11 +63,19 @@ export default function LiveChat() {
 
       {open && (
         <div className="mt-2 w-[calc(100vw-2rem)] max-w-sm rounded-2xl border border-slate-200 bg-white p-4 shadow-2xl sm:mt-3 sm:rounded-3xl">
-          <div className="mb-3 flex items-center justify-between">
+          <div className="mb-3 flex items-start justify-between gap-3">
             <div>
               <p className="text-base font-semibold text-slate-900">Support</p>
               <p className="text-xs text-slate-500">Typically replies within a few hours.</p>
             </div>
+            <button
+              type="button"
+              onClick={() => setOpen(false)}
+              aria-label="Close support chat"
+              className="-mr-1 -mt-1 inline-flex h-8 w-8 items-center justify-center rounded-full text-slate-400 hover:bg-slate-100 hover:text-slate-700"
+            >
+              <i className="fas fa-times"></i>
+            </button>
           </div>
 
           {/* WhatsApp — fastest path; opens in a new tab with the typed message pre-filled. */}
