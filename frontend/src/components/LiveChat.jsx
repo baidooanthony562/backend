@@ -1,42 +1,64 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { getAuthUser } from '../utils/auth';
-import { sendSupportMessage } from '../utils/api';
+import { sendSupportMessage, fetchMySupportThread } from '../utils/api';
 
 const MAX_MESSAGE_LEN = 2000;
 const WHATSAPP_NUMBER = '233257543723';
 
 export default function LiveChat() {
   const user = getAuthUser();
+  const isSignedIn = Boolean(user);
+
   const [open, setOpen] = useState(false);
   const [message, setMessage] = useState('');
-  const [history, setHistory] = useState([
-    { from: 'agent', text: 'Hi! Need help with an order, review, or product selection? Send a message and we will reply by email — or chat with us instantly on WhatsApp.' },
-  ]);
+  const [thread, setThread] = useState(null); // server-backed conversation for signed-in users
+  const [loadingThread, setLoadingThread] = useState(false);
   const [sending, setSending] = useState(false);
   const [error, setError] = useState('');
+  const scrollerRef = useRef(null);
 
   const trimmed = message.trim();
   const remaining = MAX_MESSAGE_LEN - message.length;
   const overLimit = remaining < 0;
-  const canSend = trimmed.length > 0 && !overLimit && !sending;
+  const canSend = trimmed.length > 0 && !overLimit && !sending && isSignedIn;
+
+  // Fetch the customer's thread when the widget opens, so they see any
+  // replies the admin sent since their last visit.
+  useEffect(() => {
+    if (!open || !isSignedIn) return;
+    let cancelled = false;
+    setLoadingThread(true);
+    fetchMySupportThread()
+      .then((res) => { if (!cancelled) setThread(res.data); })
+      .catch(() => { if (!cancelled) setThread(null); })
+      .finally(() => { if (!cancelled) setLoadingThread(false); });
+    return () => { cancelled = true; };
+  }, [open, isSignedIn]);
+
+  // Auto-scroll to the newest message whenever the thread updates.
+  useEffect(() => {
+    if (scrollerRef.current) {
+      scrollerRef.current.scrollTop = scrollerRef.current.scrollHeight;
+    }
+  }, [thread?.messages?.length, loadingThread]);
 
   const handleSend = async () => {
     if (!canSend) return;
     setSending(true);
     setError('');
-    setHistory((prev) => [...prev, { from: 'user', text: trimmed }]);
-
+    const text = trimmed;
+    // Optimistic — show the customer's message immediately so the UI feels live.
+    setThread((prev) => {
+      const base = prev || { messages: [], status: 'pending' };
+      return { ...base, messages: [...(base.messages || []), { from: 'customer', text, createdAt: new Date().toISOString() }] };
+    });
+    setMessage('');
     try {
-      const { data } = await sendSupportMessage({
-        name: user?.name,
-        email: user?.email,
-        message: trimmed,
-      });
-      setHistory((prev) => [...prev, { from: 'agent', text: data.response }]);
-      setMessage('');
+      const { data } = await sendSupportMessage({ message: text });
+      setThread(data); // replace with server truth (includes _id, ordering, etc.)
     } catch {
       setError('Unable to send right now. Please try WhatsApp or try again in a moment.');
-      setHistory((prev) => [...prev, { from: 'agent', text: 'We could not send your message right now. Please try again later or reach us on WhatsApp.' }]);
     } finally {
       setSending(false);
     }
@@ -47,6 +69,8 @@ export default function LiveChat() {
     const url = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(prefill)}`;
     window.open(url, '_blank', 'noopener,noreferrer');
   };
+
+  const messages = thread?.messages || [];
 
   return (
     <div className="fixed bottom-20 right-4 z-50 sm:bottom-6 sm:right-6">
@@ -78,7 +102,7 @@ export default function LiveChat() {
             </button>
           </div>
 
-          {/* WhatsApp — fastest path; opens in a new tab with the typed message pre-filled. */}
+          {/* WhatsApp — always available, even for signed-out visitors. */}
           <button
             type="button"
             onClick={openWhatsApp}
@@ -88,58 +112,77 @@ export default function LiveChat() {
             Chat on WhatsApp
           </button>
 
-          <div className="mb-3 flex items-center gap-3 text-[11px] uppercase tracking-widest text-slate-400">
-            <span className="h-px flex-1 bg-slate-200"></span>
-            or send a message
-            <span className="h-px flex-1 bg-slate-200"></span>
-          </div>
-
-          <div className="max-h-60 space-y-3 overflow-y-auto pr-2 pb-2 text-sm text-slate-700">
-            {history.map((item, index) => (
-              <div
-                key={`${item.from}-${index}`}
-                className={item.from === 'agent' ? 'rounded-3xl bg-slate-100 p-3' : 'rounded-3xl bg-brand-gold p-3 text-black'}
-              >
-                {item.text}
-              </div>
-            ))}
-          </div>
-
-          {error && <div className="mt-3 rounded-3xl bg-rose-50 p-3 text-sm text-rose-700">{error}</div>}
-
-          <div className="mt-4">
-            <textarea
-              rows="3"
-              value={message}
-              maxLength={MAX_MESSAGE_LEN + 100}
-              onChange={(e) => setMessage(e.target.value)}
-              onKeyDown={(e) => {
-                // Enter sends, Shift+Enter inserts a newline — same convention as
-                // Slack, WhatsApp web, etc. so the textarea feels like a chat input.
-                if (e.key === 'Enter' && !e.shiftKey) {
-                  e.preventDefault();
-                  handleSend();
-                }
-              }}
-              placeholder={user?.name ? `Hi ${user.name.split(' ')[0]}, how can we help?` : 'Type your question here...'}
-              className={`w-full rounded-3xl border p-3 text-sm outline-none focus:border-brand-gold ${overLimit ? 'border-rose-400' : 'border-slate-200'}`}
-            />
-            <div className="mt-1 flex items-center justify-between text-[11px]">
-              <span className={overLimit ? 'text-rose-600' : 'text-slate-400'}>
-                {overLimit ? `${Math.abs(remaining)} over limit` : `${remaining} characters left`}
-              </span>
-              {!user?.email && (
-                <span className="text-slate-400">We will reply on WhatsApp if no email.</span>
-              )}
+          {!isSignedIn ? (
+            <div className="rounded-2xl bg-slate-50 p-4 text-sm text-slate-600">
+              <p className="font-semibold text-slate-800">Sign in to chat with us in-app.</p>
+              <p className="mt-1 text-xs">In-app chat keeps your conversation history with our team. If you'd rather not sign in, message us on WhatsApp above.</p>
+              <Link to="/login" className="mt-3 inline-flex items-center gap-1 rounded-full bg-brand-dark px-4 py-2 text-xs font-semibold text-white hover:bg-slate-800">
+                Sign in <i className="fas fa-arrow-right text-[10px]"></i>
+              </Link>
             </div>
-            <button
-              onClick={handleSend}
-              disabled={!canSend}
-              className="mt-3 w-full rounded-full bg-brand-dark px-4 py-3 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              {sending ? 'Sending…' : 'Send message'}
-            </button>
-          </div>
+          ) : (
+            <>
+              <div className="mb-3 flex items-center gap-3 text-[11px] uppercase tracking-widest text-slate-400">
+                <span className="h-px flex-1 bg-slate-200"></span>
+                or message our team
+                <span className="h-px flex-1 bg-slate-200"></span>
+              </div>
+
+              <div ref={scrollerRef} className="max-h-60 space-y-3 overflow-y-auto pr-2 pb-2 text-sm text-slate-700">
+                {loadingThread ? (
+                  <div className="rounded-3xl bg-slate-100 p-3 text-slate-500">Loading conversation…</div>
+                ) : messages.length === 0 ? (
+                  <div className="rounded-3xl bg-slate-100 p-3">
+                    Hi {user.name?.split(' ')[0] || 'there'} — send us a message about an order, product or anything else. We'll reply right here.
+                  </div>
+                ) : (
+                  messages.map((m, i) => (
+                    <div
+                      key={m._id || `${m.createdAt}-${i}`}
+                      className={m.from === 'admin' ? 'rounded-3xl bg-slate-100 p-3' : 'ml-auto max-w-[85%] rounded-3xl bg-brand-gold p-3 text-black'}
+                    >
+                      <p className="whitespace-pre-wrap">{m.text}</p>
+                      {m.from === 'admin' && (
+                        <p className="mt-1 text-[10px] uppercase tracking-widest text-slate-500">Cindy Nat support</p>
+                      )}
+                    </div>
+                  ))
+                )}
+              </div>
+
+              {error && <div className="mt-3 rounded-3xl bg-rose-50 p-3 text-sm text-rose-700">{error}</div>}
+
+              <div className="mt-4">
+                <textarea
+                  rows="3"
+                  value={message}
+                  maxLength={MAX_MESSAGE_LEN + 100}
+                  onChange={(e) => setMessage(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                      e.preventDefault();
+                      handleSend();
+                    }
+                  }}
+                  placeholder={`Hi ${user.name?.split(' ')[0] || 'there'}, how can we help?`}
+                  className={`w-full rounded-3xl border p-3 text-sm outline-none focus:border-brand-gold ${overLimit ? 'border-rose-400' : 'border-slate-200'}`}
+                />
+                <div className="mt-1 flex items-center justify-between text-[11px]">
+                  <span className={overLimit ? 'text-rose-600' : 'text-slate-400'}>
+                    {overLimit ? `${Math.abs(remaining)} over limit` : `${remaining} characters left`}
+                  </span>
+                  <span className="text-slate-400">Enter to send · Shift+Enter for newline</span>
+                </div>
+                <button
+                  onClick={handleSend}
+                  disabled={!canSend}
+                  className="mt-3 w-full rounded-full bg-brand-dark px-4 py-3 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  {sending ? 'Sending…' : 'Send message'}
+                </button>
+              </div>
+            </>
+          )}
         </div>
       )}
     </div>

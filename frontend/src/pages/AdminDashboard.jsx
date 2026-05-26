@@ -6,6 +6,7 @@ import {
   fetchPromos, createPromoAdmin, deletePromoAdmin,
   adminLogout, fetchAdminSessions, fetchDailySales, adminVerifyUser,
   fetchSupportMessages, setSupportMessageStatus,
+  replySupportMessage, deleteSupportMessage,
 } from '../utils/api';
 import { isAdmin, getAdminToken, getAdminSessionId, logout } from '../utils/auth';
 import { getProducts, saveProducts } from '../utils/productStore';
@@ -89,6 +90,9 @@ export default function AdminDashboard() {
   const [supportMessages, setSupportMessages] = useState([]);
   const [supportLoading, setSupportLoading] = useState(false);
   const [supportFilter, setSupportFilter] = useState('pending'); // 'pending' | 'answered' | 'all'
+  const [expandedSupportId, setExpandedSupportId] = useState(null);
+  const [replyDrafts, setReplyDrafts] = useState({}); // keyed by thread id
+  const [replyingId, setReplyingId] = useState(null);
 
   // Session termination
   const [terminated, setTerminated] = useState(false);
@@ -154,6 +158,35 @@ export default function AdminDashboard() {
     } catch {
       setSupportMessages((prev) => prev.map((m) => m._id === id ? { ...m, status: currentStatus } : m));
       showToast('Could not update message status. Please retry.');
+    }
+  };
+
+  const sendSupportReply = async (id) => {
+    const text = (replyDrafts[id] || '').trim();
+    if (!text || replyingId) return;
+    setReplyingId(id);
+    try {
+      const { data } = await replySupportMessage(id, text);
+      // Server returns the updated thread; replace it in place.
+      setSupportMessages((prev) => prev.map((m) => m._id === id ? data : m));
+      setReplyDrafts((prev) => ({ ...prev, [id]: '' }));
+    } catch {
+      showToast('Could not send reply. Please retry.');
+    } finally {
+      setReplyingId(null);
+    }
+  };
+
+  const removeSupportThread = async (id) => {
+    if (!window.confirm('Delete this support thread? This cannot be undone.')) return;
+    // Optimistic remove — restore if the network call fails.
+    const snapshot = supportMessages;
+    setSupportMessages((prev) => prev.filter((m) => m._id !== id));
+    try {
+      await deleteSupportMessage(id);
+    } catch {
+      setSupportMessages(snapshot);
+      showToast('Could not delete. Please retry.');
     }
   };
 
@@ -1565,10 +1598,19 @@ export default function AdminDashboard() {
                     <div className="space-y-3">
                       {visible.map((m) => {
                         const isAnswered = m.status === 'answered';
-                        const when = new Date(m.createdAt).toLocaleString('en-GH', { dateStyle: 'medium', timeStyle: 'short' });
+                        const when = new Date(m.lastMessageAt || m.createdAt).toLocaleString('en-GH', { dateStyle: 'medium', timeStyle: 'short' });
+                        const isExpanded = expandedSupportId === m._id;
+                        // Threads have a messages[] array; older docs only have the legacy `message` field.
+                        const isThread = Array.isArray(m.messages) && m.messages.length > 0;
+                        const isLegacy = !isThread && Boolean(m.message);
+                        const preview = isThread
+                          ? m.messages[m.messages.length - 1]?.text || ''
+                          : (m.message || '');
+                        const draft = replyDrafts[m._id] || '';
                         return (
-                          <div key={m._id} className={`rounded-lg border bg-white p-4 shadow-sm ${isAnswered ? 'border-slate-200' : 'border-amber-200'}`}>
-                            <div className="flex flex-wrap items-start justify-between gap-3">
+                          <div key={m._id} className={`rounded-lg border bg-white shadow-sm ${isAnswered ? 'border-slate-200' : 'border-amber-200'}`}>
+                            {/* Header */}
+                            <div className="flex flex-wrap items-start justify-between gap-3 p-4">
                               <div className="min-w-0">
                                 <p className="font-semibold text-slate-900">{m.name}</p>
                                 <p className="mt-0.5 text-xs text-slate-500">
@@ -1581,6 +1623,18 @@ export default function AdminDashboard() {
                                   )}
                                   <span className="mx-2 text-slate-300">·</span>
                                   <span>{when}</span>
+                                  {isThread && (
+                                    <>
+                                      <span className="mx-2 text-slate-300">·</span>
+                                      <span>{m.messages.length} message{m.messages.length === 1 ? '' : 's'}</span>
+                                    </>
+                                  )}
+                                  {isLegacy && (
+                                    <>
+                                      <span className="mx-2 text-slate-300">·</span>
+                                      <span className="text-slate-400">legacy</span>
+                                    </>
+                                  )}
                                 </p>
                               </div>
                               <div className="flex items-center gap-2">
@@ -1593,11 +1647,103 @@ export default function AdminDashboard() {
                                 >
                                   Mark {isAnswered ? 'pending' : 'answered'}
                                 </button>
+                                <button
+                                  onClick={() => removeSupportThread(m._id)}
+                                  className="rounded-full bg-rose-50 px-3 py-1 text-xs font-semibold text-rose-700 hover:bg-rose-100"
+                                  title="Delete this thread"
+                                >
+                                  <i className="fas fa-trash"></i>
+                                </button>
                               </div>
                             </div>
-                            <p className="mt-3 whitespace-pre-wrap rounded-lg bg-slate-50 p-3 text-sm text-slate-700">
-                              {m.message}
-                            </p>
+
+                            {/* Body — collapsed shows just the most recent message; expand to see the full thread + reply box. */}
+                            <div className="border-t border-slate-100 p-4 pt-3">
+                              {!isExpanded ? (
+                                <>
+                                  <p className="line-clamp-3 whitespace-pre-wrap rounded-lg bg-slate-50 p-3 text-sm text-slate-700">
+                                    {preview || <span className="text-slate-400">(no message body)</span>}
+                                  </p>
+                                  <button
+                                    onClick={() => setExpandedSupportId(m._id)}
+                                    className="mt-2 text-xs font-semibold text-blue-600 hover:underline"
+                                  >
+                                    {isThread ? 'View conversation & reply' : 'View full message'}
+                                  </button>
+                                </>
+                              ) : (
+                                <>
+                                  <div className="space-y-2">
+                                    {isThread ? (
+                                      m.messages.map((msg, i) => (
+                                        <div
+                                          key={msg._id || `${msg.createdAt}-${i}`}
+                                          className={msg.from === 'admin'
+                                            ? 'ml-auto max-w-[85%] rounded-2xl bg-brand-gold px-3 py-2 text-sm text-black'
+                                            : 'max-w-[85%] rounded-2xl bg-slate-100 px-3 py-2 text-sm text-slate-700'}
+                                        >
+                                          <p className="whitespace-pre-wrap">{msg.text}</p>
+                                          <p className={`mt-1 text-[10px] ${msg.from === 'admin' ? 'text-black/60' : 'text-slate-500'}`}>
+                                            {msg.from === 'admin' ? 'You' : m.name}
+                                            {' · '}
+                                            {new Date(msg.createdAt).toLocaleString('en-GH', { dateStyle: 'short', timeStyle: 'short' })}
+                                          </p>
+                                        </div>
+                                      ))
+                                    ) : (
+                                      <div className="rounded-2xl bg-slate-100 px-3 py-2 text-sm text-slate-700">
+                                        <p className="whitespace-pre-wrap">{m.message || '(no message body)'}</p>
+                                        <p className="mt-1 text-[10px] text-slate-500">Legacy message — delete to clean up the inbox.</p>
+                                      </div>
+                                    )}
+                                  </div>
+
+                                  {isThread ? (
+                                    <div className="mt-3 space-y-2 border-t border-slate-100 pt-3">
+                                      <textarea
+                                        rows="2"
+                                        maxLength={2100}
+                                        value={draft}
+                                        onChange={(e) => setReplyDrafts((prev) => ({ ...prev, [m._id]: e.target.value }))}
+                                        onKeyDown={(e) => {
+                                          if (e.key === 'Enter' && !e.shiftKey) {
+                                            e.preventDefault();
+                                            sendSupportReply(m._id);
+                                          }
+                                        }}
+                                        placeholder="Type your reply…"
+                                        className="w-full rounded-2xl border border-slate-200 p-3 text-sm outline-none focus:border-brand-gold"
+                                      />
+                                      <div className="flex items-center justify-between">
+                                        <span className="text-[11px] text-slate-400">Enter to send · Shift+Enter for newline</span>
+                                        <div className="flex items-center gap-2">
+                                          <button
+                                            onClick={() => setExpandedSupportId(null)}
+                                            className="rounded-full bg-slate-100 px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-200"
+                                          >
+                                            Collapse
+                                          </button>
+                                          <button
+                                            onClick={() => sendSupportReply(m._id)}
+                                            disabled={!draft.trim() || replyingId === m._id}
+                                            className="rounded-full bg-brand-dark px-4 py-1.5 text-xs font-semibold text-white hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
+                                          >
+                                            {replyingId === m._id ? 'Sending…' : 'Send reply'}
+                                          </button>
+                                        </div>
+                                      </div>
+                                    </div>
+                                  ) : (
+                                    <button
+                                      onClick={() => setExpandedSupportId(null)}
+                                      className="mt-3 text-xs font-semibold text-slate-500 hover:text-slate-800"
+                                    >
+                                      Collapse
+                                    </button>
+                                  )}
+                                </>
+                              )}
+                            </div>
                           </div>
                         );
                       })}
