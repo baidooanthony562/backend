@@ -58,10 +58,15 @@ export default function ProductDetail() {
   const [reviewComment, setReviewComment] = useState('');
   const [reviewMessage, setReviewMessage] = useState('');
   const [submittingReview, setSubmittingReview] = useState(false);
+  // Which image in the gallery the hero is currently showing.
+  const [selectedImageIdx, setSelectedImageIdx] = useState(0);
   const token = getToken();
 
   useEffect(() => {
     setLoading(true);
+    // Reset to the first image whenever we navigate to a different product
+    // so the previous product's selection doesn't carry over.
+    setSelectedImageIdx(0);
     fetchProduct(id)
       .then((response) => {
         setProduct(response.data);
@@ -91,7 +96,14 @@ export default function ProductDetail() {
   if (!product) return null;
 
   const productId = product.id || product._id;
-  const productImage = product.images?.[0] || product.image || PLACEHOLDER;
+  // Normalise legacy single-`image` products into the array shape used below.
+  const galleryImages = product.images?.length
+    ? product.images
+    : (product.image ? [product.image] : []);
+  const heroImage = galleryImages[selectedImageIdx] || galleryImages[0] || PLACEHOLDER;
+  // Cart/wishlist actions should always pin the *main* image, not the one
+  // the visitor happened to be previewing — keeps catalogue thumbnails consistent.
+  const productImage = galleryImages[0] || PLACEHOLDER;
   const productCategory = typeof product.category === 'string' ? product.category : product.category?.name || 'Appliances';
 
   const hasWholesale = product.wholesalePrice && product.wholesaleMinQty;
@@ -175,11 +187,34 @@ export default function ProductDetail() {
         <div className="space-y-6">
           <div className="overflow-hidden rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
             <img
-              src={productImage}
+              src={heroImage}
               alt={product.name}
               className="mx-auto h-72 w-full object-contain md:h-96"
               onError={(e) => { e.target.src = PLACEHOLDER; }}
             />
+            {galleryImages.length > 1 && (
+              <div className="mt-4 flex gap-2 overflow-x-auto pb-1">
+                {galleryImages.map((src, i) => (
+                  <button
+                    key={`${i}-${src.slice(-20)}`}
+                    type="button"
+                    onClick={() => setSelectedImageIdx(i)}
+                    aria-label={`View image ${i + 1}`}
+                    aria-pressed={i === selectedImageIdx}
+                    className={`h-16 w-16 shrink-0 overflow-hidden rounded-lg border bg-slate-50 transition ${i === selectedImageIdx ? 'border-brand-gold ring-2 ring-brand-gold/40' : 'border-slate-200 hover:border-slate-400'}`}
+                  >
+                    <img
+                      src={src}
+                      alt=""
+                      loading="lazy"
+                      decoding="async"
+                      className="h-full w-full object-contain"
+                      onError={(e) => { e.target.style.display = 'none'; }}
+                    />
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
 
           <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">

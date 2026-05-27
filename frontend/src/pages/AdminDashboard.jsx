@@ -39,8 +39,9 @@ const ALL_CATEGORIES = [
 const EMPTY = {
   name: '', description: '', price: '', stock: '',
   discount: '0', wholesalePrice: '', wholesaleMinQty: '',
-  category: '', image: '', bestseller: false, restock: '',
+  category: '', images: [], bestseller: false, restock: '',
 };
+const MAX_PRODUCT_IMAGES = 8;
 
 export default function AdminDashboard() {
   const navigate = useNavigate();
@@ -93,6 +94,9 @@ export default function AdminDashboard() {
   const [expandedSupportId, setExpandedSupportId] = useState(null);
   const [replyDrafts, setReplyDrafts] = useState({}); // keyed by thread id
   const [replyingId, setReplyingId] = useState(null);
+
+  // Local-only — what's currently typed in the product image URL field.
+  const [imageUrlDraft, setImageUrlDraft] = useState('');
 
   // Session termination
   const [terminated, setTerminated] = useState(false);
@@ -226,7 +230,9 @@ export default function AdminDashboard() {
       discount: p.discount || 0,
       wholesalePrice: p.wholesalePrice || '',
       wholesaleMinQty: p.wholesaleMinQty || '',
-      image: p.images?.[0] || p.image || '',
+      // Existing products may have used the legacy single `image` field;
+      // normalise to the array shape the form now expects.
+      images: p.images?.length ? [...p.images] : (p.image ? [p.image] : []),
       bestseller: p.bestseller || false,
       restock: '',
     });
@@ -234,12 +240,14 @@ export default function AdminDashboard() {
     setShowForm(true);
   };
 
-  const handleImageFile = (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
+  // Downscale + JPEG-encode a single File to a data URL. Lifted out of the
+  // change handler so a multi-file pick can pipeline through it.
+  const processImageFile = (file) => new Promise((resolve, reject) => {
     const reader = new FileReader();
+    reader.onerror = reject;
     reader.onloadend = () => {
       const img = new Image();
+      img.onerror = reject;
       img.onload = () => {
         const MAX = 800;
         const scale = Math.min(1, MAX / Math.max(img.width, img.height));
@@ -247,11 +255,70 @@ export default function AdminDashboard() {
         canvas.width = Math.round(img.width * scale);
         canvas.height = Math.round(img.height * scale);
         canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
-        setForm((f) => ({ ...f, image: canvas.toDataURL('image/jpeg', 0.8) }));
+        resolve(canvas.toDataURL('image/jpeg', 0.8));
       };
       img.src = reader.result;
     };
     reader.readAsDataURL(file);
+  });
+
+  const handleImageFile = async (e) => {
+    const files = Array.from(e.target.files || []);
+    if (files.length === 0) return;
+    // Stop selecting once we'd exceed the cap — keep what's already in the form.
+    const slotsLeft = MAX_PRODUCT_IMAGES - form.images.length;
+    if (slotsLeft <= 0) {
+      showToast(`Up to ${MAX_PRODUCT_IMAGES} images per product.`);
+      e.target.value = '';
+      return;
+    }
+    const accepted = files.slice(0, slotsLeft);
+    try {
+      const dataUrls = await Promise.all(accepted.map(processImageFile));
+      setForm((f) => ({ ...f, images: [...f.images, ...dataUrls] }));
+      if (files.length > accepted.length) {
+        showToast(`Only added ${accepted.length} — limit is ${MAX_PRODUCT_IMAGES} per product.`);
+      }
+    } catch {
+      showToast('Could not process one of the images. Try again.');
+    } finally {
+      // Allow re-selecting the same file later by clearing the input value.
+      e.target.value = '';
+    }
+  };
+
+  const addImageUrl = (url) => {
+    const trimmed = String(url || '').trim();
+    if (!trimmed) return;
+    if (form.images.length >= MAX_PRODUCT_IMAGES) {
+      showToast(`Up to ${MAX_PRODUCT_IMAGES} images per product.`);
+      return;
+    }
+    try {
+      const { protocol } = new URL(trimmed);
+      if (protocol !== 'https:' && protocol !== 'http:') {
+        showToast('Only http(s) image URLs are allowed.');
+        return;
+      }
+    } catch {
+      showToast('That does not look like a valid URL.');
+      return;
+    }
+    setForm((f) => ({ ...f, images: [...f.images, trimmed] }));
+  };
+
+  const removeImageAt = (index) => {
+    setForm((f) => ({ ...f, images: f.images.filter((_, i) => i !== index) }));
+  };
+
+  const moveImageToFront = (index) => {
+    setForm((f) => {
+      if (index <= 0 || index >= f.images.length) return f;
+      const next = [...f.images];
+      const [picked] = next.splice(index, 1);
+      next.unshift(picked);
+      return { ...f, images: next };
+    });
   };
 
   const handleSave = async (e) => {
@@ -269,7 +336,7 @@ export default function AdminDashboard() {
         discount: Number(form.discount),
         wholesalePrice: form.wholesalePrice ? Number(form.wholesalePrice) : 0,
         wholesaleMinQty: form.wholesaleMinQty ? Number(form.wholesaleMinQty) : 0,
-        images: form.image ? [form.image] : [],
+        images: form.images,
       };
 
       if (editing) {
@@ -840,55 +907,85 @@ export default function AdminDashboard() {
 
                         {/* Image upload section */}
                         <div>
-                          <label className="mb-1.5 block text-xs font-semibold text-slate-600">Product Image</label>
-                          <div className="space-y-2">
-                            {/* File upload button */}
+                          <div className="mb-1.5 flex items-center justify-between">
+                            <label className="block text-xs font-semibold text-slate-600">Product Images</label>
+                            <span className="text-[11px] text-slate-400">{form.images.length} / {MAX_PRODUCT_IMAGES} · first is the main thumbnail</span>
+                          </div>
+                          <div className="space-y-3">
+                            {/* File upload button — supports multiple selection */}
                             <button
                               type="button"
                               onClick={() => fileRef.current?.click()}
-                              className="flex w-full items-center justify-center gap-2 rounded-lg border-2 border-dashed border-slate-300 py-3 text-sm text-slate-500 transition hover:border-brand-gold hover:text-slate-800"
+                              disabled={form.images.length >= MAX_PRODUCT_IMAGES}
+                              className="flex w-full items-center justify-center gap-2 rounded-lg border-2 border-dashed border-slate-300 py-3 text-sm text-slate-500 transition hover:border-brand-gold hover:text-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
                             >
-                              <i className="fas fa-folder-open mr-2"></i> Upload photo from your device
+                              <i className="fas fa-folder-open mr-2"></i>
+                              {form.images.length === 0 ? 'Upload photos from your device' : 'Add more photos'}
                             </button>
-                            <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handleImageFile} />
+                            <input ref={fileRef} type="file" accept="image/*" multiple className="hidden" onChange={handleImageFile} />
 
                             <div className="flex items-center gap-2 text-xs text-slate-400">
                               <hr className="flex-1 border-slate-200" /> or paste image URL <hr className="flex-1 border-slate-200" />
                             </div>
 
-                            <input
-                              value={form.image.startsWith('data:') ? '' : form.image}
-                              onChange={(e) => {
-                                const url = e.target.value;
-                                // Block dangerous protocols (javascript:, data:text/html, etc.)
-                                try {
-                                  if (url && !url.startsWith('data:image/')) {
-                                    const { protocol } = new URL(url);
-                                    if (protocol !== 'https:' && protocol !== 'http:') return;
+                            <div className="flex gap-2">
+                              <input
+                                value={imageUrlDraft}
+                                onChange={(e) => setImageUrlDraft(e.target.value)}
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Enter') {
+                                    e.preventDefault();
+                                    addImageUrl(imageUrlDraft);
+                                    setImageUrlDraft('');
                                   }
-                                } catch { /* not a full URL yet, allow typing */ }
-                                setForm({ ...form, image: url });
-                              }}
-                              placeholder="https://example.com/image.jpg"
-                              className="w-full rounded-lg border px-3 py-2 text-sm outline-none focus:border-brand-gold"
-                            />
+                                }}
+                                placeholder="https://example.com/image.jpg"
+                                className="flex-1 rounded-lg border px-3 py-2 text-sm outline-none focus:border-brand-gold"
+                              />
+                              <button
+                                type="button"
+                                onClick={() => { addImageUrl(imageUrlDraft); setImageUrlDraft(''); }}
+                                disabled={!imageUrlDraft.trim() || form.images.length >= MAX_PRODUCT_IMAGES}
+                                className="rounded-lg bg-slate-100 px-4 text-sm font-semibold text-slate-700 hover:bg-slate-200 disabled:cursor-not-allowed disabled:opacity-60"
+                              >
+                                Add
+                              </button>
+                            </div>
 
-                            {/* Image preview */}
-                            {form.image && (
-                              <div className="relative">
-                                <img
-                                  src={form.image}
-                                  alt="Preview"
-                                  className="h-36 w-full rounded-lg border object-contain bg-slate-50"
-                                  onError={(e) => { e.target.style.display = 'none'; }}
-                                />
-                                <button
-                                  type="button"
-                                  onClick={() => setForm({ ...form, image: '' })}
-                                  className="absolute right-2 top-2 rounded-full bg-red-500 px-2 py-0.5 text-xs font-bold text-white hover:bg-red-600"
-                                >
-                                  <i className="fas fa-times mr-1"></i> Remove
-                                </button>
+                            {/* Preview grid — first image badged as "Main", click any other to promote it. */}
+                            {form.images.length > 0 && (
+                              <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
+                                {form.images.map((src, i) => (
+                                  <div key={`${i}-${src.slice(-20)}`} className={`group relative aspect-square overflow-hidden rounded-lg border ${i === 0 ? 'border-brand-gold ring-1 ring-brand-gold/40' : 'border-slate-200'} bg-slate-50`}>
+                                    <img
+                                      src={src}
+                                      alt={`Preview ${i + 1}`}
+                                      className="h-full w-full object-contain"
+                                      onError={(e) => { e.target.style.display = 'none'; }}
+                                    />
+                                    {i === 0 && (
+                                      <span className="absolute left-1.5 top-1.5 rounded-full bg-brand-gold px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-black">Main</span>
+                                    )}
+                                    <button
+                                      type="button"
+                                      onClick={() => removeImageAt(i)}
+                                      title="Remove"
+                                      className="absolute right-1.5 top-1.5 inline-flex h-6 w-6 items-center justify-center rounded-full bg-rose-500 text-xs font-bold text-white opacity-90 hover:bg-rose-600"
+                                    >
+                                      <i className="fas fa-times"></i>
+                                    </button>
+                                    {i !== 0 && (
+                                      <button
+                                        type="button"
+                                        onClick={() => moveImageToFront(i)}
+                                        title="Make this the main image"
+                                        className="absolute bottom-1.5 left-1.5 rounded-full bg-slate-900/80 px-2 py-0.5 text-[10px] font-semibold text-white opacity-0 transition group-hover:opacity-100"
+                                      >
+                                        Set main
+                                      </button>
+                                    )}
+                                  </div>
+                                ))}
                               </div>
                             )}
                           </div>
