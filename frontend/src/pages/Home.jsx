@@ -27,7 +27,7 @@ const SLIDES = [
   {
     badge: 'New Arrivals',
     headline: ['Fresh Stock', 'Just Landed'],
-    sub: 'Discover the latest from Binatone, Philips, Kenwood, Scanfrost & more.',
+    sub: 'Discover the latest from Binatone, Philips, Kenwood, Hoffmans, SilverCrest & more.',
     cta1: { label: 'See New Arrivals', to: '/shop?sort=newest' },
     cta2: { label: 'All Categories', to: '/shop' },
     accent: '#34d399',
@@ -44,7 +44,7 @@ const SLIDES = [
   },
 ];
 
-const BRANDS = ['Binatone', 'Philips', 'Kenwood', 'Scanfrost', 'Panasonic', 'Tefal', 'Bosch', 'Lontor'];
+const BRANDS = ['Binatone', 'Philips', 'Kenwood', 'Tefal', 'Hoffmans', 'Centronic', 'SilverCrest', 'Avinas', 'Minimax', 'Sovio', 'Raff', 'Bardefu'];
 
 export default function Home() {
   const [featured, setFeatured] = useState([]);
