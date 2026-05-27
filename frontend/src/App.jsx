@@ -1,9 +1,11 @@
-import { Routes, Route } from 'react-router-dom';
+import { useEffect } from 'react';
+import { Routes, Route, useLocation, useNavigate } from 'react-router-dom';
 import NavBar from './components/NavBar';
 import Footer from './components/Footer';
 import LiveChat from './components/LiveChat';
-import Toast from './components/Toast';
+import Toast, { showToast } from './components/Toast';
 import { ProtectedRoute, AdminRoute } from './components/ProtectedRoute';
+import { isAdmin } from './utils/auth';
 import Home from './pages/Home';
 import Shop from './pages/Shop';
 import ProductDetail from './pages/ProductDetail';
@@ -23,10 +25,27 @@ import PaymentVerify from './pages/PaymentVerify';
 import NotFound from './pages/NotFound';
 
 function App() {
+  const location = useLocation();
+  const navigate = useNavigate();
+  // Match /admin and any /admin/<rest> path, but not a stray /adminsomething typo.
+  const isAdminArea = location.pathname === '/admin' || location.pathname.startsWith('/admin/');
+  const adminSignedIn = isAdmin();
+
+  // Hard separation: while signed in as admin, the customer site is off
+  // limits. Avoids the dual-identity footgun where an admin could place
+  // test orders, leave items in their own cart, or see UI states that
+  // don't apply to them. To browse as a customer, sign out of admin first.
+  useEffect(() => {
+    if (adminSignedIn && !isAdminArea) {
+      showToast('Sign out of admin to browse the customer site.');
+      navigate('/admin', { replace: true });
+    }
+  }, [adminSignedIn, isAdminArea, location.pathname, navigate]);
+
   return (
     <div className="min-h-screen bg-white text-slate-900">
-      <NavBar />
-      <main className="pt-16 md:pt-28">
+      {!isAdminArea && <NavBar />}
+      <main className={isAdminArea ? '' : 'pt-16 md:pt-28'}>
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/shop" element={<Shop />} />
@@ -47,11 +66,11 @@ function App() {
           <Route path="*" element={<NotFound />} />
         </Routes>
       </main>
-      <Footer />
-      <LiveChat />
+      {!isAdminArea && <Footer />}
+      {!isAdminArea && <LiveChat />}
       <Toast />
     </div>
-  );                                                                    
+  );
 }
 
 export default App;
