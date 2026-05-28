@@ -16,6 +16,18 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
+      - name: Install mongodb-database-tools
+        run: |
+          set -euo pipefail
+          # Use the official MongoDB binary tarball — avoids Docker volume
+          # permission issues we hit with the mongo:7 image, and the tools
+          # are not preinstalled on the GitHub runner.
+          TOOLS_VERSION=100.11.0
+          curl -fsSL "https://fastdl.mongodb.org/tools/db/mongodb-database-tools-ubuntu2204-x86_64-${TOOLS_VERSION}.tgz" -o /tmp/mtools.tgz
+          tar -xzf /tmp/mtools.tgz -C /tmp
+          sudo cp /tmp/mongodb-database-tools-*/bin/mongodump /usr/local/bin/
+          mongodump --version
+
       - name: Run mongodump
         env:
           MONGO_URI: ${{ secrets.MONGO_URI }}
@@ -25,16 +37,8 @@ jobs:
             echo "::error::MONGO_URI secret is not set on this repo. Add it under Settings → Secrets and variables → Actions."
             exit 1
           fi
-          # Use the official mongo image so we always get a mongodump version
-          # that matches modern Atlas clusters, without installing tools on
-          # the runner. The container runs as uid 999 (mongodb) by default,
-          # so the bind-mounted host directory must be writable by it —
-          # easiest fix is chmod 777 since the directory is throwaway and
-          # the runner is single-tenant.
           mkdir -p backup
-          chmod 777 backup
-          docker run --rm -v "$PWD/backup:/backup" mongo:7 \
-            mongodump --uri="$MONGO_URI" --out=/backup --gzip
+          mongodump --uri="$MONGO_URI" --out=backup --gzip
           ls -lah backup
 
       - name: Archive dump
@@ -43,7 +47,6 @@ jobs:
           STAMP=$(date -u +'%Y-%m-%d')
           tar -czf "mongo-backup-${STAMP}.tar.gz" -C backup .
           ls -lah "mongo-backup-${STAMP}.tar.gz"
-          # Expose stamp to later steps so the artifact name matches.
           echo "STAMP=${STAMP}" >> "$GITHUB_ENV"
 
       - name: Upload artifact
