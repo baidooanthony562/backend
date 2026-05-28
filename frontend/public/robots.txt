@@ -1,0 +1,15 @@
+User-agent: *
+Allow: /
+
+# Don't waste crawl budget on auth flows or per-user pages
+Disallow: /login
+Disallow: /register
+Disallow: /forgot-password
+Disallow: /dashboard
+Disallow: /orders
+Disallow: /order-confirmation
+Disallow: /payment
+Disallow: /admin
+
+# Tell crawlers where the full URL list lives
+Sitemap: https://backend-alpha-seven-54.vercel.app/sitemap.xml

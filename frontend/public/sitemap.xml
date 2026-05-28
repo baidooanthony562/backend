@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Cindy Nat Enterprise sitemap. Lists top-level pages crawlers should
+  index. Product pages are discovered by following links from /shop,
+  so listing every product here is not strictly required.
+
+  When the custom domain is wired up (e.g. cindynat.com), update every
+  `https://backend-alpha-seven-54.vercel.app` URL below and the one in
+  robots.txt to the new origin.
+-->
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url>
+    <loc>https://backend-alpha-seven-54.vercel.app/</loc>
+    <changefreq>weekly</changefreq>
+    <priority>1.0</priority>
+  </url>
+  <url>
+    <loc>https://backend-alpha-seven-54.vercel.app/shop</loc>
+    <changefreq>daily</changefreq>
+    <priority>0.9</priority>
+  </url>
+  <url>
+    <loc>https://backend-alpha-seven-54.vercel.app/cart</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.3</priority>
+  </url>
+  <url>
+    <loc>https://backend-alpha-seven-54.vercel.app/privacy-policy</loc>
+    <changefreq>yearly</changefreq>
+    <priority>0.2</priority>
+  </url>
+  <url>
+    <loc>https://backend-alpha-seven-54.vercel.app/terms</loc>
+    <changefreq>yearly</changefreq>
+    <priority>0.2</priority>
+  </url>
+</urlset>
