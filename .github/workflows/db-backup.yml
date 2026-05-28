@@ -1,0 +1,53 @@
+name: Weekly MongoDB backup
+
+on:
+  # Every Sunday at 02:00 UTC (= 02:00 Africa/Accra). Off-hours so the
+  # snapshot doesn't compete with live traffic for connection slots.
+  schedule:
+    - cron: '0 2 * * 0'
+  # Lets you trigger a fresh backup on demand from the Actions tab.
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Run mongodump
+        env:
+          MONGO_URI: ${{ secrets.MONGO_URI }}
+        run: |
+          set -euo pipefail
+          if [ -z "${MONGO_URI:-}" ]; then
+            echo "::error::MONGO_URI secret is not set on this repo. Add it under Settings → Secrets and variables → Actions."
+            exit 1
+          fi
+          # Use the official mongo image so we always get a mongodump version
+          # that matches modern Atlas clusters, without installing tools on
+          # the runner.
+          mkdir -p backup
+          docker run --rm -v "$PWD/backup:/backup" mongo:7 \
+            mongodump --uri="$MONGO_URI" --out=/backup --gzip
+          ls -lah backup
+
+      - name: Archive dump
+        run: |
+          set -euo pipefail
+          STAMP=$(date -u +'%Y-%m-%d')
+          tar -czf "mongo-backup-${STAMP}.tar.gz" -C backup .
+          ls -lah "mongo-backup-${STAMP}.tar.gz"
+          # Expose stamp to later steps so the artifact name matches.
+          echo "STAMP=${STAMP}" >> "$GITHUB_ENV"
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          # Retained for 90 days (free-tier max). Download from the Actions
+          # run summary if you need to mongorestore.
+          name: mongo-backup-${{ env.STAMP }}
+          path: mongo-backup-${{ env.STAMP }}.tar.gz
+          retention-days: 90
+          if-no-files-found: error
