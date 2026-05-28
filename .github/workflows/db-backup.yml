@@ -42,19 +42,22 @@ jobs:
           ls -lah backup
 
       - name: Archive dump
+        id: archive
         run: |
           set -euo pipefail
           STAMP=$(date -u +'%Y-%m-%d')
           tar -czf "mongo-backup-${STAMP}.tar.gz" -C backup .
           ls -lah "mongo-backup-${STAMP}.tar.gz"
-          echo "STAMP=${STAMP}" >> "$GITHUB_ENV"
+          # Step output (vs env) so the upload step can reference it without
+          # tripping the editor's "context access might be invalid" warning.
+          echo "stamp=${STAMP}" >> "$GITHUB_OUTPUT"
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           # Retained for 90 days (free-tier max). Download from the Actions
           # run summary if you need to mongorestore.
-          name: mongo-backup-${{ env.STAMP }}
-          path: mongo-backup-${{ env.STAMP }}.tar.gz
+          name: mongo-backup-${{ steps.archive.outputs.stamp }}
+          path: mongo-backup-${{ steps.archive.outputs.stamp }}.tar.gz
           retention-days: 90
           if-no-files-found: error
