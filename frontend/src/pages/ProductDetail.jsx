@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { Helmet } from 'react-helmet-async';
 import { fetchProduct, submitReview } from '../utils/api';
 import { getToken, isAuthenticated } from '../utils/auth';
 import { getProducts } from '../utils/productStore';
@@ -179,8 +180,56 @@ export default function ProductDetail() {
     }
   };
 
+  // Per-product meta — drives the page title, search engine snippet and the
+  // preview shown when someone shares the link on WhatsApp / Facebook.
+  const metaTitle = `${product.name} | Cindy Nat Enterprise`;
+  const rawDescription = (product.description || '').trim() || `Buy ${product.name} from Cindy Nat Enterprise — fast delivery across Kumasi, Ghana.`;
+  const metaDescription = rawDescription.length > 160
+    ? `${rawDescription.slice(0, 157)}...`
+    : rawDescription;
+  const canonicalUrl = `https://backend-alpha-seven-54.vercel.app/product/${productId}`;
+  const productSchema = {
+    '@context': 'https://schema.org/',
+    '@type': 'Product',
+    name: product.name,
+    description: rawDescription,
+    image: galleryImages.length ? galleryImages : [PLACEHOLDER],
+    sku: String(productId).slice(-8).toUpperCase(),
+    brand: { '@type': 'Brand', name: 'Cindy Nat Enterprise' },
+    offers: {
+      '@type': 'Offer',
+      url: canonicalUrl,
+      priceCurrency: 'GHS',
+      price: Number(product.price || 0).toFixed(2),
+      availability: inStock ? 'https://schema.org/InStock' : 'https://schema.org/OutOfStock',
+    },
+    ...(product.rating && {
+      aggregateRating: {
+        '@type': 'AggregateRating',
+        ratingValue: Number(product.rating).toFixed(1),
+        reviewCount: product.reviews?.length || 1,
+      },
+    }),
+  };
+
   return (
     <section className="mx-auto max-w-6xl px-4 pb-24 pt-8 md:px-8">
+      <Helmet>
+        <title>{metaTitle}</title>
+        <meta name="description" content={metaDescription} />
+        <link rel="canonical" href={canonicalUrl} />
+        <meta property="og:type" content="product" />
+        <meta property="og:title" content={metaTitle} />
+        <meta property="og:description" content={metaDescription} />
+        <meta property="og:url" content={canonicalUrl} />
+        <meta property="og:image" content={heroImage} />
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:title" content={metaTitle} />
+        <meta name="twitter:description" content={metaDescription} />
+        <meta name="twitter:image" content={heroImage} />
+        {/* JSON-LD: lets Google show a price/stock/rating card in search results. */}
+        <script type="application/ld+json">{JSON.stringify(productSchema)}</script>
+      </Helmet>
       <div className="grid gap-8 lg:grid-cols-[1fr_420px]">
 
         {/* Left — Image + Description */}
