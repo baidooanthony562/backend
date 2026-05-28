@@ -18,10 +18,30 @@ if (import.meta.env.VITE_SENTRY_DSN) {
   });
 }
 
+// Load Google Analytics 4 only when the measurement ID is set, so local
+// development never sends events to the production property. GA4's
+// "Enhanced Measurement" auto-tracks SPA route changes, so we don't need
+// to manually fire page_view on every navigation.
+const GA_ID = import.meta.env.VITE_GA_MEASUREMENT_ID;
+if (GA_ID) {
+  const script = document.createElement('script');
+  script.src = `https://www.googletagmanager.com/gtag/js?id=${GA_ID}`;
+  script.async = true;
+  document.head.appendChild(script);
+
+  window.dataLayer = window.dataLayer || [];
+  function gtag() { window.dataLayer.push(arguments); }
+  window.gtag = gtag;
+  gtag('js', new Date());
+  gtag('config', GA_ID);
+}
+
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
-    <BrowserRouter>
-      <App />
-    </BrowserRouter>
+    <HelmetProvider>
+      <BrowserRouter>
+        <App />
+      </BrowserRouter>
+    </HelmetProvider>
   </React.StrictMode>
 );
