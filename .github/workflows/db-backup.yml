@@ -27,8 +27,12 @@ jobs:
           fi
           # Use the official mongo image so we always get a mongodump version
           # that matches modern Atlas clusters, without installing tools on
-          # the runner.
+          # the runner. The container runs as uid 999 (mongodb) by default,
+          # so the bind-mounted host directory must be writable by it —
+          # easiest fix is chmod 777 since the directory is throwaway and
+          # the runner is single-tenant.
           mkdir -p backup
+          chmod 777 backup
           docker run --rm -v "$PWD/backup:/backup" mongo:7 \
             mongodump --uri="$MONGO_URI" --out=/backup --gzip
           ls -lah backup
