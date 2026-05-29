@@ -1,4 +1,12 @@
-import { featuredProducts as staticProducts } from '../data/products';
+// Lightweight client cache for the admin-managed product list. Used so the
+// catalogue, admin grid and detail page can render instantly from the
+// last-seen-good list while the backend re-fetches.
+//
+// IMPORTANT: this no longer falls back to a hardcoded sample catalogue when
+// the cache is empty. Showing fake products to a real shopper (which is
+// exactly what happened when the backend was slow on first visit) would let
+// them try to buy items we do not actually sell. An empty list lets the
+// calling page render its own "loading" / "no products yet" state.
 
 const KEY = 'cindy_products';
 const EVENT = 'cindyProductsChanged';
@@ -11,7 +19,7 @@ export function getProducts() {
       if (Array.isArray(parsed) && parsed.length > 0) return parsed;
     }
   } catch {}
-  return staticProducts;
+  return [];
 }
 
 export function saveProducts(products) {
