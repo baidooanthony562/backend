@@ -75,7 +75,10 @@
       "Bash(node --check backend/controllers/orderController.js)",
       "Bash(node --check backend/controllers/supportController.js)",
       "Bash(node --check backend/routes/support.js)",
-      "Bash(node --check backend/models/ChatMessage.js)"
+      "Bash(node --check backend/models/ChatMessage.js)",
+      "Bash(curl -sL https://backend-alpha-seven-54.vercel.app/)",
+      "Bash(curl -sL \"https://backend-alpha-seven-54.vercel.app/assets/index-CyO3Osbu.js\")",
+      "Bash(curl -sL \"https://backend-alpha-seven-54.vercel.app/?nocache=$\\(date +%s\\)\" -H \"Cache-Control: no-cache\")"
     ]
   }
 }
