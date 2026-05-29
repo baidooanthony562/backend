@@ -18,13 +18,14 @@ if (import.meta.env.VITE_SENTRY_DSN) {
   });
 }
 
-// Load Google Analytics 4 only when the measurement ID is set, so local
-// development never sends events to the production property. GA4's
-// "Enhanced Measurement" auto-tracks SPA route changes, so we don't need
-// to manually fire page_view on every navigation.
-// (Touching this file ensures Vite rebuilds and re-reads the env var
-//  instead of serving a cached bundle that pre-dates the var being set.)
-const GA_ID = import.meta.env.VITE_GA_MEASUREMENT_ID;
+// Load Google Analytics 4 in production. Prefers the VITE_GA_MEASUREMENT_ID
+// env var so the value can be swapped per environment without a redeploy,
+// but falls back to the hardcoded ID below so we are not blocked when the
+// env var is missing or fails to reach the Vercel build. GA4's "Enhanced
+// Measurement" auto-tracks SPA route changes, so we don't fire page_view
+// manually on every navigation.
+const GA_ID = import.meta.env.VITE_GA_MEASUREMENT_ID
+  || (import.meta.env.PROD ? 'G-QPQKVEKQ7Z' : '');
 if (GA_ID) {
   const script = document.createElement('script');
   script.src = `https://www.googletagmanager.com/gtag/js?id=${GA_ID}`;
