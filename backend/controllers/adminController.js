@@ -153,6 +153,13 @@ const getAdminSessions = asyncHandler(async (req, res) => {
   res.json(sessions);
 });
 
+// NOTE: There is intentionally no endpoint to mutate or delete an admin
+// session record. The log is an append-only audit trail — if a malicious
+// actor (or anyone with stolen admin creds) could mark sessions as ended
+// or remove them, they could cover their tracks after unauthorized access.
+// Sessions that never got a clean logout simply show as "Stale" in the UI
+// based on their age; the underlying record stays intact.
+
 const getDailySales = asyncHandler(async (req, res) => {
   const days = Math.min(parseInt(req.query.days) || 30, 90);
   const since = new Date();

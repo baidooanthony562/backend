@@ -828,10 +828,20 @@ export default function AdminDashboard() {
                         </thead>
                         <tbody className="divide-y">
                           {sessions.map((s) => {
-                            const active = !s.logoutAt;
+                            // A session is only treated as "Active" if it has no logoutAt
+                            // AND login was within the last 12 hours. Older open sessions
+                            // are almost certainly ghosts from a tab close where the
+                            // logout beacon never reached the server, so they get marked
+                            // "Stale" instead — same shape, different colour, so the log
+                            // stops looking like there are admins online when there are not.
+                            const STALE_AFTER_MS = 12 * 60 * 60 * 1000;
+                            const openSession = !s.logoutAt;
+                            const ageMs = now - new Date(s.loginAt).getTime();
+                            const active = openSession && ageMs < STALE_AFTER_MS;
+                            const stale = openSession && ageMs >= STALE_AFTER_MS;
                             const dur = duration(s.loginAt, s.logoutAt);
                             return (
-                              <tr key={s._id} className={active ? 'bg-green-50' : ''}>
+                              <tr key={s._id} className={active ? 'bg-green-50' : stale ? 'bg-amber-50' : ''}>
                                 <td className="py-3 pr-4 font-medium text-slate-800">{s.email}</td>
                                 <td className="py-3 pr-4 text-slate-600">
                                   <span className="block text-slate-800">{formatSessionTime(s.loginAt)}</span>
@@ -847,8 +857,15 @@ export default function AdminDashboard() {
                                 </td>
                                 <td className="py-3 pr-4 text-slate-600">{dur || '—'}</td>
                                 <td className="py-3">
-                                  <span className={`rounded-full px-2 py-1 text-xs font-semibold ${active ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-600'}`}>
-                                    {active ? '● Active' : 'Ended'}
+                                  <span
+                                    className={`rounded-full px-2 py-1 text-xs font-semibold ${
+                                      active ? 'bg-green-100 text-green-700'
+                                      : stale ? 'bg-amber-100 text-amber-700'
+                                      : 'bg-slate-100 text-slate-600'
+                                    }`}
+                                    title={stale ? 'Tab probably closed without a clean logout — JWT may still be valid until its 7-day expiry.' : undefined}
+                                  >
+                                    {active ? '● Active' : stale ? 'Stale' : 'Ended'}
                                   </span>
                                 </td>
                               </tr>
