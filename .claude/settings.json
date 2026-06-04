@@ -80,7 +80,8 @@
       "Bash(curl -sL \"https://backend-alpha-seven-54.vercel.app/assets/index-CyO3Osbu.js\")",
       "Bash(curl -sL \"https://backend-alpha-seven-54.vercel.app/?nocache=$\\(date +%s\\)\" -H \"Cache-Control: no-cache\")",
       "Bash(node --check backend/controllers/adminController.js)",
-      "Bash(node --check backend/routes/admin.js)"
+      "Bash(node --check backend/routes/admin.js)",
+      "Bash(node scripts/inspect-db.mjs)"
     ]
   }
 }
