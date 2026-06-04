@@ -5,15 +5,14 @@ import { readCart, writeCart } from '../utils/cart';
 
 const PLACEHOLDER = 'https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?auto=format&fit=crop&w=800&q=80';
 
-function starCount(rating) {
-  const seed = Math.round((rating || 4.5) * 37);
-  return 100 + (seed * 17 + 43) % 900;
-}
-
-function StarRating({ rating }) {
+// Star row. Reviews count is shown only when there are real reviews on the
+// product — previously a deterministic but fabricated number (100–1000) was
+// displayed alongside the rating, which looked legitimate to shoppers but
+// did not reflect any actual feedback. For a brand-new store that is
+// misleading, so the count is suppressed until real review data exists.
+function StarRating({ rating, reviewCount }) {
   const full = Math.floor(rating || 0);
   const half = (rating || 0) - full >= 0.5;
-  const count = starCount(rating);
   return (
     <div className="flex items-center gap-1">
       <div className="flex">
@@ -23,7 +22,9 @@ function StarRating({ rating }) {
           </svg>
         ))}
       </div>
-      <span className="text-xs text-[#007185]">{count}</span>
+      {reviewCount > 0 && (
+        <span className="text-xs text-[#007185]">({reviewCount})</span>
+      )}
     </div>
   );
 }
@@ -80,7 +81,7 @@ export default function ProductCard({ product }) {
   };
 
   return (
-    <div className="group flex flex-col bg-white border border-slate-200 hover:shadow-md transition rounded overflow-hidden">
+    <div className="group flex flex-col overflow-hidden rounded-lg border border-slate-200 bg-white transition duration-200 ease-out hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-md">
       {/* Image */}
       <Link to={`/product/${productId}`} className="relative block bg-slate-50 p-2">
         {discount > 0 && !isWholesaleQty && (
@@ -116,12 +117,12 @@ export default function ProductCard({ product }) {
       </Link>
 
       {/* Info */}
-      <div className="flex flex-1 flex-col gap-1 p-2">
+      <div className="flex flex-1 flex-col gap-1.5 p-3">
         <Link to={`/product/${productId}`}>
           <h3 className="text-xs font-medium leading-snug text-slate-900 hover:text-[#C7511F] line-clamp-2 sm:text-sm">{product.name}</h3>
         </Link>
 
-        <StarRating rating={product.rating} />
+        <StarRating rating={product.rating} reviewCount={Array.isArray(product.reviews) ? product.reviews.length : 0} />
 
         {/* Price */}
         <div className="mt-0.5">
@@ -155,7 +156,7 @@ export default function ProductCard({ product }) {
         <button
           onClick={addToCart}
           disabled={!inStock}
-          className={`mt-1 w-full rounded-full py-2.5 text-xs font-semibold transition active:scale-95 disabled:cursor-not-allowed disabled:opacity-50 sm:text-sm ${
+          className={`mt-1 w-full rounded-full py-2.5 text-xs font-semibold transition duration-200 ease-out active:scale-95 disabled:cursor-not-allowed disabled:opacity-50 sm:text-sm ${
             isWholesaleQty ? 'bg-emerald-600 text-white hover:bg-emerald-700' : 'bg-brand-gold text-slate-900 hover:bg-yellow-400'
           }`}
         >

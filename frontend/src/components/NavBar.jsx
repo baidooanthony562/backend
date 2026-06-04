@@ -60,7 +60,7 @@ export default function NavBar() {
         <div className="mx-auto flex max-w-7xl items-center gap-2 sm:gap-3">
 
           {/* Logo */}
-          <Link to="/" className="flex shrink-0 items-center gap-1.5 rounded border-2 border-transparent px-1 py-1 hover:border-white">
+          <Link to="/" className="flex shrink-0 items-center gap-1.5 rounded transition duration-150 hover:bg-white/10 border border-transparent px-1 py-1">
             <span className="flex h-8 w-8 items-center justify-center rounded bg-brand-gold text-xs font-extrabold text-black">CN</span>
             <div className="hidden sm:block">
               <p className="text-sm font-bold leading-none text-white">Cindy Nat</p>
@@ -69,7 +69,7 @@ export default function NavBar() {
           </Link>
 
           {/* Deliver to */}
-          <Link to="/dashboard" className="hidden shrink-0 items-center gap-1 rounded border-2 border-transparent px-1 hover:border-white lg:flex">
+          <Link to="/dashboard" className="hidden shrink-0 items-center gap-1 rounded transition duration-150 hover:bg-white/10 border border-transparent px-1 lg:flex">
             <i className="fas fa-map-marker-alt text-brand-gold"></i>
             <div>
               <p className="text-xs text-slate-400">Deliver to</p>
@@ -104,10 +104,10 @@ export default function NavBar() {
           </form>
 
           {/* Account */}
-          <div className="group relative hidden shrink-0 cursor-pointer rounded border-2 border-transparent px-2 py-1 hover:border-white md:block">
+          <div className="group relative hidden shrink-0 cursor-pointer rounded transition duration-150 hover:bg-white/10 border border-transparent px-2 py-1 md:block">
             <p className="text-xs text-slate-400">{authenticated ? `Hello, ${user?.name?.split(' ')[0] || 'User'}` : 'Hello, sign in'}</p>
             <p className="text-sm font-bold text-white">Account & Lists</p>
-            <div className="absolute right-0 top-full hidden min-w-[180px] rounded-lg border border-slate-200 bg-white py-2 shadow-xl group-hover:block">
+            <div className="invisible absolute right-0 top-full min-w-[180px] -translate-y-1 rounded-lg border border-slate-200 bg-white py-2 opacity-0 shadow-xl transition duration-150 ease-out group-hover:visible group-hover:translate-y-0 group-hover:opacity-100">
               {authenticated ? (
                 <>
                   <Link to="/dashboard" className="block px-4 py-2 text-sm text-slate-700 hover:bg-slate-50">My Account</Link>
@@ -125,13 +125,13 @@ export default function NavBar() {
           </div>
 
           {/* Orders */}
-          <Link to="/orders" className="hidden shrink-0 items-center rounded border-2 border-transparent px-2 py-1 hover:border-white md:block">
+          <Link to="/orders" className="hidden shrink-0 items-center rounded transition duration-150 hover:bg-white/10 border border-transparent px-2 py-1 md:block">
             <p className="text-xs text-slate-400">Returns</p>
             <p className="text-sm font-bold text-white">& Orders</p>
           </Link>
 
           {/* Cart */}
-          <Link to="/cart" className="relative flex shrink-0 items-center gap-1 rounded border-2 border-transparent px-2 py-1 hover:border-white">
+          <Link to="/cart" className="relative flex shrink-0 items-center gap-1 rounded transition duration-150 hover:bg-white/10 border border-transparent px-2 py-1">
             <div className="relative">
               <svg className="h-8 w-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
@@ -144,14 +144,14 @@ export default function NavBar() {
           </Link>
 
           {/* Mobile: quick account link */}
-          <Link to={authenticated ? '/dashboard' : '/login'} className="shrink-0 rounded border-2 border-transparent p-1 text-white hover:border-white md:hidden">
+          <Link to={authenticated ? '/dashboard' : '/login'} className="shrink-0 rounded transition duration-150 hover:bg-white/10 border border-transparent p-1 text-white md:hidden">
             <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
             </svg>
           </Link>
 
           {/* Mobile menu toggle */}
-          <button onClick={() => setOpen(!open)} className="shrink-0 rounded border-2 border-transparent p-1 text-white hover:border-white md:hidden">
+          <button onClick={() => setOpen(!open)} className="shrink-0 rounded transition duration-150 hover:bg-white/10 border border-transparent p-1 text-white md:hidden">
             <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={open ? 'M6 18L18 6M6 6l12 12' : 'M4 6h16M4 12h16M4 18h16'} />
             </svg>
@@ -162,7 +162,7 @@ export default function NavBar() {
       {/* Secondary nav */}
       <div className="hidden bg-[#232F3E] px-4 md:block md:px-6">
         <div className="mx-auto flex max-w-7xl items-center gap-1 overflow-x-auto py-1.5">
-          <Link to="/shop" className="flex shrink-0 items-center gap-1 rounded border-2 border-transparent px-3 py-1 text-sm font-semibold text-white hover:border-white">
+          <Link to="/shop" className="flex shrink-0 items-center gap-1 rounded transition duration-150 hover:bg-white/10 border border-transparent px-3 py-1 text-sm font-semibold text-white">
             <i className="fas fa-bars mr-1"></i> All
           </Link>
           {[
@@ -175,14 +175,14 @@ export default function NavBar() {
             ['Fans & Coolers', 'Fans & Coolers'],
             ['Food Processors', 'Food Processors'],
           ].map(([label, cat]) => (
-            <Link key={cat} to={`/shop?category=${encodeURIComponent(cat)}`} className="shrink-0 rounded border-2 border-transparent px-3 py-1 text-sm text-white hover:border-white">
+            <Link key={cat} to={`/shop?category=${encodeURIComponent(cat)}`} className="shrink-0 rounded transition duration-150 hover:bg-white/10 border border-transparent px-3 py-1 text-sm text-white">
               {label}
             </Link>
           ))}
-          <Link to="/shop?sort=popular" className="shrink-0 rounded border-2 border-transparent px-3 py-1 text-sm font-semibold text-brand-gold hover:border-white">
+          <Link to="/shop?sort=popular" className="shrink-0 rounded transition duration-150 hover:bg-white/10 border border-transparent px-3 py-1 text-sm font-semibold text-brand-gold">
             <i className="fas fa-fire mr-1"></i> Today's Deals
           </Link>
-          <Link to="/shop?sort=newest" className="shrink-0 rounded border-2 border-transparent px-3 py-1 text-sm text-white hover:border-white">
+          <Link to="/shop?sort=newest" className="shrink-0 rounded transition duration-150 hover:bg-white/10 border border-transparent px-3 py-1 text-sm text-white">
             New Arrivals
           </Link>
         </div>
