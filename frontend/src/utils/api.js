@@ -73,6 +73,7 @@ export const fetchAllUsers = (token) => api.get('/admin/users', authConfig(token
 export const adminVerifyUser = (id, token) => api.put(`/admin/users/${id}/verify`, {}, authConfig(token));
 export const fetchAllOrders = (token) => api.get('/orders', authConfig(token));
 export const updateOrderStatus = (id, status, token) => api.put(`/orders/${id}/status`, { status }, authConfig(token));
+export const refundOrder = (id, reason) => api.post(`/orders/${id}/refund`, { reason });
 export const createProduct = (payload, token) => api.post('/products', payload, authConfig(token));
 export const updateProduct = (id, payload, token) => api.put(`/products/${id}`, payload, authConfig(token));
 export const deleteProduct = (id, token) => api.delete(`/products/${id}`, authConfig(token));

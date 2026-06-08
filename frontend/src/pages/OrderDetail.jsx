@@ -133,6 +133,27 @@ export default function OrderDetail() {
           </Link>
         </div>
 
+        {/* Refund banner — shows above the tracker once an admin has refunded
+            the order. The tracker itself will already render the "Cancelled"
+            state below, so this banner adds the money-side details. */}
+        {order.isRefunded && (
+          <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-5 py-4">
+            <div className="flex items-start gap-3">
+              <i className="fas fa-check-circle mt-0.5 text-2xl text-emerald-600"></i>
+              <div>
+                <p className="font-bold text-emerald-800">Refunded — ₵{Number(order.totalPrice || 0).toFixed(2)}</p>
+                <p className="mt-0.5 text-sm text-emerald-700">
+                  Refund processed on {new Date(order.refundedAt).toLocaleDateString('en-GH', { day: 'numeric', month: 'long', year: 'numeric' })}.
+                  Refunds to your card typically appear in your statement within 5–10 business days.
+                </p>
+                {order.refundReason && (
+                  <p className="mt-1 text-xs text-emerald-700"><strong>Reason:</strong> {order.refundReason}</p>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Status tracker */}
         <StatusTracker status={order.status} />
 

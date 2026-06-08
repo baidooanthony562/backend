@@ -7,6 +7,7 @@ import {
   adminLogout, fetchAdminSessions, fetchDailySales, adminVerifyUser,
   fetchSupportMessages, setSupportMessageStatus,
   replySupportMessage, deleteSupportMessage,
+  refundOrder,
 } from '../utils/api';
 import { isAdmin, getAdminToken, getAdminSessionId, logout } from '../utils/auth';
 import { getProducts, saveProducts } from '../utils/productStore';
@@ -97,6 +98,12 @@ export default function AdminDashboard() {
 
   // Local-only — what's currently typed in the product image URL field.
   const [imageUrlDraft, setImageUrlDraft] = useState('');
+
+  // Refund modal state — null when closed, the order being refunded when open.
+  const [refundingOrder, setRefundingOrder] = useState(null);
+  const [refundReason, setRefundReason] = useState('');
+  const [refundSubmitting, setRefundSubmitting] = useState(false);
+  const [refundError, setRefundError] = useState('');
 
   // Session termination
   const [terminated, setTerminated] = useState(false);
@@ -381,6 +388,28 @@ export default function AdminDashboard() {
       showToast('Product deleted.');
     } catch {
       showToast('Failed to delete product.', 'error');
+    }
+  };
+
+  const openRefundModal = (order) => {
+    setRefundingOrder(order);
+    setRefundReason('');
+    setRefundError('');
+  };
+
+  const submitRefund = async () => {
+    if (!refundingOrder) return;
+    setRefundSubmitting(true);
+    setRefundError('');
+    try {
+      const { data } = await refundOrder(refundingOrder._id, refundReason.trim());
+      setOrders((prev) => prev.map((o) => o._id === data._id ? { ...o, ...data } : o));
+      setRefundingOrder(null);
+      showToast('Refund issued. Customer has been emailed.');
+    } catch (err) {
+      setRefundError(err.response?.data?.message || 'Refund failed. Try again.');
+    } finally {
+      setRefundSubmitting(false);
     }
   };
 
@@ -1359,12 +1388,22 @@ export default function AdminDashboard() {
                               <p className="text-slate-600">{new Date(o.createdAt).toLocaleDateString()}</p>
                             </div>
                           </div>
-                          <div className="mt-3">
+                          <div className="mt-3 space-y-2">
                             <select value={o.status} disabled={updatingOrder === o._id}
                               onChange={(e) => handleOrderStatus(o._id, e.target.value)}
                               className="w-full rounded-lg border px-3 py-2 text-sm outline-none focus:border-brand-gold disabled:opacity-50">
                               {['Pending', 'Processing', 'Shipped', 'Delivered', 'Cancelled'].map((s) => <option key={s}>{s}</option>)}
                             </select>
+                            {o.isRefunded ? (
+                              <p className="text-center text-xs font-semibold text-slate-500">Refunded</p>
+                            ) : o.paymentMethod === 'Paystack' && o.isPaid ? (
+                              <button
+                                onClick={() => openRefundModal(o)}
+                                className="w-full rounded-full bg-rose-50 px-3 py-2 text-xs font-semibold text-rose-700 hover:bg-rose-100"
+                              >
+                                Refund order
+                              </button>
+                            ) : null}
                           </div>
                         </div>
                       ))}
@@ -1393,11 +1432,12 @@ export default function AdminDashboard() {
                           <th className="px-4 py-3">Date</th>
                           <th className="px-4 py-3">Status</th>
                           <th className="px-4 py-3">Update</th>
+                          <th className="px-4 py-3"></th>
                         </tr>
                       </thead>
                       <tbody className="divide-y">
                         {filtered.length === 0
-                          ? <tr><td colSpan="8" className="px-4 py-8 text-center text-slate-500">No orders match your search.</td></tr>
+                          ? <tr><td colSpan="9" className="px-4 py-8 text-center text-slate-500">No orders match your search.</td></tr>
                           : filtered.map((o) => (
                             <tr key={o._id} className={`hover:bg-slate-50 ${selectedOrders.has(o._id) ? 'bg-yellow-50' : ''}`}>
                               <td className="px-4 py-3">
@@ -1429,6 +1469,18 @@ export default function AdminDashboard() {
                                   className="rounded-lg border px-2 py-1 text-xs outline-none focus:border-brand-gold disabled:opacity-50">
                                   {['Pending', 'Processing', 'Shipped', 'Delivered', 'Cancelled'].map((s) => <option key={s}>{s}</option>)}
                                 </select>
+                              </td>
+                              <td className="px-4 py-3">
+                                {o.isRefunded ? (
+                                  <span className="rounded-full bg-slate-100 px-2 py-1 text-[10px] font-semibold text-slate-600" title={o.refundReason || ''}>Refunded</span>
+                                ) : o.paymentMethod === 'Paystack' && o.isPaid ? (
+                                  <button
+                                    onClick={() => openRefundModal(o)}
+                                    className="rounded-full bg-rose-50 px-3 py-1 text-xs font-semibold text-rose-700 hover:bg-rose-100"
+                                  >
+                                    Refund
+                                  </button>
+                                ) : null}
                               </td>
                             </tr>
                           ))}
@@ -1869,6 +1921,69 @@ export default function AdminDashboard() {
           </>
         )}
       </div>
+
+      {/* Refund modal — opens when an admin clicks Refund on a Paystack order. */}
+      {refundingOrder && (
+        <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/60 p-4 pt-16 sm:pt-24">
+          <div className="w-full max-w-md rounded-xl bg-white p-6 shadow-2xl">
+            <div className="mb-4 flex items-start justify-between gap-3">
+              <div>
+                <h2 className="text-lg font-bold text-slate-900">Refund this order?</h2>
+                <p className="mt-0.5 text-xs text-slate-500">
+                  Order <span className="font-mono font-semibold">#{refundingOrder._id.slice(-6).toUpperCase()}</span> — ₵{Number(refundingOrder.totalPrice || 0).toFixed(2)} via Paystack
+                </p>
+              </div>
+              <button
+                onClick={() => setRefundingOrder(null)}
+                disabled={refundSubmitting}
+                aria-label="Close"
+                className="-mr-1 -mt-1 inline-flex h-8 w-8 items-center justify-center rounded-full text-slate-400 hover:bg-slate-100 hover:text-slate-700"
+              >
+                <i className="fas fa-times"></i>
+              </button>
+            </div>
+
+            <div className="mb-4 rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs text-amber-800">
+              <p className="font-semibold">This will:</p>
+              <ul className="mt-1 list-disc pl-4">
+                <li>Return ₵{Number(refundingOrder.totalPrice || 0).toFixed(2)} to the customer via Paystack</li>
+                {!refundingOrder.isDelivered && <li>Restore stock for every item in the order</li>}
+                <li>Mark the order as Cancelled and email the customer</li>
+              </ul>
+              <p className="mt-2">The card refund usually clears in 5–10 business days.</p>
+            </div>
+
+            <label className="mb-1 block text-xs font-semibold text-slate-600">Reason (optional, shown in the customer email)</label>
+            <textarea
+              rows="3"
+              value={refundReason}
+              onChange={(e) => setRefundReason(e.target.value)}
+              maxLength={500}
+              placeholder="e.g. Item out of stock"
+              className="w-full rounded-lg border border-slate-200 p-3 text-sm outline-none focus:border-brand-gold"
+            />
+
+            {refundError && <p className="mt-3 rounded bg-rose-50 p-3 text-sm text-rose-700">{refundError}</p>}
+
+            <div className="mt-4 flex justify-end gap-2">
+              <button
+                onClick={() => setRefundingOrder(null)}
+                disabled={refundSubmitting}
+                className="rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={submitRefund}
+                disabled={refundSubmitting}
+                className="rounded-full bg-rose-600 px-4 py-2 text-sm font-semibold text-white hover:bg-rose-700 disabled:opacity-60"
+              >
+                {refundSubmitting ? 'Refunding…' : 'Confirm refund'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

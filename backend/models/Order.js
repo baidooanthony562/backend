@@ -41,6 +41,14 @@ const orderSchema = mongoose.Schema(
     paidAt: { type: Date },
     isDelivered: { type: Boolean, default: false },
     deliveredAt: { type: Date },
+    // Refund record — set when an admin issues a refund via Paystack. The
+    // money trail (paystackRefundId) is kept so we can reconcile against the
+    // Paystack dashboard later if a customer disputes whether they got it.
+    isRefunded: { type: Boolean, default: false },
+    refundedAt: { type: Date },
+    refundReason: { type: String },
+    refundedBy: { type: String },
+    paystackRefundId: { type: String },
   },
   { timestamps: true }
 );

@@ -617,4 +617,92 @@ const getGuestOrder = asyncHandler(async (req, res) => {
   res.json(safe);
 });
 
-module.exports = { createOrder, createGuestOrder, getGuestOrder, getOrderById, getMyOrders, getOrders, updateOrderStatus };
+// Calls Paystack's /refund endpoint. Returns the refund id on success or
+// throws a clear, customer-safe error message on failure — Paystack's own
+// error strings are sometimes too technical to forward verbatim.
+async function refundPaystackTransaction(reference) {
+  const response = await fetch('https://api.paystack.co/refund', {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${process.env.PAYSTACK_SECRET_KEY}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ transaction: String(reference) }),
+  });
+  const data = await response.json();
+  if (!response.ok || !data.status) {
+    const err = new Error(data.message || 'Paystack refused the refund. Try again or refund manually from the Paystack dashboard.');
+    err.statusCode = 502;
+    throw err;
+  }
+  return data.data?.id || data.data?.transaction?.id || null;
+}
+
+function sendRefundEmail(order) {
+  const recipient = order.user?.email || order.guestEmail;
+  const name = order.user?.name || order.guestName || 'Customer';
+  if (!recipient) return;
+  const orderId = order._id.toString().slice(-8).toUpperCase();
+  sendResendEmail({
+    to: recipient,
+    subject: `Refund processed — Order #${orderId}`,
+    html: `
+      <div style="font-family:sans-serif;max-width:520px;margin:0 auto;padding:32px">
+        <h2 style="color:#10B981;margin-bottom:4px">Refund processed</h2>
+        <p>Hi ${escapeHtml(name)},</p>
+        <p>Your order <strong>#${orderId}</strong> has been refunded for <strong>&#8373;${Number(order.totalPrice || 0).toFixed(2)}</strong>.</p>
+        ${order.refundReason ? `<p style="color:#555;font-size:14px"><strong>Reason:</strong> ${escapeHtml(order.refundReason)}</p>` : ''}
+        <p style="color:#666;font-size:13px">Refunds to your card typically appear in your statement within 5–10 business days, depending on your bank. If you do not see it after 10 business days, reply to this email.</p>
+        <hr style="border:none;border-top:1px solid #eee;margin:24px 0"/>
+        <p style="color:#999;font-size:12px">Cindy Nat Enterprise &mdash; Kumasi, Ghana</p>
+      </div>
+    `,
+  }).catch((err) => console.error('[Refund] Customer email failed:', err.message));
+}
+
+const refundOrder = asyncHandler(async (req, res) => {
+  const order = await Order.findById(req.params.id).populate('user', 'name email');
+  if (!order) {
+    res.status(404);
+    throw new Error('Order not found');
+  }
+  if (order.paymentMethod !== 'Paystack') {
+    res.status(400);
+    throw new Error('Only Paystack orders can be refunded automatically. Refund this one manually from your MoMo or bank dashboard, then record it.');
+  }
+  if (!order.isPaid || !order.paystackReference) {
+    res.status(400);
+    throw new Error('This order was never paid via Paystack, so there is nothing to refund.');
+  }
+  if (order.isRefunded) {
+    res.status(400);
+    throw new Error('This order has already been refunded.');
+  }
+
+  const reason = String(req.body?.reason || '').trim().slice(0, 500);
+
+  // Fire the Paystack refund first. If it fails, do not touch the order or
+  // stock — we never want a "refunded" record without the money actually moved.
+  const paystackRefundId = await refundPaystackTransaction(order.paystackReference);
+
+  // Restore stock only if the order has not already gone out the door.
+  if (!order.isDelivered) {
+    await Promise.allSettled(order.orderItems.map((item) =>
+      Product.findByIdAndUpdate(item.product, { $inc: { stock: item.quantity, totalSold: -item.quantity } })
+    ));
+  }
+
+  order.isRefunded = true;
+  order.refundedAt = new Date();
+  order.refundReason = reason || undefined;
+  order.refundedBy = req.user?.email || 'admin';
+  order.paystackRefundId = paystackRefundId || undefined;
+  order.status = 'Cancelled'; // keeps the order out of "active" lists
+  await order.save();
+
+  sendRefundEmail(order);
+
+  res.json(order);
+});
+
+module.exports = { createOrder, createGuestOrder, getGuestOrder, getOrderById, getMyOrders, getOrders, updateOrderStatus, refundOrder };

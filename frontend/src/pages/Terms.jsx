@@ -54,12 +54,21 @@ export default function Terms() {
 
         <div>
           <h2 className="mb-2 text-base font-bold text-slate-900">6. Returns & Refunds</h2>
+          <p className="mb-2"><strong>Eligibility for a refund</strong></p>
           <ul className="list-disc space-y-1 pl-5">
-            <li>If you receive a damaged or incorrect item, contact us within 48 hours of delivery via WhatsApp or email.</li>
-            <li>We will arrange a replacement or refund at our discretion after inspection.</li>
-            <li>Items must be unused and in original packaging to be eligible for return.</li>
-            <li>Refunds are processed within 5–7 business days via the original payment method.</li>
+            <li>If we are unable to fulfil your order — for example the item is out of stock by the time we process your order — you will receive a full refund of the amount paid, with no action required from you.</li>
+            <li>If you receive a damaged, faulty, or incorrect item, contact us within 48 hours of delivery via WhatsApp or email so we can arrange a replacement or refund after inspection.</li>
+            <li>Items returned for any other reason must be unused, in their original packaging, and reported within 48 hours of delivery. Returns outside that window are at our discretion.</li>
           </ul>
+          <p className="mt-3 mb-2"><strong>How refunds are processed</strong></p>
+          <ul className="list-disc space-y-1 pl-5">
+            <li>Refunds are issued to the original payment method used at checkout.</li>
+            <li><strong>Paystack (card)</strong> — processed instantly on our side; funds typically appear on your card statement within 5–10 business days, depending on your bank.</li>
+            <li><strong>MTN MoMo</strong> — processed manually within 1–3 business days back to the MoMo number used for payment.</li>
+            <li><strong>Cash on delivery / bank transfer</strong> — refunded by bank transfer or MoMo to a number you provide, within 3–5 business days.</li>
+            <li>You will receive an email confirmation each time a refund is issued, including the order reference and amount.</li>
+          </ul>
+          <p className="mt-3 text-xs text-slate-500">If a refund has not arrived after the timeframe above, reply to the refund confirmation email or WhatsApp us with your order reference — we will follow up with the bank or MoMo on your behalf.</p>
         </div>
 
         <div>
