@@ -7,6 +7,20 @@ const createPromo = asyncHandler(async (req, res) => {
     res.status(400);
     throw new Error('Code and discount value are required');
   }
+  const type = discountType || 'percent';
+  if (!['percent', 'fixed'].includes(type)) {
+    res.status(400);
+    throw new Error('Discount type must be percent or fixed');
+  }
+  const value = Number(discountValue);
+  if (isNaN(value) || value <= 0) {
+    res.status(400);
+    throw new Error('Discount value must be greater than 0');
+  }
+  if (type === 'percent' && value > 100) {
+    res.status(400);
+    throw new Error('A percentage discount cannot exceed 100');
+  }
   const exists = await PromoCode.findOne({ code: code.toUpperCase() });
   if (exists) {
     res.status(400);
@@ -15,8 +29,8 @@ const createPromo = asyncHandler(async (req, res) => {
   const promo = new PromoCode({
     code: code.toUpperCase(),
     description,
-    discountType: discountType || 'percent',
-    discountValue: Number(discountValue),
+    discountType: type,
+    discountValue: value,
     minAmount: minAmount ? Number(minAmount) : 0,
     expiresAt: expiresAt || null,
   });
