@@ -56,8 +56,10 @@ app.use(cors({
 // Use combined format in production (structured, no colour codes)
 app.use(morgan(process.env.NODE_ENV === 'production' ? 'combined' : 'dev'));
 
-// 2mb cap — enough for base64 product images; blocks large payload DoS
-app.use(express.json({ limit: '2mb' }));
+// 10mb cap — admin product uploads send images inline as base64, and a single
+// real phone photo already exceeds a 2mb cap. Still bounded to block large
+// payload DoS; the admin-only upload routes are the only ones that need it.
+app.use(express.json({ limit: '10mb' }));
 app.use(cookieParser());
 
 app.get('/api/status', (req, res) => res.json({ status: 'ok', message: 'Cindy Nat backend running' }));
