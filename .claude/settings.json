@@ -82,7 +82,13 @@
       "Bash(node --check backend/controllers/adminController.js)",
       "Bash(node --check backend/routes/admin.js)",
       "Bash(node scripts/inspect-db.mjs)",
-      "Bash(node --check backend/models/Order.js)"
+      "Bash(node --check backend/models/Order.js)",
+      "Bash(ls -la .claude/projects/c--Users-baido-OneDrive-Desktop-new-web/memory/)",
+      "Bash(ls -la \"/c/Users/baido/.claude/projects/c--Users-baido-OneDrive-Desktop-new-web/memory/\")",
+      "Bash(ls frontend/src/context)",
+      "Bash(ls frontend/src/components)",
+      "Bash(ls frontend/scripts)",
+      "Bash(cat backend/.env.example)"
     ]
   }
 }
