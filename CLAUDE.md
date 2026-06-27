@@ -30,7 +30,7 @@ npm run preview      # preview a production build
 node backend/scripts/inspect-db.mjs
 ```
 
-There is **no test suite and no linter configured**. "Does it work" is verified by running the apps. For quick syntax validation of a backend file use `node --check <file>` (several such checks are already allow-listed in `.claude/settings.json`).
+The **backend has an integration test suite** (`cd backend && npm test`) covering the money-critical paths and audit fixes — it runs the real Express app against an in-memory MongoDB (`mongodb-memory-server` + `supertest`, Node's built-in `node:test` runner); only outbound Paystack/Resend calls are stubbed. `server.js` exports `app` and guards its side effects behind `require.main === module` so tests can import it without connecting to a real DB or listening. Add new backend tests under `backend/tests/*.test.js`. The **frontend has no tests**; verify it with `npm run build`. No linter is configured. For quick syntax validation of a single backend file use `node --check <file>`.
 
 ## Local setup gotchas
 

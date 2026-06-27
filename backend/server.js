@@ -25,7 +25,11 @@ const User = require('./models/User');
 dotenv.config();
 const app = express();
 
-connectDB();
+// Connect to MongoDB only when this file is the entrypoint (node server.js).
+// Tests import the app and supply their own in-memory connection instead.
+if (require.main === module) {
+  connectDB();
+}
 
 // Trust Render's proxy so req.ip is the real client IP (required for rate limiting)
 app.set('trust proxy', 1);
@@ -53,8 +57,11 @@ app.use(cors({
   credentials: true,
 }));
 
-// Use combined format in production (structured, no colour codes)
-app.use(morgan(process.env.NODE_ENV === 'production' ? 'combined' : 'dev'));
+// Use combined format in production (structured, no colour codes); stay quiet
+// under test so the suite output isn't buried in request logs.
+if (process.env.NODE_ENV !== 'test') {
+  app.use(morgan(process.env.NODE_ENV === 'production' ? 'combined' : 'dev'));
+}
 
 // 10mb cap — admin product uploads send images inline as base64, and a single
 // real phone photo already exceeds a 2mb cap. Still bounded to block large
@@ -89,27 +96,33 @@ if (process.env.SENTRY_DSN) Sentry.setupExpressErrorHandler(app);
 
 app.use(errorHandler);
 
-// Crash-safe: log unhandled rejections instead of silently dying
-process.on('unhandledRejection', (reason) => {
-  console.error('[unhandledRejection]', reason);
-});
+// Export the configured app so tests can drive it with supertest. Runtime
+// side effects below only fire when this file is executed directly.
+module.exports = app;
 
-// Purge unverified accounts whose 30-minute window has expired — runs every 10 minutes
-setInterval(async () => {
-  try {
-    const result = await User.deleteMany({
-      isVerified: false,
-      verifyTokenExpiry: { $lt: Date.now() },
-    });
-    if (result.deletedCount > 0) {
-      console.log(`[Cleanup] Deleted ${result.deletedCount} expired unverified account(s)`);
+if (require.main === module) {
+  // Crash-safe: log unhandled rejections instead of silently dying
+  process.on('unhandledRejection', (reason) => {
+    console.error('[unhandledRejection]', reason);
+  });
+
+  // Purge unverified accounts whose 30-minute window has expired — runs every 10 minutes
+  setInterval(async () => {
+    try {
+      const result = await User.deleteMany({
+        isVerified: false,
+        verifyTokenExpiry: { $lt: Date.now() },
+      });
+      if (result.deletedCount > 0) {
+        console.log(`[Cleanup] Deleted ${result.deletedCount} expired unverified account(s)`);
+      }
+    } catch (err) {
+      console.error('[Cleanup] Failed to purge unverified accounts:', err.message);
     }
-  } catch (err) {
-    console.error('[Cleanup] Failed to purge unverified accounts:', err.message);
-  }
-}, 10 * 60 * 1000);
+  }, 10 * 60 * 1000);
 
-const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
-});
+  const PORT = process.env.PORT || 5000;
+  app.listen(PORT, () => {
+    console.log(`Server running on port ${PORT}`);
+  });
+}
