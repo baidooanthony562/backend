@@ -7,10 +7,11 @@ const User = require('../models/User');
 const { sendResendEmail, escapeHtml } = require('../utils/email');
 const { getMoMoTransaction } = require('./paymentController');
 
+const { LOW_STOCK_THRESHOLD } = require('../config/constants');
+
 const VALID_STATUSES = ['Pending', 'Processing', 'Shipped', 'Delivered', 'Cancelled'];
 const VALID_PAYMENT_METHODS = ['cash-on-delivery', 'bank-transfer', 'momo', 'Paystack'];
 const MAX_ORDER_ITEMS = 50;
-const LOW_STOCK_THRESHOLD = 5;
 
 // Email admin when an order pushes a product's stock down to or below the
 // threshold. Fired only on the *crossing* order (not every subsequent one

@@ -8,6 +8,7 @@ const AdminSession = require('../models/AdminSession');
 const generateToken = require('../utils/generateToken');
 const { setAuthCookie, clearAuthCookie } = require('../utils/generateToken');
 const { sendResendEmail, escapeHtml } = require('../utils/email');
+const { LOW_STOCK_THRESHOLD } = require('../config/constants');
 
 function sendLoginAlert(ip) {
   const to = process.env.ADMIN_EMAIL;
@@ -109,7 +110,7 @@ const getDashboardStats = asyncHandler(async (req, res) => {
       { $match: { status: 'Delivered' } },
       { $group: { _id: null, revenue: { $sum: '$totalPrice' } } },
     ]),
-    Product.find({ stock: { $lte: 5 } }).select('name stock price').limit(10),
+    Product.find({ stock: { $lte: LOW_STOCK_THRESHOLD } }).select('name stock price').limit(10),
   ]);
 
   res.json({
@@ -118,6 +119,9 @@ const getDashboardStats = asyncHandler(async (req, res) => {
     totalOrders,
     revenue: revenue[0]?.revenue || 0,
     lowStock,
+    // Surfaced so the dashboard uses the backend's threshold rather than its
+    // own hardcoded copy — one source of truth across both apps.
+    lowStockThreshold: LOW_STOCK_THRESHOLD,
   });
 });
 

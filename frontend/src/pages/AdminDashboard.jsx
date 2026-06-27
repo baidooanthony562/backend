@@ -12,6 +12,8 @@ import {
 import { isAdmin, getAdminToken, getAdminSessionId, logout } from '../utils/auth';
 import { getProducts, saveProducts } from '../utils/productStore';
 import { showToast } from '../components/Toast';
+import LowStockAlerts from '../components/LowStockAlerts';
+import { LOW_STOCK_THRESHOLD } from '../utils/constants';
 import { useAdminSessionGuard } from '../hooks/useAdminSessionGuard';
 
 const TABS = ['Overview', 'Products', 'Orders', 'Users', 'Promos', 'Support'];
@@ -824,26 +826,7 @@ export default function AdminDashboard() {
                   })()}
                 </div>
 
-                <div className="rounded-lg bg-white p-6 shadow-sm">
-                  <h2 className="mb-4 text-lg font-bold text-slate-900"><i className="fas fa-exclamation-triangle text-red-500 mr-1"></i> Low Stock Alerts</h2>
-                  {(() => {
-                    // No products at all means the catalogue is empty or failed
-                    // to load — don't pass that off as "well stocked", which
-                    // would be a false all-clear for an inventory warning.
-                    if (products.length === 0) {
-                      return <p className="text-sm text-slate-500">No products loaded yet — add a product or check that the catalogue is reachable.</p>;
-                    }
-                    const low = products.filter((p) => Number(p.stock) <= 5);
-                    return low.length === 0
-                      ? <p className="text-sm text-slate-500">All products are well stocked.</p>
-                      : <div className="space-y-3">{low.map((p) => (
-                          <div key={p._id || p.id} className="flex items-center justify-between rounded-lg bg-red-50 px-4 py-3">
-                            <p className="font-semibold text-red-800">{p.name}</p>
-                            <span className="rounded-full bg-red-600 px-3 py-1 text-xs font-bold text-white">{p.stock} left</span>
-                          </div>
-                        ))}</div>;
-                  })()}
-                </div>
+                <LowStockAlerts products={products} threshold={stats?.lowStockThreshold ?? LOW_STOCK_THRESHOLD} />
 
                 {/* Session Log */}
                 <div className="rounded-lg bg-white p-6 shadow-sm">
@@ -1167,7 +1150,7 @@ export default function AdminDashboard() {
                                     <p className="text-slate-400">Price</p>
                                   </div>
                                   <div className="rounded-lg bg-slate-50 p-2">
-                                    <span className={`font-bold ${Number(p.stock) <= 5 ? 'text-red-600' : 'text-green-700'}`}>{p.stock}</span>
+                                    <span className={`font-bold ${Number(p.stock) <= (stats?.lowStockThreshold ?? LOW_STOCK_THRESHOLD) ? 'text-red-600' : 'text-green-700'}`}>{p.stock}</span>
                                     <p className="text-slate-400">Stock</p>
                                   </div>
                                   <div className="rounded-lg bg-slate-50 p-2">
@@ -1223,7 +1206,7 @@ export default function AdminDashboard() {
                                   <td className="px-4 py-3 text-slate-600">{p.category?.name || p.category}</td>
                                   <td className="px-4 py-3 font-semibold text-slate-900">₵{Number(p.price).toFixed(2)}</td>
                                   <td className="px-4 py-3">
-                                    <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${Number(p.stock) <= 5 ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'}`}>{p.stock}</span>
+                                    <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${Number(p.stock) <= (stats?.lowStockThreshold ?? LOW_STOCK_THRESHOLD) ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'}`}>{p.stock}</span>
                                   </td>
                                   <td className="px-4 py-3">
                                     <span className="rounded-full bg-blue-100 px-2 py-0.5 text-xs font-semibold text-blue-700">{p.totalSold || 0}</span>
