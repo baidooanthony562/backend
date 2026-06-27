@@ -3,6 +3,7 @@ const asyncHandler = require('express-async-handler');
 const Order = require('../models/Order');
 const Product = require('../models/Product');
 const PromoCode = require('../models/PromoCode');
+const PendingOrder = require('../models/PendingOrder');
 const User = require('../models/User');
 const { sendResendEmail, escapeHtml } = require('../utils/email');
 const { getMoMoTransaction } = require('./paymentController');
@@ -588,4 +589,64 @@ const refundOrder = asyncHandler(async (req, res) => {
   res.json(order);
 });
 
-module.exports = { createOrder, createGuestOrder, getGuestOrder, getOrderById, getMyOrders, getOrders, updateOrderStatus, refundOrder };
+// Turn a paid Paystack reference into a real order, from the intent saved at
+// init time. Idempotent and safe to call from two places at once (the browser
+// return AND the webhook): the unique reference index means only one order is
+// ever created; the loser returns the winner's order. Used by both the webhook
+// and the browser-facing finalize endpoint.
+async function finalizeOrderFromReference(reference) {
+  const ref = String(reference);
+
+  // Already finalized → return it (and tidy up any leftover intent).
+  const existing = await Order.findOne({ paystackReference: ref });
+  if (existing) {
+    await PendingOrder.deleteOne({ reference: ref }).catch(() => {});
+    return { order: existing };
+  }
+
+  const pending = await PendingOrder.findOne({ reference: ref });
+  if (!pending) throw httpError(404, 'No pending order found for this payment reference.');
+
+  let customer;
+  if (pending.isGuest) {
+    customer = { kind: 'guest', name: pending.guestName, email: pending.guestEmail };
+  } else {
+    const user = await User.findById(pending.user);
+    if (!user) throw httpError(400, 'Account no longer exists');
+    customer = { kind: 'user', user };
+  }
+
+  try {
+    const result = await buildOrder({
+      orderItems: pending.orderItems.map((i) => ({ product: i.product, quantity: i.quantity, name: i.name, image: i.image })),
+      shippingAddress: pending.shippingAddress,
+      paymentMethod: 'Paystack',
+      promoCode: pending.promoCode,
+      paystackReference: ref,
+      customer,
+    });
+    await PendingOrder.deleteOne({ _id: pending._id }).catch(() => {});
+    return result; // { order, guestOrderToken }
+  } catch (err) {
+    // The other finalize path won the race and created it first.
+    if (/already been used/i.test(err.message)) {
+      const o = await Order.findOne({ paystackReference: ref });
+      if (o) {
+        await PendingOrder.deleteOne({ _id: pending._id }).catch(() => {});
+        return { order: o };
+      }
+    }
+    throw err;
+  }
+}
+
+// Browser-facing finalize: called from the payment-return page. The webhook is
+// the server-side safety net for the same operation.
+const finalizeOrderByReference = asyncHandler(async (req, res) => {
+  const { reference } = req.body;
+  if (!reference) throw httpError(400, 'Payment reference is required');
+  const { order, guestOrderToken } = await finalizeOrderFromReference(reference);
+  res.status(200).json(guestOrderToken ? { ...order.toObject(), guestOrderToken } : order);
+});
+
+module.exports = { createOrder, createGuestOrder, getGuestOrder, getOrderById, getMyOrders, getOrders, updateOrderStatus, refundOrder, finalizeOrderFromReference, finalizeOrderByReference };

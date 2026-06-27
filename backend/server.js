@@ -18,6 +18,7 @@ const userRoutes = require('./routes/users');
 const promoRoutes = require('./routes/promos');
 const supportRoutes = require('./routes/support');
 const paymentRoutes = require('./routes/payments');
+const { paystackWebhook } = require('./controllers/paymentController');
 const { seedData } = require('./utils/seeder');
 const { notFound, errorHandler } = require('./middlewares/errorMiddleware');
 const User = require('./models/User');
@@ -66,7 +67,9 @@ if (process.env.NODE_ENV !== 'test') {
 // 10mb cap — admin product uploads send images inline as base64, and a single
 // real phone photo already exceeds a 2mb cap. Still bounded to block large
 // payload DoS; the admin-only upload routes are the only ones that need it.
-app.use(express.json({ limit: '10mb' }));
+// `verify` stashes the raw bytes so the Paystack webhook can validate its
+// HMAC signature against exactly what was sent.
+app.use(express.json({ limit: '10mb', verify: (req, res, buf) => { req.rawBody = buf; } }));
 app.use(cookieParser());
 
 app.get('/api/status', (req, res) => res.json({ status: 'ok', message: 'Cindy Nat backend running' }));
@@ -87,6 +90,10 @@ app.use('/api/cart', cartRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/promos', promoLimiter, promoRoutes);
 app.use('/api/support', supportLimiter, supportRoutes);
+// Webhook is registered before the rate-limited payments mount so Paystack's
+// retries are never throttled. It ends the response itself (no next()), so the
+// limited mount below won't also handle it.
+app.post('/api/payments/paystack/webhook', paystackWebhook);
 app.use('/api/payments', paymentLimiter, paymentRoutes);
 
 app.use(notFound);

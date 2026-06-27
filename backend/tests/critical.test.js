@@ -16,6 +16,7 @@ process.env.FRONTEND_URL = 'http://localhost:5173';
 
 const { test, before, after, beforeEach } = require('node:test');
 const assert = require('node:assert');
+const nodeCrypto = require('node:crypto');
 const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
 const request = require('supertest');
@@ -52,6 +53,12 @@ const app = require('../server');
 const User = require('../models/User');
 const Product = require('../models/Product');
 const Review = require('../models/Review');
+const Order = require('../models/Order');
+const PendingOrder = require('../models/PendingOrder');
+
+function paystackSignature(bodyString) {
+  return nodeCrypto.createHmac('sha512', process.env.PAYSTACK_SECRET_KEY).update(bodyString).digest('hex');
+}
 
 let mongod;
 
@@ -270,4 +277,68 @@ test('only non-refunded purchasers can post a verified review', async () => {
 
   const reviews = await Review.find({ product: product._id });
   assert.equal(reviews.length, 1, 'only the non-refunded purchase should yield a review');
+});
+
+// ── Paystack webhook + finalize (the durability safety net) ────────────────
+
+async function makePendingOrder(reference, product, user) {
+  return PendingOrder.create({
+    reference,
+    isGuest: false,
+    user: user._id,
+    orderItems: [{ product: product._id.toString(), quantity: 1, name: product.name }],
+    shippingAddress: { address: '1 Test St', city: 'Kumasi', phone: '0240000000' },
+    expectedTotal: 100,
+  });
+}
+
+test('the webhook finalizes a pending order when the signature is valid', async () => {
+  const user = await makeUser();
+  const product = await Product.create({ name: 'Widget', price: 100, stock: 10, active: true });
+  await makePendingOrder('PSREF-WH', product, user);
+  paystackVerifyAmount = 100 * 100;
+
+  const body = JSON.stringify({ event: 'charge.success', data: { reference: 'PSREF-WH' } });
+  await request(app)
+    .post('/api/payments/paystack/webhook')
+    .set('Content-Type', 'application/json')
+    .set('x-paystack-signature', paystackSignature(body))
+    .send(body)
+    .expect(200);
+
+  const order = await Order.findOne({ paystackReference: 'PSREF-WH' });
+  assert.ok(order, 'the webhook should have created the order');
+  assert.equal(order.isPaid, true);
+  assert.equal(await PendingOrder.findOne({ reference: 'PSREF-WH' }), null, 'the pending intent should be cleaned up');
+});
+
+test('the webhook rejects a forged signature and creates no order', async () => {
+  const user = await makeUser();
+  const product = await Product.create({ name: 'Widget', price: 100, stock: 10, active: true });
+  await makePendingOrder('PSREF-BAD', product, user);
+
+  const body = JSON.stringify({ event: 'charge.success', data: { reference: 'PSREF-BAD' } });
+  await request(app)
+    .post('/api/payments/paystack/webhook')
+    .set('Content-Type', 'application/json')
+    .set('x-paystack-signature', 'not-a-real-signature')
+    .send(body)
+    .expect(401);
+
+  assert.equal(await Order.findOne({ paystackReference: 'PSREF-BAD' }), null, 'no order should be created from a forged event');
+});
+
+test('finalize-by-reference creates the order and is idempotent', async () => {
+  const user = await makeUser();
+  const product = await Product.create({ name: 'Widget', price: 100, stock: 10, active: true });
+  await makePendingOrder('PSREF-FIN', product, user);
+  paystackVerifyAmount = 100 * 100;
+
+  const r1 = await request(app).post('/api/payments/paystack/finalize').send({ reference: 'PSREF-FIN' }).expect(200);
+  const r2 = await request(app).post('/api/payments/paystack/finalize').send({ reference: 'PSREF-FIN' }).expect(200);
+
+  assert.equal(r1.body._id, r2.body._id, 'a repeated finalize returns the same order');
+  assert.equal(await Order.countDocuments({ paystackReference: 'PSREF-FIN' }), 1, 'exactly one order exists');
+  const fresh = await Product.findById(product._id);
+  assert.equal(fresh.stock, 9, 'stock is decremented exactly once');
 });

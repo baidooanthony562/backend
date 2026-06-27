@@ -46,4 +46,30 @@ const adminProtect = (req, res, next) => {
   }
 };
 
-module.exports = { protect, adminProtect };
+// Populates req.user when a valid session cookie is present, but never blocks
+// the request when it isn't — for endpoints both guests and signed-in users
+// hit (e.g. starting a Paystack payment), so the server can record the buyer.
+const optionalAuth = asyncHandler(async (req, res, next) => {
+  const token = req.cookies?.[COOKIE_NAME];
+  if (!token) return next();
+
+  let decoded;
+  try {
+    decoded = jwt.verify(token, process.env.JWT_SECRET);
+  } catch {
+    return next();
+  }
+
+  if (decoded.id === 'admin') {
+    req.user = { isAdmin: true, email: process.env.ADMIN_EMAIL };
+    return next();
+  }
+
+  const user = await User.findById(decoded.id).select('-password');
+  if (user && (decoded.tv || 0) === (user.tokenVersion || 0)) {
+    req.user = user;
+  }
+  return next();
+});
+
+module.exports = { protect, adminProtect, optionalAuth };

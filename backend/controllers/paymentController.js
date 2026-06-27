@@ -1,5 +1,6 @@
 const crypto = require('crypto');
 const asyncHandler = require('express-async-handler');
+const PendingOrder = require('../models/PendingOrder');
 
 const MOMO_BASE = process.env.MOMO_ENV === 'production'
   ? 'https://proxy.momoapi.mtn.com'
@@ -107,7 +108,7 @@ const checkMoMoStatus = asyncHandler(async (req, res) => {
 });
 
 const initializePaystackPayment = asyncHandler(async (req, res) => {
-  const { email, amount } = req.body;
+  const { email, amount, orderPayload } = req.body;
   if (!email || !amount) {
     res.status(400);
     throw new Error('Email and amount are required');
@@ -132,7 +133,70 @@ const initializePaystackPayment = asyncHandler(async (req, res) => {
     throw new Error(data.message || 'Failed to initialize Paystack payment');
   }
 
+  // Persist the order intent server-side, keyed by the reference, so the order
+  // can be created by either the browser return or the webhook — even if the
+  // customer's browser never makes it back. buildOrder re-reads products and
+  // re-prices on finalize, so the items stored here can't be used to underpay.
+  if (orderPayload && Array.isArray(orderPayload.orderItems) && orderPayload.orderItems.length > 0) {
+    try {
+      await PendingOrder.create({
+        reference,
+        isGuest: !req.user,
+        user: req.user?._id,
+        guestName: req.user ? undefined : orderPayload.guestName,
+        guestEmail: req.user ? undefined : orderPayload.guestEmail,
+        orderItems: orderPayload.orderItems.map((i) => ({
+          product: String(i.product),
+          quantity: Number(i.quantity),
+          name: i.name,
+          image: i.image,
+        })),
+        shippingAddress: orderPayload.shippingAddress,
+        promoCode: orderPayload.promoCode,
+        expectedTotal: Number(amount),
+      });
+    } catch (err) {
+      // Don't block payment on intent-save failure; the browser return path
+      // still carries the payload as a fallback.
+      console.error('[Paystack] Failed to save pending order:', err.message);
+    }
+  }
+
   res.json({ authorization_url: data.data.authorization_url, reference: data.data.reference });
+});
+
+// Paystack webhook — the server-side safety net that finalizes the order even
+// if the customer's browser never returns. Verifies the HMAC-SHA512 signature
+// (with the secret key) before trusting the event; without this, anyone could
+// forge a "payment succeeded" event and create unpaid orders.
+const paystackWebhook = asyncHandler(async (req, res) => {
+  const secret = process.env.PAYSTACK_SECRET_KEY;
+  const signature = req.headers['x-paystack-signature'];
+  const raw = req.rawBody;
+
+  if (!secret || !raw || !signature) return res.sendStatus(401);
+
+  const expected = crypto.createHmac('sha512', secret).update(raw).digest('hex');
+  const sigBuf = Buffer.from(String(signature));
+  const expBuf = Buffer.from(expected);
+  if (sigBuf.length !== expBuf.length || !crypto.timingSafeEqual(sigBuf, expBuf)) {
+    return res.sendStatus(401);
+  }
+
+  const event = req.body;
+  if (event?.event === 'charge.success' && event.data?.reference) {
+    // Lazy require avoids a circular dependency (orderController requires this
+    // module for getMoMoTransaction).
+    const { finalizeOrderFromReference } = require('./orderController');
+    try {
+      await finalizeOrderFromReference(event.data.reference);
+    } catch (err) {
+      console.error('[Webhook] Order finalize failed:', err.message);
+      // Still 200 below so Paystack doesn't hammer retries on our-side errors.
+    }
+  }
+
+  res.sendStatus(200);
 });
 
 const verifyPaystackPayment = asyncHandler(async (req, res) => {
@@ -157,4 +221,4 @@ const verifyPaystackPayment = asyncHandler(async (req, res) => {
   res.json({ success: true, reference: data.data.reference });
 });
 
-module.exports = { initiateMoMoPayment, checkMoMoStatus, getMoMoTransaction, initializePaystackPayment, verifyPaystackPayment };
+module.exports = { initiateMoMoPayment, checkMoMoStatus, getMoMoTransaction, initializePaystackPayment, verifyPaystackPayment, paystackWebhook };
