@@ -1,11 +1,13 @@
 const asyncHandler = require('express-async-handler');
 const bcrypt = require('bcryptjs');
 const User = require('../models/User');
+const Product = require('../models/Product');
 const { validatePassword } = require('../utils/passwordStrength');
 const generateToken = require('../utils/generateToken');
 const { setAuthCookie } = require('../utils/generateToken');
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const OBJECT_ID_RE = /^[a-f\d]{24}$/i;
 
 const getUsers = asyncHandler(async (req, res) => {
   const users = await User.find({}).select('-password');
@@ -114,9 +116,14 @@ const addToWishlist = asyncHandler(async (req, res) => {
     res.status(404);
     throw new Error('User not found');
   }
-  if (!productId) {
+  if (!productId || !OBJECT_ID_RE.test(productId)) {
     res.status(400);
-    throw new Error('Product ID is required');
+    throw new Error('Valid product ID is required');
+  }
+  // Reject ids that don't point at a real product so we don't store dangling refs.
+  if (!(await Product.exists({ _id: productId }))) {
+    res.status(404);
+    throw new Error('Product not found');
   }
   if (user.wishlist.some((item) => item.toString() === productId)) {
     res.status(400);
