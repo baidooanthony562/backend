@@ -343,14 +343,22 @@ const getOrderById = asyncHandler(async (req, res) => {
 });
 
 const getMyOrders = asyncHandler(async (req, res) => {
-  const orders = await Order.find({ user: req.user._id, status: { $ne: 'Cancelled' } })
+  // Hide cancelled (deleted) orders but keep refunded ones visible so the
+  // customer can see the refund. Legacy refunds may carry status 'Cancelled'
+  // with isRefunded set, so match on the flag as well.
+  const orders = await Order.find({
+    user: req.user._id,
+    $or: [{ status: { $ne: 'Cancelled' } }, { isRefunded: true }],
+  })
     .populate('orderItems.product', 'name price images')
     .sort({ createdAt: -1 });
   res.json(orders);
 });
 
 const getOrders = asyncHandler(async (req, res) => {
-  const orders = await Order.find({ status: { $ne: 'Cancelled' } })
+  // Same as getMyOrders: keep refunded orders in the admin list (with their
+  // badge) instead of dropping every 'Cancelled' record.
+  const orders = await Order.find({ $or: [{ status: { $ne: 'Cancelled' } }, { isRefunded: true }] })
     .populate('user', 'name email')
     .sort({ createdAt: -1 })
     .limit(500);
@@ -697,7 +705,9 @@ const refundOrder = asyncHandler(async (req, res) => {
   order.refundReason = reason || undefined;
   order.refundedBy = req.user?.email || 'admin';
   order.paystackRefundId = paystackRefundId || undefined;
-  order.status = 'Cancelled'; // keeps the order out of "active" lists
+  // Distinct from 'Cancelled' (which is deleted): a refunded order must stay
+  // on record — and stay visible — so admin and customer can see/track it.
+  order.status = 'Refunded';
   await order.save();
 
   sendRefundEmail(order);
