@@ -86,7 +86,7 @@ const adminLogin = asyncHandler(async (req, res) => {
   if (user && user.isAdmin && (await bcrypt.compare(password, user.password))) {
     const session = await AdminSession.create({ email: user.email, ip });
     sendLoginAlert(ip);
-    setAuthCookie(res, generateToken(user._id));
+    setAuthCookie(res, generateToken(user._id, user.tokenVersion));
     return res.json({
       email: user.email,
       name: user.name,

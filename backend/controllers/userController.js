@@ -2,6 +2,8 @@ const asyncHandler = require('express-async-handler');
 const bcrypt = require('bcryptjs');
 const User = require('../models/User');
 const { validatePassword } = require('../utils/passwordStrength');
+const generateToken = require('../utils/generateToken');
+const { setAuthCookie } = require('../utils/generateToken');
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -87,7 +89,11 @@ const changePassword = asyncHandler(async (req, res) => {
   }
 
   user.password = await bcrypt.hash(newPassword, 10);
+  // Invalidate sessions on other devices, then refresh the cookie on this one
+  // so the user who just changed their password stays signed in here.
+  user.tokenVersion = (user.tokenVersion || 0) + 1;
   await user.save();
+  setAuthCookie(res, generateToken(user._id, user.tokenVersion));
 
   res.json({ message: 'Password updated successfully' });
 });

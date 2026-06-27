@@ -26,6 +26,13 @@ const protect = asyncHandler(async (req, res, next) => {
       res.status(401);
       throw new Error('Account no longer exists');
     }
+    // Reject sessions issued before the last password change. Tokens minted
+    // before tokenVersion existed carry no `tv`; treat that as 0 so they keep
+    // working until the next password change (no forced mass logout on deploy).
+    if ((decoded.tv || 0) !== (req.user.tokenVersion || 0)) {
+      res.status(401);
+      throw new Error('Session expired, please sign in again');
+    }
   }
   next();
 });

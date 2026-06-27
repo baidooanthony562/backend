@@ -3,8 +3,12 @@ const jwt = require('jsonwebtoken');
 const COOKIE_NAME = 'cnAuth';
 const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
 
-const generateToken = (id) => {
-  return jwt.sign({ id }, process.env.JWT_SECRET, { expiresIn: '7d' });
+// `tokenVersion` is embedded as `tv` so the auth middleware can reject tokens
+// issued before the user's last password change. The admin pseudo-user has no
+// version, so it is simply omitted (and not checked) for that account.
+const generateToken = (id, tokenVersion) => {
+  const payload = tokenVersion === undefined ? { id } : { id, tv: tokenVersion };
+  return jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '7d' });
 };
 
 // In production the frontend and backend are on different sites (vercel ↔ render)

@@ -19,6 +19,10 @@ const userSchema = mongoose.Schema(
     resetToken: { type: String },
     resetTokenExpiry: { type: Date },
     resetAttempts: { type: Number, default: 0 },
+    // Bumped whenever the password changes; embedded in the auth JWT so that
+    // previously-issued sessions (e.g. on a stolen device) stop validating
+    // after a password reset or change.
+    tokenVersion: { type: Number, default: 0 },
   },
   { timestamps: true }
 );

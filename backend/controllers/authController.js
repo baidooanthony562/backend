@@ -126,7 +126,7 @@ const authUser = asyncHandler(async (req, res) => {
     throw new Error('Please verify your email before logging in. Check your inbox for the 6-digit code.');
   }
 
-  setAuthCookie(res, generateToken(user._id));
+  setAuthCookie(res, generateToken(user._id, user.tokenVersion));
   res.json({
     _id: user._id,
     name: user.name,
@@ -380,6 +380,9 @@ const resetPassword = asyncHandler(async (req, res) => {
   user.isVerified = true; // OTP proves email ownership
   user.verifyToken = undefined;
   user.verifyTokenExpiry = undefined;
+  // Invalidate every existing session — a reset is also the recovery path after
+  // an account is compromised, so any cookie on another device must stop working.
+  user.tokenVersion = (user.tokenVersion || 0) + 1;
   await user.save();
 
   res.json({ message: 'Password reset successfully. You can now sign in.' });
