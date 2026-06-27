@@ -11,4 +11,12 @@ export default defineConfig({
   server: {
     port: 3000,
   },
+  test: {
+    // Component tests need a DOM; the util tests rely on localStorage/window.
+    environment: 'jsdom',
+    globals: true,
+    setupFiles: './src/test/setup.js',
+    // Don't pull Tailwind/PostCSS through the test transform — irrelevant here.
+    css: false,
+  },
 });

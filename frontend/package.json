@@ -8,7 +8,9 @@
     "build": "vite build",
     "build:prod": "vite build && npm run upload-sourcemaps",
     "upload-sourcemaps": "node scripts/upload-sourcemaps.mjs",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "dependencies": {
     "@fortawesome/fontawesome-free": "^7.2.0",
@@ -21,11 +23,16 @@
   },
   "devDependencies": {
     "@sentry/cli": "^3.4.3",
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.2",
+    "@testing-library/user-event": "^14.6.1",
     "@vitejs/plugin-react": "^6.0.2",
     "autoprefixer": "^10.4.19",
     "dotenv": "^17.4.2",
+    "jsdom": "^29.1.1",
     "postcss": "^8.4.40",
     "tailwindcss": "^3.4.5",
-    "vite": "^8.0.14"
+    "vite": "^8.0.14",
+    "vitest": "^4.1.9"
   }
 }
