@@ -13,6 +13,12 @@ const VALID_STATUSES = ['Pending', 'Processing', 'Shipped', 'Delivered', 'Cancel
 const VALID_PAYMENT_METHODS = ['cash-on-delivery', 'bank-transfer', 'momo', 'Paystack'];
 const MAX_ORDER_ITEMS = 50;
 
+// An Error carrying an HTTP status, so order logic can live outside an Express
+// handler (the webhook/finalizer path) and still produce correct responses.
+function httpError(statusCode, message) {
+  return Object.assign(new Error(message), { statusCode });
+}
+
 // Email admin when an order pushes a product's stock down to or below the
 // threshold. Fired only on the *crossing* order (not every subsequent one
 // while stock is already low) so a busy product doesn't spam the inbox.
@@ -67,15 +73,13 @@ async function verifyPaystackRef(reference, expectedTotal) {
   );
   const data = await response.json();
   if (!data.status || data.data?.status !== 'success') {
-    const err = new Error('Paystack payment could not be verified. Contact support if money was deducted.');
-    err.statusCode = 400;
-    throw err;
+    throw httpError(400, 'Paystack payment could not be verified. Contact support if money was deducted.');
   }
   // Paystack amounts are in pesewas (GHS × 100); allow 1 pesewa tolerance for rounding
   const paidPesewas = Number(data.data.amount);
   const expectedPesewas = Math.round(expectedTotal * 100);
   if (Math.abs(paidPesewas - expectedPesewas) > 1) {
-    throw new Error('Payment amount does not match order total. Contact support.');
+    throw httpError(400, 'Payment amount does not match order total. Contact support.');
   }
 }
 
@@ -85,14 +89,14 @@ async function verifyMoMoRef(reference, expectedTotal) {
   try {
     data = await getMoMoTransaction(reference);
   } catch {
-    throw new Error('MoMo payment could not be verified. Contact support if money was deducted.');
+    throw httpError(400, 'MoMo payment could not be verified. Contact support if money was deducted.');
   }
   if (data.status !== 'SUCCESSFUL') {
-    throw new Error('MoMo payment was not completed. Contact support if money was deducted.');
+    throw httpError(400, 'MoMo payment was not completed. Contact support if money was deducted.');
   }
   // MoMo collects whole currency units; the order total may carry pesewas.
   if (Math.abs(Number(data.amount) - Math.round(expectedTotal)) > 1) {
-    throw new Error('Payment amount does not match order total. Contact support.');
+    throw httpError(400, 'Payment amount does not match order total. Contact support.');
   }
 }
 
@@ -101,47 +105,29 @@ async function verifyMoMoRef(reference, expectedTotal) {
 async function assertReferenceUnused(field, reference) {
   const existing = await Order.findOne({ [field]: reference }).select('_id');
   if (existing) {
-    throw new Error('This payment has already been used for an order.');
+    throw httpError(400, 'This payment has already been used for an order.');
   }
 }
 
-const createOrder = asyncHandler(async (req, res) => {
-  const { orderItems, shippingAddress, paymentMethod, promoCode, paystackReference, momoReference } = req.body;
-
-  if (!orderItems || orderItems.length === 0) {
-    res.status(400);
-    throw new Error('Order items required');
-  }
-  if (orderItems.length > MAX_ORDER_ITEMS) {
-    res.status(400);
-    throw new Error(`Order cannot exceed ${MAX_ORDER_ITEMS} items`);
-  }
-  if (paymentMethod && !VALID_PAYMENT_METHODS.includes(paymentMethod)) {
-    res.status(400);
-    throw new Error('Invalid payment method');
-  }
-  if (paymentMethod === 'Paystack' && !paystackReference) {
-    res.status(400);
-    throw new Error('Paystack reference is required for online payments');
-  }
-  if (paymentMethod === 'momo' && !momoReference) {
-    res.status(400);
-    throw new Error('MoMo payment reference is required');
-  }
+// ── Shared order-creation core ────────────────────────────────────────────
+// HTTP-agnostic: validates items, atomically reserves stock, prices everything
+// server-side, re-verifies payment, saves the order and emails confirmation.
+// Throws httpError(...) on failure (after rolling stock back). `customer` is
+// either { kind: 'user', user } or { kind: 'guest', name, email }.
+// Returns { order, guestOrderToken } (token only for guest orders).
+async function buildOrder({ orderItems, shippingAddress, paymentMethod, promoCode, paystackReference, momoReference, customer }) {
+  if (!orderItems || orderItems.length === 0) throw httpError(400, 'Order items required');
+  if (orderItems.length > MAX_ORDER_ITEMS) throw httpError(400, `Order cannot exceed ${MAX_ORDER_ITEMS} items`);
+  if (paymentMethod && !VALID_PAYMENT_METHODS.includes(paymentMethod)) throw httpError(400, 'Invalid payment method');
+  if (paymentMethod === 'Paystack' && !paystackReference) throw httpError(400, 'Paystack reference is required for online payments');
+  if (paymentMethod === 'momo' && !momoReference) throw httpError(400, 'MoMo payment reference is required');
 
   // Reject replayed payment references before touching stock or payment APIs.
-  if (paymentMethod === 'Paystack') {
-    res.status(400);
-    await assertReferenceUnused('paystackReference', String(paystackReference));
-  }
-  if (paymentMethod === 'momo') {
-    res.status(400);
-    await assertReferenceUnused('momoReference', String(momoReference));
-  }
+  if (paymentMethod === 'Paystack') await assertReferenceUnused('paystackReference', String(paystackReference));
+  if (paymentMethod === 'momo') await assertReferenceUnused('momoReference', String(momoReference));
 
   const validatedItems = [];
-  // Track items whose stock was already decremented so we can roll back on failure
-  const decremented = [];
+  const decremented = []; // items whose stock we reduced, for rollback on failure
 
   const rollback = async () => {
     if (decremented.length > 0) {
@@ -153,47 +139,28 @@ const createOrder = asyncHandler(async (req, res) => {
 
   try {
     for (const item of orderItems) {
-      if (!item.product || !/^[a-f\d]{24}$/i.test(String(item.product))) {
-        res.status(400);
-        throw new Error('Invalid product ID in order');
-      }
+      if (!item.product || !/^[a-f\d]{24}$/i.test(String(item.product))) throw httpError(400, 'Invalid product ID in order');
       const qty = Math.floor(Number(item.quantity));
-      if (!qty || qty < 1) {
-        res.status(400);
-        throw new Error('Quantity must be at least 1');
-      }
+      if (!qty || qty < 1) throw httpError(400, 'Quantity must be at least 1');
 
       const product = await Product.findById(item.product);
-      if (!product || !product.active) {
-        res.status(400);
-        throw new Error('One or more products are no longer available');
-      }
+      if (!product || !product.active) throw httpError(400, 'One or more products are no longer available');
 
       // Atomic check-and-decrement — prevents overselling under concurrent load.
-      // `new: true` returns the post-update doc so we can detect threshold crossings.
       const reserved = await Product.findOneAndUpdate(
         { _id: product._id, active: true, stock: { $gte: qty } },
         { $inc: { stock: -qty, totalSold: qty } },
         { new: true }
       );
-      if (!reserved) {
-        res.status(400);
-        throw new Error(`"${product.name}" is out of stock or has insufficient quantity`);
-      }
+      if (!reserved) throw httpError(400, `"${product.name}" is out of stock or has insufficient quantity`);
       decremented.push({ id: product._id, qty });
 
-      // Only fire when this order is what crossed the line — prevents repeat
-      // alerts while stock is already low.
+      // Fire the low-stock alert only on the order that crossed the threshold.
       if (reserved.stock <= LOW_STOCK_THRESHOLD && reserved.stock + qty > LOW_STOCK_THRESHOLD) {
         notifyLowStock(reserved);
       }
 
-      // Server-side price — wholesale if quantity qualifies, otherwise discounted retail
-      const isWholesale =
-        product.wholesalePrice > 0 &&
-        product.wholesaleMinQty > 0 &&
-        qty >= product.wholesaleMinQty;
-      // Use integer arithmetic to avoid floating-point accumulation errors
+      const isWholesale = product.wholesalePrice > 0 && product.wholesaleMinQty > 0 && qty >= product.wholesaleMinQty;
       const serverPrice = isWholesale
         ? product.wholesalePrice
         : Math.round(product.price * (1 - (product.discount || 0) / 100) * 100) / 100;
@@ -207,7 +174,6 @@ const createOrder = asyncHandler(async (req, res) => {
       });
     }
 
-    // Server-side subtotal using integer arithmetic to avoid float drift
     const serverSubtotal =
       Math.round(validatedItems.reduce((sum, i) => sum + i.price * i.quantity * 100, 0)) / 100;
 
@@ -215,10 +181,7 @@ const createOrder = asyncHandler(async (req, res) => {
     let serverDiscount = 0;
     let validPromoCode = '';
     if (promoCode) {
-      const promo = await PromoCode.findOne({
-        code: String(promoCode).toUpperCase().trim(),
-        active: true,
-      });
+      const promo = await PromoCode.findOne({ code: String(promoCode).toUpperCase().trim(), active: true });
       if (
         promo &&
         (!promo.expiresAt || promo.expiresAt > Date.now()) &&
@@ -234,17 +197,21 @@ const createOrder = asyncHandler(async (req, res) => {
 
     const serverTotal = Math.max(0, Math.round((serverSubtotal - serverDiscount) * 100) / 100);
 
-    // Verify payment server-side — prevents order creation without actual payment
-    if (paymentMethod === 'Paystack') {
-      res.status(400); // pre-set so errorHandler returns 400 if verification throws
-      await verifyPaystackRef(paystackReference, serverTotal);
-    } else if (paymentMethod === 'momo') {
-      res.status(400);
-      await verifyMoMoRef(momoReference, serverTotal);
-    }
+    // Verify payment server-side — never create a paid order without real payment.
+    if (paymentMethod === 'Paystack') await verifyPaystackRef(paystackReference, serverTotal);
+    else if (paymentMethod === 'momo') await verifyMoMoRef(momoReference, serverTotal);
 
-    const order = new Order({
-      user: req.user._id,
+    const isGuest = customer.kind === 'guest';
+    const guestOrderToken = isGuest ? crypto.randomBytes(24).toString('hex') : undefined;
+
+    const order = await new Order({
+      ...(isGuest
+        ? {
+            guestName: String(customer.name).trim().slice(0, 100),
+            guestEmail: String(customer.email).toLowerCase().trim(),
+            guestOrderToken,
+          }
+        : { user: customer.user._id }),
       orderItems: validatedItems,
       shippingAddress: sanitizeAddress(shippingAddress),
       paymentMethod,
@@ -254,71 +221,96 @@ const createOrder = asyncHandler(async (req, res) => {
       totalPrice: serverTotal,
       ...(paymentMethod === 'Paystack' && { paystackReference: String(paystackReference), isPaid: true, paidAt: new Date() }),
       ...(paymentMethod === 'momo' && { momoReference: String(momoReference), isPaid: true, paidAt: new Date() }),
-    });
+    }).save();
 
-    const created = await order.save();
-
-    // Record order on user profile
-    await User.findByIdAndUpdate(req.user._id, { $push: { orders: created._id } });
-
-    // Send order confirmation email (non-blocking — don't fail the order if email fails)
-    if (req.user.email) {
-      const itemRows = validatedItems.map((item) =>
-        `<tr style="border-bottom:1px solid #f0f0f0">
-          <td style="padding:8px 4px">${escapeHtml(item.name)}</td>
-          <td style="text-align:right;padding:8px 4px">${item.quantity}</td>
-          <td style="text-align:right;padding:8px 4px">&#8373;${(item.quantity * item.price).toFixed(2)}</td>
-        </tr>`
-      ).join('');
-
-      sendResendEmail({
-        to: req.user.email,
-        subject: `Order Confirmed — #${created._id.toString().slice(-8).toUpperCase()}`,
-        html: `
-          <div style="font-family:sans-serif;max-width:520px;margin:0 auto;padding:32px">
-            <h2 style="color:#131921">Order Confirmed!</h2>
-            <p>Hi ${escapeHtml(req.user.name || 'Customer')},</p>
-            <p>Thank you for your order. Here is a summary:</p>
-            <table style="width:100%;border-collapse:collapse;margin:16px 0">
-              <thead>
-                <tr style="border-bottom:2px solid #eee">
-                  <th style="text-align:left;padding:8px 4px;color:#888;font-size:12px;text-transform:uppercase">Item</th>
-                  <th style="text-align:right;padding:8px 4px;color:#888;font-size:12px;text-transform:uppercase">Qty</th>
-                  <th style="text-align:right;padding:8px 4px;color:#888;font-size:12px;text-transform:uppercase">Price</th>
-                </tr>
-              </thead>
-              <tbody>${itemRows}</tbody>
-            </table>
-            ${serverDiscount > 0 ? `<p style="text-align:right;color:#666;margin:4px 0">Promo discount: &minus;&#8373;${serverDiscount.toFixed(2)}</p>` : ''}
-            <p style="text-align:right;font-size:18px;font-weight:bold;margin:8px 0">Total: &#8373;${serverTotal.toFixed(2)}</p>
-            <div style="margin:24px 0;padding:16px;background:#f9f9f9;border-radius:8px;font-size:14px;line-height:1.6">
-              <strong>Order ID:</strong> #${created._id.toString().slice(-8).toUpperCase()}<br>
-              <strong>Payment:</strong> ${escapeHtml(paymentMethod || 'N/A')}<br>
-              <strong>Ship to:</strong> ${escapeHtml(shippingAddress?.address || '')}, ${escapeHtml(shippingAddress?.city || '')}
-            </div>
-            <p style="color:#666;font-size:13px">We will notify you when your order is shipped.</p>
-            <a href="${process.env.FRONTEND_URL || 'https://backend-alpha-seven-54.vercel.app'}/orders/${created._id}"
-               style="display:inline-block;margin:16px 0;padding:12px 28px;background:#D4AF37;color:#000;font-weight:700;border-radius:999px;text-decoration:none">
-              View Order
-            </a>
-            <hr style="border:none;border-top:1px solid #eee;margin:24px 0"/>
-            <p style="color:#999;font-size:12px">Cindy Nat Enterprise &mdash; Kumasi, Ghana</p>
-          </div>
-        `,
-      }).catch((err) => console.error('[Email] Order confirmation failed:', err.message));
+    if (!isGuest) {
+      await User.findByIdAndUpdate(customer.user._id, { $push: { orders: order._id } });
     }
 
-    res.status(201).json(created);
+    const recipientEmail = isGuest ? order.guestEmail : customer.user.email;
+    const recipientName = isGuest ? customer.name : customer.user.name;
+    if (recipientEmail) {
+      sendOrderConfirmationEmail({
+        order,
+        items: validatedItems,
+        recipientEmail,
+        recipientName,
+        discount: serverDiscount,
+        total: serverTotal,
+        paymentMethod,
+        shippingAddress,
+        includeViewLink: !isGuest,
+      });
+    }
+
+    return { order, guestOrderToken };
   } catch (err) {
-    // If an error occurred after some stock was decremented, restore it
     await rollback();
-    // Duplicate-key = the unique reference index caught a payment replay race
-    if (err.code === 11000) {
-      res.status(400);
-      throw new Error('This payment has already been used for an order.');
-    }
+    // Duplicate-key = the unique reference index caught a payment replay race.
+    if (err.code === 11000) throw httpError(400, 'This payment has already been used for an order.');
     throw err;
   }
+}
+
+// Order confirmation email, shared by user and guest checkouts. Guests don't
+// get a "View Order" link because that route requires a signed-in session.
+function sendOrderConfirmationEmail({ order, items, recipientEmail, recipientName, discount, total, paymentMethod, shippingAddress, includeViewLink }) {
+  const orderId = order._id.toString().slice(-8).toUpperCase();
+  const itemRows = items.map((item) =>
+    `<tr style="border-bottom:1px solid #f0f0f0">
+      <td style="padding:8px 4px">${escapeHtml(item.name)}</td>
+      <td style="text-align:right;padding:8px 4px">${item.quantity}</td>
+      <td style="text-align:right;padding:8px 4px">&#8373;${(item.quantity * item.price).toFixed(2)}</td>
+    </tr>`
+  ).join('');
+  const viewLink = includeViewLink
+    ? `<a href="${process.env.FRONTEND_URL || 'https://backend-alpha-seven-54.vercel.app'}/orders/${order._id}"
+           style="display:inline-block;margin:16px 0;padding:12px 28px;background:#D4AF37;color:#000;font-weight:700;border-radius:999px;text-decoration:none">
+          View Order
+        </a>`
+    : '';
+
+  sendResendEmail({
+    to: recipientEmail,
+    subject: `Order Confirmed — #${orderId}`,
+    html: `
+      <div style="font-family:sans-serif;max-width:520px;margin:0 auto;padding:32px">
+        <h2 style="color:#131921">Order Confirmed!</h2>
+        <p>Hi ${escapeHtml(recipientName || 'Customer')},</p>
+        <p>Thank you for your order. Here is a summary:</p>
+        <table style="width:100%;border-collapse:collapse;margin:16px 0">
+          <thead>
+            <tr style="border-bottom:2px solid #eee">
+              <th style="text-align:left;padding:8px 4px;color:#888;font-size:12px;text-transform:uppercase">Item</th>
+              <th style="text-align:right;padding:8px 4px;color:#888;font-size:12px;text-transform:uppercase">Qty</th>
+              <th style="text-align:right;padding:8px 4px;color:#888;font-size:12px;text-transform:uppercase">Price</th>
+            </tr>
+          </thead>
+          <tbody>${itemRows}</tbody>
+        </table>
+        ${discount > 0 ? `<p style="text-align:right;color:#666;margin:4px 0">Promo discount: &minus;&#8373;${discount.toFixed(2)}</p>` : ''}
+        <p style="text-align:right;font-size:18px;font-weight:bold;margin:8px 0">Total: &#8373;${total.toFixed(2)}</p>
+        <div style="margin:24px 0;padding:16px;background:#f9f9f9;border-radius:8px;font-size:14px;line-height:1.6">
+          <strong>Order ID:</strong> #${orderId}<br>
+          <strong>Payment:</strong> ${escapeHtml(paymentMethod || 'N/A')}<br>
+          <strong>Ship to:</strong> ${escapeHtml(shippingAddress?.address || '')}, ${escapeHtml(shippingAddress?.city || '')}
+        </div>
+        <p style="color:#666;font-size:13px">We will notify you when your order is shipped.</p>
+        ${viewLink}
+        <hr style="border:none;border-top:1px solid #eee;margin:24px 0"/>
+        <p style="color:#999;font-size:12px">Cindy Nat Enterprise &mdash; Kumasi, Ghana</p>
+      </div>
+    `,
+  }).catch((err) => console.error('[Email] Order confirmation failed:', err.message));
+}
+
+const createOrder = asyncHandler(async (req, res) => {
+  const { orderItems, shippingAddress, paymentMethod, promoCode, paystackReference, momoReference } = req.body;
+  const { order } = await buildOrder({
+    orderItems, shippingAddress, paymentMethod, promoCode, paystackReference, momoReference,
+    customer: { kind: 'user', user: req.user },
+  });
+  res.status(201).json(order);
 });
 
 const getOrderById = asyncHandler(async (req, res) => {
@@ -473,139 +465,19 @@ const updateOrderStatus = asyncHandler(async (req, res) => {
 const createGuestOrder = asyncHandler(async (req, res) => {
   const { guestName, guestEmail, orderItems, shippingAddress, paymentMethod, promoCode, paystackReference, momoReference } = req.body;
 
-  if (!guestName || !String(guestName).trim()) { res.status(400); throw new Error('Name is required'); }
-  if (String(guestName).trim().length > 100) { res.status(400); throw new Error('Name is too long'); }
-  if (!guestEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(guestEmail)) { res.status(400); throw new Error('Valid email is required'); }
-  if (!orderItems || orderItems.length === 0) { res.status(400); throw new Error('Order items required'); }
-  if (orderItems.length > MAX_ORDER_ITEMS) { res.status(400); throw new Error(`Order cannot exceed ${MAX_ORDER_ITEMS} items`); }
-  if (paymentMethod && !VALID_PAYMENT_METHODS.includes(paymentMethod)) { res.status(400); throw new Error('Invalid payment method'); }
-  if (paymentMethod === 'Paystack' && !paystackReference) { res.status(400); throw new Error('Paystack reference is required for online payments'); }
-  if (paymentMethod === 'momo' && !momoReference) { res.status(400); throw new Error('MoMo payment reference is required'); }
+  // Guest-specific validation; the shared core handles items/stock/payment.
+  if (!guestName || !String(guestName).trim()) throw httpError(400, 'Name is required');
+  if (String(guestName).trim().length > 100) throw httpError(400, 'Name is too long');
+  if (!guestEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(guestEmail)) throw httpError(400, 'Valid email is required');
 
-  // Reject replayed payment references before touching stock or payment APIs.
-  if (paymentMethod === 'Paystack') { res.status(400); await assertReferenceUnused('paystackReference', String(paystackReference)); }
-  if (paymentMethod === 'momo') { res.status(400); await assertReferenceUnused('momoReference', String(momoReference)); }
+  const { order, guestOrderToken } = await buildOrder({
+    orderItems, shippingAddress, paymentMethod, promoCode, paystackReference, momoReference,
+    customer: { kind: 'guest', name: guestName, email: guestEmail },
+  });
 
-  const validatedItems = [];
-  const decremented = [];
-  const rollback = async () => {
-    if (decremented.length > 0) {
-      await Promise.allSettled(decremented.map((d) => Product.findByIdAndUpdate(d.id, { $inc: { stock: d.qty, totalSold: -d.qty } })));
-    }
-  };
-
-  try {
-    for (const item of orderItems) {
-      if (!item.product || !/^[a-f\d]{24}$/i.test(String(item.product))) { res.status(400); throw new Error('Invalid product ID'); }
-      const qty = Math.floor(Number(item.quantity));
-      if (!qty || qty < 1) { res.status(400); throw new Error('Quantity must be at least 1'); }
-      const product = await Product.findById(item.product);
-      if (!product || !product.active) { res.status(400); throw new Error('One or more products are no longer available'); }
-      const reserved = await Product.findOneAndUpdate(
-        { _id: product._id, active: true, stock: { $gte: qty } },
-        { $inc: { stock: -qty, totalSold: qty } },
-        { new: true }
-      );
-      if (!reserved) { res.status(400); throw new Error(`"${product.name}" is out of stock`); }
-      decremented.push({ id: product._id, qty });
-      if (reserved.stock <= LOW_STOCK_THRESHOLD && reserved.stock + qty > LOW_STOCK_THRESHOLD) {
-        notifyLowStock(reserved);
-      }
-      const isWholesale = product.wholesalePrice > 0 && product.wholesaleMinQty > 0 && qty >= product.wholesaleMinQty;
-      const serverPrice = isWholesale
-        ? product.wholesalePrice
-        : Math.round(product.price * (1 - (product.discount || 0) / 100) * 100) / 100;
-      validatedItems.push({ product: product._id, name: product.name, quantity: qty, price: serverPrice, image: product.images?.[0] || '' });
-    }
-
-    const serverSubtotal = Math.round(validatedItems.reduce((sum, i) => sum + i.price * i.quantity * 100, 0)) / 100;
-    let serverDiscount = 0;
-    let validPromoCode = '';
-    if (promoCode) {
-      const promo = await PromoCode.findOne({ code: String(promoCode).toUpperCase().trim(), active: true });
-      if (promo && (!promo.expiresAt || promo.expiresAt > Date.now()) && (!promo.minAmount || serverSubtotal >= promo.minAmount)) {
-        validPromoCode = promo.code;
-        serverDiscount = promo.discountType === 'fixed'
-          ? promo.discountValue
-          : Math.round(serverSubtotal * (promo.discountValue / 100) * 100) / 100;
-      }
-    }
-    const serverTotal = Math.max(0, Math.round((serverSubtotal - serverDiscount) * 100) / 100);
-
-    if (paymentMethod === 'Paystack') {
-      res.status(400);
-      await verifyPaystackRef(paystackReference, serverTotal);
-    } else if (paymentMethod === 'momo') {
-      res.status(400);
-      await verifyMoMoRef(momoReference, serverTotal);
-    }
-
-    const guestOrderToken = crypto.randomBytes(24).toString('hex');
-
-    const order = await new Order({
-      guestName: String(guestName).trim().slice(0, 100),
-      guestEmail: String(guestEmail).toLowerCase().trim(),
-      guestOrderToken,
-      orderItems: validatedItems,
-      shippingAddress: sanitizeAddress(shippingAddress),
-      paymentMethod,
-      subtotalPrice: serverSubtotal,
-      discountPrice: serverDiscount,
-      promoCode: validPromoCode,
-      totalPrice: serverTotal,
-      ...(paymentMethod === 'Paystack' && { paystackReference: String(paystackReference), isPaid: true, paidAt: new Date() }),
-      ...(paymentMethod === 'momo' && { momoReference: String(momoReference), isPaid: true, paidAt: new Date() }),
-    }).save();
-
-    // Confirmation email to guest
-    const itemRows = validatedItems.map((item) =>
-      `<tr style="border-bottom:1px solid #f0f0f0">
-        <td style="padding:8px 4px">${escapeHtml(item.name)}</td>
-        <td style="text-align:right;padding:8px 4px">${item.quantity}</td>
-        <td style="text-align:right;padding:8px 4px">&#8373;${(item.quantity * item.price).toFixed(2)}</td>
-      </tr>`
-    ).join('');
-    sendResendEmail({
-      to: String(guestEmail).toLowerCase().trim(),
-      subject: `Order Confirmed — #${order._id.toString().slice(-8).toUpperCase()}`,
-      html: `
-        <div style="font-family:sans-serif;max-width:520px;margin:0 auto;padding:32px">
-          <h2 style="color:#131921">Order Confirmed!</h2>
-          <p>Hi ${escapeHtml(String(guestName).trim())},</p>
-          <p>Thank you for your order. Here is a summary:</p>
-          <table style="width:100%;border-collapse:collapse;margin:16px 0">
-            <thead><tr style="border-bottom:2px solid #eee">
-              <th style="text-align:left;padding:8px 4px;color:#888;font-size:12px">Item</th>
-              <th style="text-align:right;padding:8px 4px;color:#888;font-size:12px">Qty</th>
-              <th style="text-align:right;padding:8px 4px;color:#888;font-size:12px">Price</th>
-            </tr></thead>
-            <tbody>${itemRows}</tbody>
-          </table>
-          ${serverDiscount > 0 ? `<p style="text-align:right;color:#666">Promo: &minus;&#8373;${serverDiscount.toFixed(2)}</p>` : ''}
-          <p style="text-align:right;font-size:18px;font-weight:bold">Total: &#8373;${serverTotal.toFixed(2)}</p>
-          <div style="margin:20px 0;padding:16px;background:#f9f9f9;border-radius:8px;font-size:14px;line-height:1.8">
-            <strong>Order ID:</strong> #${order._id.toString().slice(-8).toUpperCase()}<br>
-            <strong>Payment:</strong> ${escapeHtml(paymentMethod || 'N/A')}<br>
-            <strong>Ship to:</strong> ${escapeHtml(shippingAddress?.address || '')}, ${escapeHtml(shippingAddress?.city || '')}
-          </div>
-          <p style="color:#666;font-size:13px">We will notify you when your order is shipped.</p>
-          <hr style="border:none;border-top:1px solid #eee;margin:24px 0"/>
-          <p style="color:#999;font-size:12px">Cindy Nat Enterprise &mdash; Kumasi, Ghana</p>
-        </div>
-      `,
-    }).catch((err) => console.error('[Email] Guest order confirmation failed:', err.message));
-
-    // Expose the token to the immediate response so the frontend can stash it
-    // for the confirmation page. It is not persisted in any subsequent read.
-    res.status(201).json({ ...order.toObject(), guestOrderToken });
-  } catch (err) {
-    await rollback();
-    if (err.code === 11000) {
-      res.status(400);
-      throw new Error('This payment has already been used for an order.');
-    }
-    throw err;
-  }
+  // Expose the token once so the frontend can stash it for the confirmation
+  // page; it is never returned by subsequent reads.
+  res.status(201).json({ ...order.toObject(), guestOrderToken });
 });
 
 const getGuestOrder = asyncHandler(async (req, res) => {
