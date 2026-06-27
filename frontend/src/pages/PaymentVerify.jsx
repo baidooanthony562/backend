@@ -1,7 +1,7 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { verifyPaystackPayment, createOrder, createGuestOrder } from '../utils/api';
-import { getToken, isAuthenticated } from '../utils/auth';
+import { getToken } from '../utils/auth';
 import { clearCart } from '../utils/cart';
 
 export default function PaymentVerify() {
@@ -10,55 +10,89 @@ export default function PaymentVerify() {
   const token = getToken();
   const [status, setStatus] = useState('verifying'); // verifying | success | failed
   const [message, setMessage] = useState('');
+  // When true, the charge likely succeeded but order creation didn't — we keep
+  // the order details in sessionStorage so the customer can retry instead of
+  // losing a paid order.
+  const [retryable, setRetryable] = useState(false);
+  const referenceRef = useRef(null);
+
+  // Finalise the order for an already-paid Paystack reference. Safe to call
+  // again on retry: the backend rejects a reused reference, which we treat as
+  // "the order already exists" rather than an error.
+  const finalize = async () => {
+    const reference = referenceRef.current;
+    setStatus('verifying');
+    setRetryable(false);
+
+    const pending = sessionStorage.getItem('paystackPending');
+    if (!pending) {
+      setStatus('failed');
+      setMessage(
+        `We couldn't find your order details to finish creating your order. If you were charged, please contact support with payment reference ${reference || '(unknown)'} and we'll complete it for you.`
+      );
+      return;
+    }
+
+    let orderPayload, isGuest;
+    try {
+      ({ orderPayload, isGuest } = JSON.parse(pending));
+    } catch {
+      setStatus('failed');
+      setMessage(`Your saved order details were unreadable. If you were charged, contact support with reference ${reference}.`);
+      return;
+    }
+
+    try {
+      // Early signal to the customer; createOrder re-verifies server-side anyway.
+      await verifyPaystackPayment(reference);
+
+      let orderId;
+      if (isGuest) {
+        const { data } = await createGuestOrder({ ...orderPayload, paystackReference: reference });
+        orderId = data._id;
+        sessionStorage.setItem(`guestOrderToken:${orderId}`, data.guestOrderToken);
+      } else {
+        const { data } = await createOrder({ ...orderPayload, paystackReference: reference }, token);
+        orderId = data._id;
+      }
+
+      clearCart();
+      sessionStorage.removeItem('paystackPending');
+      setStatus('success');
+      setTimeout(() => navigate(`/order-confirmation/${orderId}`), 1200);
+    } catch (err) {
+      const serverMsg = err.response?.data?.message || '';
+
+      // The reference was already consumed → the order exists from an earlier
+      // attempt. Nothing went wrong; don't make them pay or retry again.
+      if (/already been used/i.test(serverMsg)) {
+        clearCart();
+        sessionStorage.removeItem('paystackPending');
+        setStatus('failed');
+        setMessage('Good news — your order was already created from this payment. Check your email or your order history; there is no need to pay again.');
+        return;
+      }
+
+      // Payment likely went through but the order didn't save. Keep the details
+      // (do NOT clear paystackPending) so the customer can retry.
+      setStatus('failed');
+      setRetryable(true);
+      setMessage(
+        `${serverMsg || "We couldn't finish creating your order."} Your payment reference is ${reference}. You can retry below, or send that reference to support and we'll complete your order.`
+      );
+    }
+  };
 
   useEffect(() => {
     const reference = searchParams.get('reference') || searchParams.get('trxref');
-
-    const run = async () => {
-      if (!reference) {
-        setStatus('failed');
-        setMessage('No payment reference found.');
-        return;
-      }
-
-      const pending = sessionStorage.getItem('paystackPending');
-      if (!pending) {
-        setStatus('failed');
-        setMessage('Order data not found. Your payment may have gone through — please contact support.');
-        return;
-      }
-
-      const { orderPayload, isGuest } = JSON.parse(pending);
-
-      try {
-        // Verify with Paystack via backend
-        await verifyPaystackPayment(reference);
-
-        // Create the order
-        let orderId;
-        if (isGuest) {
-          const { data } = await createGuestOrder({ ...orderPayload, paystackReference: reference });
-          orderId = data._id;
-          sessionStorage.setItem(`guestOrderToken:${orderId}`, data.guestOrderToken);
-        } else {
-          const { data } = await createOrder({ ...orderPayload, paystackReference: reference }, token);
-          orderId = data._id;
-        }
-
-        // Clear cart and pending data
-        clearCart();
-        sessionStorage.removeItem('paystackPending');
-
-        setStatus('success');
-        setTimeout(() => navigate(`/order-confirmation/${orderId}`), 1200);
-      } catch (err) {
-        setStatus('failed');
-        setMessage(err.response?.data?.message || 'Payment verification failed. Please contact support.');
-        sessionStorage.removeItem('paystackPending');
-      }
-    };
-
-    run();
+    referenceRef.current = reference;
+    if (!reference) {
+      setStatus('failed');
+      setMessage('No payment reference found.');
+      return;
+    }
+    finalize();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   return (
@@ -95,6 +129,14 @@ export default function PaymentVerify() {
             <h1 className="text-xl font-bold text-red-800">Something went wrong</h1>
             <p className="mt-2 text-sm text-slate-600">{message}</p>
             <div className="mt-6 flex flex-col gap-3">
+              {retryable && (
+                <button
+                  onClick={finalize}
+                  className="w-full rounded-full bg-green-600 px-6 py-3 text-sm font-semibold text-white hover:bg-green-700 transition"
+                >
+                  Retry creating my order
+                </button>
+              )}
               <button
                 onClick={() => navigate('/cart')}
                 className="w-full rounded-full bg-brand-gold px-6 py-3 text-sm font-semibold text-slate-900 hover:bg-yellow-400 transition"
