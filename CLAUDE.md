@@ -60,8 +60,10 @@ When touching order/payment/promo logic, preserve these invariants: server-autho
 
 ### Payments
 `backend/controllers/paymentController.js` supports two providers, both for the Ghana market (currency GHS):
-- **Paystack** — initialize → redirect → verify by reference. The public verify endpoint deliberately leaks nothing (no email/amount); order creation re-verifies independently.
+- **Paystack** — at init the order intent is saved server-side as a `PendingOrder` keyed by the payment reference; after the customer pays, the order is finalized by **whichever arrives first** — the browser return (`POST /payments/paystack/finalize`) or the **webhook** (`POST /payments/paystack/webhook`). This means a paid order is not lost if the customer's browser never returns. `finalizeOrderFromReference` (in `orderController`) is idempotent — the unique `paystackReference` index plus an existing-order short-circuit guarantee exactly one order even if both paths race. The webhook verifies Paystack's **HMAC-SHA512 signature** (`x-paystack-signature`) against the raw request body before trusting the event, and is mounted in `server.js` *before* the rate limiter so retries aren't throttled. **Ops:** the webhook URL must be registered in the Paystack dashboard.
 - **MTN MoMo** — `requesttopay` flow, sandbox vs. production via `MOMO_ENV`. `getMoMoTransaction` is reused by the order controller for server-side verification.
+
+Order creation logic lives in one HTTP-agnostic core, `buildOrder()` in `orderController.js` (validates items, atomically reserves stock, prices server-side, verifies payment, saves, emails). `createOrder`, `createGuestOrder`, and the Paystack finalizer are all thin callers of it — keep new order paths going through `buildOrder` so the money invariants stay in one place. It throws `httpError(status, msg)`; `errorMiddleware` honors `err.statusCode`.
 
 ### Email
 All transactional email goes through `sendResendEmail` in `backend/utils/email.js` (Resend API, raw `https` request — no SDK). **Always** wrap user-controlled strings with `escapeHtml` before interpolating into email HTML. Email sends are fire-and-forget (`.catch` logged) so a mail failure never fails the underlying order/status operation.

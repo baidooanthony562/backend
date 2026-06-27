@@ -201,14 +201,14 @@ export default function Cart() {
       setPlacingOrder(true);
       setCheckoutMessage('');
       try {
-        const { data } = await initializePaystackPayment({ email, amount: finalTotal });
-        // Save order data so PaymentVerify can create the order after payment
-        sessionStorage.setItem('paystackPending', JSON.stringify({
-          orderPayload: isGuest
-            ? { ...buildOrderPayload('Paystack'), guestName: guestName.trim(), guestEmail: email }
-            : buildOrderPayload('Paystack'),
-          isGuest,
-        }));
+        const orderPayload = isGuest
+          ? { ...buildOrderPayload('Paystack'), guestName: guestName.trim(), guestEmail: email }
+          : buildOrderPayload('Paystack');
+        // Send the intent to the server so it (or the webhook) can finalize the
+        // order even if the browser never returns. Keep a sessionStorage copy as
+        // a fallback for the browser-return path.
+        const { data } = await initializePaystackPayment({ email, amount: finalTotal, orderPayload });
+        sessionStorage.setItem('paystackPending', JSON.stringify({ orderPayload, isGuest }));
         window.location.href = data.authorization_url;
       } catch (err) {
         setCheckoutMessage(err.response?.data?.message || 'Could not connect to Paystack. Try again.');

@@ -81,4 +81,7 @@ export const initiateMoMoPayment = (payload, token) => api.post('/payments/momo/
 export const checkMoMoStatus = (referenceId, token) => api.get(`/payments/momo/status/${referenceId}`, authConfig(token));
 export const initializePaystackPayment = (payload) => api.post('/payments/paystack/initialize', payload);
 export const verifyPaystackPayment = (reference) => api.get(`/payments/paystack/verify/${encodeURIComponent(reference)}`);
+// Finalize the order the server already holds for a paid reference (the webhook
+// is the server-side backup for the same operation). Idempotent.
+export const finalizePaystackOrder = (reference) => api.post('/payments/paystack/finalize', { reference });
 export default api;

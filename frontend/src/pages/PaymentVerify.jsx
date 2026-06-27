@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { verifyPaystackPayment, createOrder, createGuestOrder } from '../utils/api';
+import { finalizePaystackOrder, verifyPaystackPayment, createOrder, createGuestOrder } from '../utils/api';
 import { getToken } from '../utils/auth';
 import { clearCart } from '../utils/cart';
 
@@ -10,71 +10,78 @@ export default function PaymentVerify() {
   const token = getToken();
   const [status, setStatus] = useState('verifying'); // verifying | success | failed
   const [message, setMessage] = useState('');
-  // When true, the charge likely succeeded but order creation didn't — we keep
-  // the order details in sessionStorage so the customer can retry instead of
-  // losing a paid order.
+  // When true, the charge likely succeeded but order creation didn't — keep the
+  // fallback details so the customer can retry instead of losing a paid order.
   const [retryable, setRetryable] = useState(false);
   const referenceRef = useRef(null);
 
-  // Finalise the order for an already-paid Paystack reference. Safe to call
-  // again on retry: the backend rejects a reused reference, which we treat as
-  // "the order already exists" rather than an error.
+  const completeSuccess = (order) => {
+    if (order?.guestOrderToken) {
+      sessionStorage.setItem(`guestOrderToken:${order._id}`, order.guestOrderToken);
+    }
+    clearCart();
+    sessionStorage.removeItem('paystackPending');
+    setStatus('success');
+    setTimeout(() => navigate(`/order-confirmation/${order._id}`), 1200);
+  };
+
+  // Fallback for when the server has no saved intent (older checkout, or the
+  // intent failed to save at init): create the order from the browser's copy.
+  const tryClientSideCreate = async (reference) => {
+    const pending = sessionStorage.getItem('paystackPending');
+    if (!pending) return null;
+    let orderPayload, isGuest;
+    try {
+      ({ orderPayload, isGuest } = JSON.parse(pending));
+    } catch {
+      return null;
+    }
+    await verifyPaystackPayment(reference);
+    if (isGuest) {
+      const { data } = await createGuestOrder({ ...orderPayload, paystackReference: reference });
+      return data;
+    }
+    const { data } = await createOrder({ ...orderPayload, paystackReference: reference }, token);
+    return data;
+  };
+
   const finalize = async () => {
     const reference = referenceRef.current;
     setStatus('verifying');
     setRetryable(false);
 
-    const pending = sessionStorage.getItem('paystackPending');
-    if (!pending) {
-      setStatus('failed');
-      setMessage(
-        `We couldn't find your order details to finish creating your order. If you were charged, please contact support with payment reference ${reference || '(unknown)'} and we'll complete it for you.`
-      );
-      return;
-    }
-
-    let orderPayload, isGuest;
     try {
-      ({ orderPayload, isGuest } = JSON.parse(pending));
-    } catch {
-      setStatus('failed');
-      setMessage(`Your saved order details were unreadable. If you were charged, contact support with reference ${reference}.`);
+      // Primary path: the server already holds the order intent (saved at init),
+      // and the webhook may have finalized it already. This call is idempotent.
+      const { data } = await finalizePaystackOrder(reference);
+      completeSuccess(data);
       return;
-    }
-
-    try {
-      // Early signal to the customer; createOrder re-verifies server-side anyway.
-      await verifyPaystackPayment(reference);
-
-      let orderId;
-      if (isGuest) {
-        const { data } = await createGuestOrder({ ...orderPayload, paystackReference: reference });
-        orderId = data._id;
-        sessionStorage.setItem(`guestOrderToken:${orderId}`, data.guestOrderToken);
-      } else {
-        const { data } = await createOrder({ ...orderPayload, paystackReference: reference }, token);
-        orderId = data._id;
-      }
-
-      clearCart();
-      sessionStorage.removeItem('paystackPending');
-      setStatus('success');
-      setTimeout(() => navigate(`/order-confirmation/${orderId}`), 1200);
     } catch (err) {
+      const httpStatus = err.response?.status;
       const serverMsg = err.response?.data?.message || '';
 
-      // The reference was already consumed → the order exists from an earlier
-      // attempt. Nothing went wrong; don't make them pay or retry again.
-      if (/already been used/i.test(serverMsg)) {
-        clearCart();
-        sessionStorage.removeItem('paystackPending');
-        setStatus('failed');
-        setMessage('Good news — your order was already created from this payment. Check your email or your order history; there is no need to pay again.');
-        return;
+      // No server-side intent → fall back to creating it from the browser's copy.
+      if (httpStatus === 404) {
+        try {
+          const order = await tryClientSideCreate(reference);
+          if (order) {
+            completeSuccess(order);
+            return;
+          }
+        } catch (fallbackErr) {
+          const fbMsg = fallbackErr.response?.data?.message || '';
+          if (/already been used/i.test(fbMsg)) {
+            clearCart();
+            sessionStorage.removeItem('paystackPending');
+            setStatus('failed');
+            setMessage('Good news — your order was already created from this payment. Check your email or your order history; there is no need to pay again.');
+            return;
+          }
+        }
       }
 
-      // Payment likely went through but the order didn't save. Keep the details
-      // (do NOT clear paystackPending) so the customer can retry.
+      // Payment likely went through but the order didn't save. Keep details so
+      // the customer can retry, and surface the reference for support.
       setStatus('failed');
       setRetryable(true);
       setMessage(
