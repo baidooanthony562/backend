@@ -827,6 +827,12 @@ export default function AdminDashboard() {
                 <div className="rounded-lg bg-white p-6 shadow-sm">
                   <h2 className="mb-4 text-lg font-bold text-slate-900"><i className="fas fa-exclamation-triangle text-red-500 mr-1"></i> Low Stock Alerts</h2>
                   {(() => {
+                    // No products at all means the catalogue is empty or failed
+                    // to load — don't pass that off as "well stocked", which
+                    // would be a false all-clear for an inventory warning.
+                    if (products.length === 0) {
+                      return <p className="text-sm text-slate-500">No products loaded yet — add a product or check that the catalogue is reachable.</p>;
+                    }
                     const low = products.filter((p) => Number(p.stock) <= 5);
                     return low.length === 0
                       ? <p className="text-sm text-slate-500">All products are well stocked.</p>
