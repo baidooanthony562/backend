@@ -328,6 +328,22 @@ test('the webhook rejects a forged signature and creates no order', async () => 
   assert.equal(await Order.findOne({ paystackReference: 'PSREF-BAD' }), null, 'no order should be created from a forged event');
 });
 
+test('state-changing requests from a disallowed Origin are blocked (CSRF)', async () => {
+  // A cross-site write carrying a forged Origin must be rejected...
+  await request(app)
+    .post('/api/auth/login')
+    .set('Origin', 'https://evil.example.com')
+    .send({ email: 'x@test.com', password: 'whatever' })
+    .expect(403);
+
+  // ...while a request with no Origin (curl/mobile/webhook) is allowed through
+  // to normal handling (here: invalid credentials, not a CSRF block).
+  await request(app)
+    .post('/api/auth/login')
+    .send({ email: 'x@test.com', password: 'whatever' })
+    .expect(401);
+});
+
 test('finalize-by-reference creates the order and is idempotent', async () => {
   const user = await makeUser();
   const product = await Product.create({ name: 'Widget', price: 100, stock: 10, active: true });

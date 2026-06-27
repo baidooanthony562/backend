@@ -49,6 +49,23 @@ const allowedOrigins = [
   process.env.FRONTEND_URL,
 ].filter(Boolean);
 
+// CSRF defense-in-depth, ahead of CORS so it returns a clean 403. The auth
+// cookie is SameSite=None (cross-site frontend), so it rides along on cross-site
+// requests. CORS preflight already blocks cross-origin JSON calls, but simple
+// requests (e.g. a form POST) skip preflight — so we also reject any
+// state-changing request whose Origin isn't allow-listed. A missing Origin is
+// allowed: that's a non-browser client (curl/mobile) or a server-to-server call
+// like the Paystack webhook, neither of which is a CSRF vector (the browser
+// always sends Origin on cross-site writes).
+const STATE_CHANGING_METHODS = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);
+app.use((req, res, next) => {
+  if (!STATE_CHANGING_METHODS.has(req.method)) return next();
+  const origin = req.headers.origin;
+  if (!origin || allowedOrigins.includes(origin)) return next();
+  res.status(403);
+  return next(new Error('Cross-origin request blocked'));
+});
+
 app.use(cors({
   origin: (origin, callback) => {
     if (!origin) return callback(null, true); // allow curl / Postman / mobile
