@@ -37,11 +37,14 @@ const createProductReview = asyncHandler(async (req, res) => {
     throw new Error('Product not found');
   }
 
-  // Verified-purchase only: the reviewer must have an order containing this
-  // product. (Cancelled orders are deleted, so any match is a real purchase.)
+  // Verified-purchase only: the reviewer must have a non-refunded order
+  // containing this product. (Cancelled orders are deleted; refunded ones are
+  // kept on record, so we must exclude them explicitly — a reversed purchase
+  // shouldn't count as a verified one.)
   const purchased = await Order.findOne({
     user: req.user._id,
     'orderItems.product': product._id,
+    isRefunded: { $ne: true },
   }).select('_id');
   if (!purchased) {
     res.status(403);
