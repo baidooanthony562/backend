@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { readCart, writeCart, clearCart, getCartCount } from './cart';
+import { readCart, writeCart, clearCart, getCartCount, addProductToCart } from './cart';
 
 describe('cart util', () => {
   it('starts empty', () => {
@@ -30,5 +30,28 @@ describe('cart util', () => {
     writeCart([{ _id: 'a', quantity: 1 }]);
     clearCart();
     expect(readCart()).toEqual([]);
+  });
+});
+
+describe('addProductToCart', () => {
+  it('adds a new product in the expected cart shape', () => {
+    addProductToCart({ _id: 'p1', name: 'Blender', price: 250, images: ['b.png'] }, 2);
+    const [item] = readCart();
+    expect(item).toMatchObject({ id: 'p1', name: 'Blender', quantity: 2, unitPrice: 250, image: 'b.png' });
+  });
+
+  it('bumps quantity when the product is already in the cart', () => {
+    addProductToCart({ _id: 'p1', name: 'Blender', price: 250 }, 1);
+    addProductToCart({ _id: 'p1', name: 'Blender', price: 250 }, 2);
+    const cart = readCart();
+    expect(cart).toHaveLength(1);
+    expect(cart[0].quantity).toBe(3);
+  });
+
+  it('applies wholesale pricing once the quantity qualifies', () => {
+    addProductToCart({ _id: 'p1', name: 'Cups', price: 10, wholesalePrice: 7, wholesaleMinQty: 5 }, 5);
+    const [item] = readCart();
+    expect(item.isWholesale).toBe(true);
+    expect(item.unitPrice).toBe(7);
   });
 });

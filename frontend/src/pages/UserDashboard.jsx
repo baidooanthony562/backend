@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { getAuthUser, getToken, isAuthenticated } from '../utils/auth';
 import { fetchUserOrders, fetchUserProfile, updateUserProfile, changeUserPassword } from '../utils/api';
 import { getWishlist, removeFromWishlist, onWishlistChange, syncWishlistFromServer } from '../utils/wishlist';
+import { addProductToCart } from '../utils/cart';
 import { showToast } from '../components/Toast';
 import PasswordStrength from '../components/PasswordStrength';
 
@@ -128,6 +129,11 @@ export default function UserDashboard() {
 
   const handleRemoveWishlist = (productId) => {
     setWishlist(removeFromWishlist(productId));
+  };
+
+  const handleAddWishlistToCart = (product) => {
+    addProductToCart(product, 1);
+    showToast(`${product.name} added to cart`);
   };
 
   return (
@@ -328,9 +334,14 @@ export default function UserDashboard() {
                           <p className="font-semibold text-slate-900 truncate">{product.name}</p>
                           <p className="text-sm text-slate-500">₵{Number(product.price).toFixed(2)}</p>
                         </div>
-                        <button onClick={() => handleRemoveWishlist(pid)} className="shrink-0 rounded-full bg-rose-100 px-3 py-1.5 text-sm text-rose-700 transition hover:bg-rose-200">
-                          Remove
-                        </button>
+                        <div className="flex shrink-0 items-center gap-2">
+                          <button onClick={() => handleAddWishlistToCart(product)} className="rounded-full bg-brand-gold px-3 py-1.5 text-sm font-semibold text-black transition hover:bg-yellow-400">
+                            Add to cart
+                          </button>
+                          <button onClick={() => handleRemoveWishlist(pid)} className="rounded-full bg-rose-100 px-3 py-1.5 text-sm text-rose-700 transition hover:bg-rose-200">
+                            Remove
+                          </button>
+                        </div>
                       </div>
                     </div>
                   );

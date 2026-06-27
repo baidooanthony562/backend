@@ -37,3 +37,38 @@ export function clearCart() {
 export function getCartCount() {
   return readCart().reduce((sum, item) => sum + (Number(item.quantity) || 0), 0);
 }
+
+// Add a product to the cart (or bump its quantity if already there), in the
+// shape the cart/checkout pages expect. Shared by the product card and the
+// wishlist so the item shape stays in one place. Pricing here is display-only —
+// the server re-prices every order.
+export function addProductToCart(product, qty = 1) {
+  const id = product._id || product.id;
+  const image = product.images?.[0] || product.image || '';
+  const hasWholesale = product.wholesalePrice && product.wholesaleMinQty;
+  const isWholesale = Boolean(hasWholesale && qty >= product.wholesaleMinQty);
+  const unitPrice = isWholesale ? Number(product.wholesalePrice) : Number(product.price) || 0;
+
+  const cart = readCart();
+  const existing = cart.find((item) => (item.id || item._id) === id);
+  if (existing) {
+    existing.quantity += qty;
+    existing.unitPrice = unitPrice;
+    existing.isWholesale = isWholesale;
+  } else {
+    cart.push({
+      ...product,
+      id,
+      image,
+      quantity: qty,
+      unitPrice,
+      retailPrice: product.price,
+      wholesalePrice: product.wholesalePrice,
+      wholesaleMinQty: product.wholesaleMinQty,
+      isWholesale,
+      category: typeof product.category === 'string' ? product.category : product.category?.name || '',
+    });
+  }
+  writeCart(cart);
+  return cart;
+}

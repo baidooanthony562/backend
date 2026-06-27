@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { showToast } from './Toast';
-import { readCart, writeCart } from '../utils/cart';
+import { addProductToCart } from '../utils/cart';
 
 const PLACEHOLDER = 'https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?auto=format&fit=crop&w=800&q=80';
 
@@ -51,27 +51,7 @@ export default function ProductCard({ product }) {
     e.preventDefault();
     if (!inStock) return;
     try {
-      const cart = readCart();
-      const existing = cart.find((item) => (item.id || item._id) === productId);
-      if (existing) {
-        existing.quantity += qty;
-        existing.unitPrice = unitPrice;
-        existing.isWholesale = isWholesaleQty;
-      } else {
-        cart.push({
-          ...product,
-          id: productId,
-          image: productImage,
-          quantity: qty,
-          unitPrice,
-          retailPrice: product.price,
-          wholesalePrice: product.wholesalePrice,
-          wholesaleMinQty: product.wholesaleMinQty,
-          isWholesale: isWholesaleQty,
-          category: typeof product.category === 'string' ? product.category : product.category?.name || '',
-        });
-      }
-      writeCart(cart);
+      addProductToCart({ ...product, image: productImage }, qty);
       const label = qty > 1 ? `${qty}x ${product.name}` : product.name;
       showToast(`${label} added to cart${isWholesaleQty ? ' at wholesale price' : ''}`);
     } catch (err) {
