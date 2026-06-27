@@ -49,4 +49,7 @@ export const logout = async () => {
   localStorage.removeItem(AUTH_USER_KEY);
   localStorage.removeItem(ADMIN_USER_KEY);
   localStorage.removeItem(ADMIN_SESSION_KEY);
+  // Drop the account wishlist cache so the next user on a shared device doesn't
+  // inherit it (key inlined to avoid a circular import with wishlist.js).
+  localStorage.removeItem('cindy_wishlist');
 };

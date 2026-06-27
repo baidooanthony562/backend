@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { loginUser, resendVerification } from '../utils/api';
 import { isAuthenticated, saveAuthUser } from '../utils/auth';
+import { mergeLocalWishlistToServer } from '../utils/wishlist';
 import { showToast } from '../components/Toast';
 
 export default function Login() {
@@ -39,6 +40,8 @@ export default function Login() {
       // profile info locally for nav/dashboard rendering.
       saveAuthUser(data);
       window.dispatchEvent(new Event('storage'));
+      // Merge any items saved as a guest into the account (runs in background).
+      mergeLocalWishlistToServer();
       showToast(`Welcome back, ${data.name?.split(' ')[0] || 'there'}!`);
       navigate(redirectTo);
     } catch (err) {

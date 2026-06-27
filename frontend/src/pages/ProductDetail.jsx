@@ -5,7 +5,7 @@ import { fetchProduct, submitReview } from '../utils/api';
 import { getToken, isAuthenticated } from '../utils/auth';
 import { getProducts } from '../utils/productStore';
 import { showToast } from '../components/Toast';
-import { isInWishlist, addToWishlist, removeFromWishlist } from '../utils/wishlist';
+import { isInWishlist, addToWishlist, removeFromWishlist, onWishlistChange } from '../utils/wishlist';
 import { readCart, writeCart } from '../utils/cart';
 
 const PLACEHOLDER = 'https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?auto=format&fit=crop&w=800&q=80';
@@ -80,6 +80,13 @@ export default function ProductDetail() {
         setWishlisted(isInWishlist(found?.id || found?._id || id));
       })
       .finally(() => setLoading(false));
+  }, [id]);
+
+  // Keep the heart in sync if the wishlist changes elsewhere (e.g. a server
+  // sync after sign-in, or another tab).
+  useEffect(() => {
+    const update = () => setWishlisted(isInWishlist(id));
+    return onWishlistChange(update);
   }, [id]);
 
   if (loading) {

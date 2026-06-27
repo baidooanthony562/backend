@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { getAuthUser, getToken, isAuthenticated } from '../utils/auth';
 import { fetchUserOrders, fetchUserProfile, updateUserProfile, changeUserPassword } from '../utils/api';
-import { getWishlist, removeFromWishlist } from '../utils/wishlist';
+import { getWishlist, removeFromWishlist, onWishlistChange, syncWishlistFromServer } from '../utils/wishlist';
 import { showToast } from '../components/Toast';
 import PasswordStrength from '../components/PasswordStrength';
 
@@ -46,9 +46,13 @@ export default function UserDashboard() {
 
   useEffect(() => {
     if (!isAuthenticated()) { navigate('/login'); return; }
+    // Show the cached wishlist immediately, keep it in sync with the module's
+    // changes, and refresh from the account (which fires a change event).
+    setWishlist(getWishlist());
+    const unsubscribe = onWishlistChange(() => setWishlist(getWishlist()));
+    syncWishlistFromServer();
     const loadData = async () => {
       setLoading(true);
-      setWishlist(getWishlist());
       try {
         const [profileRes, ordersRes] = await Promise.all([
           fetchUserProfile(token),
@@ -63,6 +67,7 @@ export default function UserDashboard() {
       }
     };
     loadData();
+    return unsubscribe;
   }, [navigate, token]);
 
   const openEditProfile = () => {

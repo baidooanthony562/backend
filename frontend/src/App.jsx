@@ -6,6 +6,7 @@ import LiveChat from './components/LiveChat';
 import Toast, { showToast } from './components/Toast';
 import { ProtectedRoute, AdminRoute } from './components/ProtectedRoute';
 import { isAdmin } from './utils/auth';
+import { syncWishlistFromServer } from './utils/wishlist';
 import Home from './pages/Home';
 import Shop from './pages/Shop';
 import ProductDetail from './pages/ProductDetail';
@@ -41,6 +42,10 @@ function App() {
       navigate('/admin', { replace: true });
     }
   }, [adminSignedIn, isAdminArea, location.pathname, navigate]);
+
+  // Pull the account wishlist into the local cache on load for signed-in users
+  // (no-op for guests), so it's fresh across devices/sessions.
+  useEffect(() => { syncWishlistFromServer(); }, []);
 
   return (
     <div className="min-h-screen bg-white text-slate-900">
