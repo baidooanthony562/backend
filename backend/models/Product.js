@@ -13,7 +13,9 @@ const productSchema = mongoose.Schema(
     stock: { type: Number, required: true, default: 0 },
     totalSold: { type: Number, default: 0 },
     sku: { type: String },
-    rating: { type: Number, default: 4.5 },
+    // Starts at 0 (no stars / no count shown) until a real review sets it.
+    // A non-zero default showed fabricated stars on brand-new products.
+    rating: { type: Number, default: 0 },
     reviews: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Review' }],
     featured: { type: Boolean, default: false },
     bestseller: { type: Boolean, default: false },
