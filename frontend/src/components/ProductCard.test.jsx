@@ -29,4 +29,14 @@ describe('ProductCard', () => {
     renderCard({ _id: '1', name: 'Popular', price: 100, stock: 5, rating: 4, reviews: ['r1', 'r2', 'r3'] });
     expect(screen.getByText('(3)')).toBeInTheDocument();
   });
+
+  it('surfaces a bulk-pricing hint when the product has wholesale pricing', () => {
+    renderCard({ _id: '1', name: 'Cups', price: 10, stock: 50, wholesalePrice: 7, wholesaleMinQty: 5, reviews: [] });
+    expect(screen.getByText(/5\+ at ₵7\.00\/ea/)).toBeInTheDocument();
+  });
+
+  it('shows no bulk hint when the product has no wholesale pricing', () => {
+    renderCard({ _id: '1', name: 'Plain', price: 10, stock: 50, reviews: [] });
+    expect(screen.queryByText(/\/ea/)).toBeNull();
+  });
 });

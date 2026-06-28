@@ -115,6 +115,12 @@ export default function ProductCard({ product }) {
           {!isWholesaleQty && discount > 0 && (
             <p className="text-[10px] font-semibold text-red-600">Save ₵{(originalPrice - product.price).toFixed(2)}</p>
           )}
+          {/* Surface bulk pricing at browse time, before the qty is bumped. */}
+          {hasWholesale && !isWholesaleQty && (
+            <p className="text-[10px] font-semibold text-emerald-600">
+              <i className="fas fa-warehouse mr-1"></i>{product.wholesaleMinQty}+ at ₵{Number(product.wholesalePrice).toFixed(2)}/ea
+            </p>
+          )}
         </div>
 
         <p className={`text-[10px] font-semibold sm:text-xs ${!inStock ? 'text-red-500' : maxStock <= 5 ? 'text-red-600' : maxStock <= 10 ? 'text-amber-600' : 'text-[#007185]'}`}>
