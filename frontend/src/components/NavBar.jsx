@@ -2,6 +2,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import { getAuthUser, isAuthenticated, isAdmin, logout } from '../utils/auth';
 import { getCartCount } from '../utils/cart';
+import Logo from './Logo';
 
 export default function NavBar() {
   const [open, setOpen] = useState(false);
@@ -61,7 +62,7 @@ export default function NavBar() {
 
           {/* Logo */}
           <Link to="/" className="flex shrink-0 items-center gap-1.5 rounded transition duration-150 hover:bg-white/10 border border-transparent px-1 py-1">
-            <span className="flex h-8 w-8 items-center justify-center rounded bg-brand-gold text-xs font-extrabold text-black">CN</span>
+            <Logo size={32} />
             <div className="hidden sm:block">
               <p className="text-sm font-bold leading-none text-white">Cindy Nat</p>
               <p className="text-xs leading-none text-slate-400">Enterprise</p>

@@ -4,6 +4,7 @@ import { loginUser, resendVerification } from '../utils/api';
 import { isAuthenticated, saveAuthUser } from '../utils/auth';
 import { mergeLocalWishlistToServer } from '../utils/wishlist';
 import { showToast } from '../components/Toast';
+import Logo from '../components/Logo';
 
 export default function Login() {
   const navigate = useNavigate();
@@ -72,7 +73,7 @@ export default function Login() {
     <section className="mx-auto max-w-md px-4 pb-24 pt-8 md:px-0">
       <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm sm:p-8">
         <div className="mb-6 text-center">
-          <span className="inline-flex h-12 w-12 items-center justify-center rounded-xl bg-brand-gold text-lg font-extrabold text-black">CN</span>
+          <Logo size={48} className="mx-auto" />
           <h1 className="mt-3 text-2xl font-extrabold text-slate-900">Sign in to your account</h1>
           <p className="mt-1 text-sm text-slate-500">Access your orders, wishlist and dashboard.</p>
         </div>

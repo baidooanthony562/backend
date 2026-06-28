@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { forgotPassword, verifyResetCode, resetPassword } from '../utils/api';
 import { showToast } from '../components/Toast';
 import PasswordStrength from '../components/PasswordStrength';
+import Logo from '../components/Logo';
 
 export default function ForgotPassword() {
   const navigate = useNavigate();
@@ -99,7 +100,7 @@ export default function ForgotPassword() {
 
         {/* Header */}
         <div className="mb-6 text-center">
-          <span className="inline-flex h-12 w-12 items-center justify-center rounded-xl bg-brand-gold text-lg font-extrabold text-black">CN</span>
+          <Logo size={48} className="mx-auto" />
           <h1 className="mt-3 text-2xl font-extrabold text-slate-900">{stepTitle}</h1>
           <p className="mt-1 text-sm text-slate-500">{stepSub}</p>
         </div>

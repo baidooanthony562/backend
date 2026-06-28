@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { adminLogin } from '../utils/api';
 import { isAdmin, saveAdminUser, saveAdminSessionId } from '../utils/auth';
+import Logo from '../components/Logo';
 
 export default function AdminLogin() {
   const navigate = useNavigate();
@@ -39,7 +40,7 @@ export default function AdminLogin() {
       <div className="w-full max-w-md">
         {/* Logo */}
         <div className="mb-8 text-center">
-          <span className="inline-flex h-14 w-14 items-center justify-center rounded-xl bg-brand-gold text-xl font-extrabold text-black">CN</span>
+          <Logo size={56} className="mx-auto" />
           <h1 className="mt-3 text-2xl font-extrabold text-white">Cindy Nat Enterprise</h1>
           <p className="mt-1 text-sm text-slate-400">Admin Portal</p>
         </div>
