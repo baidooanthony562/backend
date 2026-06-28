@@ -7,6 +7,7 @@ export default function AdminLogin() {
   const navigate = useNavigate();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [totp, setTotp] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [showPass, setShowPass] = useState(false);
@@ -20,7 +21,7 @@ export default function AdminLogin() {
     setLoading(true);
     setError('');
     try {
-      const { data } = await adminLogin({ email, password });
+      const { data } = await adminLogin({ email, password, totp: totp.trim() || undefined });
       // Backend set the httpOnly auth cookie; we only stash non-sensitive
       // admin profile info locally so the dashboard can render before /profile.
       saveAdminUser(data);
@@ -81,6 +82,20 @@ export default function AdminLogin() {
                   <i className={showPass ? 'fas fa-eye-slash' : 'fas fa-eye'}></i>
                 </button>
               </div>
+            </div>
+            <div>
+              <label className="mb-1.5 block text-sm font-semibold text-slate-700">
+                Authenticator code <span className="font-normal text-slate-400">(only if 2FA is on)</span>
+              </label>
+              <input
+                type="text"
+                inputMode="numeric"
+                autoComplete="one-time-code"
+                value={totp}
+                onChange={(e) => setTotp(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                placeholder="123456"
+                className="w-full rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-sm tracking-widest outline-none focus:border-brand-gold focus:bg-white"
+              />
             </div>
 
             <button

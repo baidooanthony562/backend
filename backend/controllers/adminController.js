@@ -9,6 +9,7 @@ const generateToken = require('../utils/generateToken');
 const { setAuthCookie, clearAuthCookie } = require('../utils/generateToken');
 const { sendResendEmail, escapeHtml } = require('../utils/email');
 const { LOW_STOCK_THRESHOLD } = require('../config/constants');
+const { verifyTOTP } = require('../utils/totp');
 
 function sendLoginAlert(ip) {
   const to = process.env.ADMIN_EMAIL;
@@ -70,6 +71,12 @@ const adminLogin = asyncHandler(async (req, res) => {
     const emailMatch = safeEqual(email, adminEmail);
     const passwordMatch = safeEqual(password, adminPassword);
     if (emailMatch && passwordMatch) {
+      // Two-factor: enforced only when ADMIN_TOTP_SECRET is configured, so the
+      // store can't be locked out by enabling code that no one enrolled for.
+      if (process.env.ADMIN_TOTP_SECRET && !verifyTOTP(req.body.totp, process.env.ADMIN_TOTP_SECRET)) {
+        res.status(401);
+        throw new Error('Invalid or missing authenticator code');
+      }
       const session = await AdminSession.create({ email, ip });
       sendLoginAlert(ip);
       setAuthCookie(res, generateToken('admin'));

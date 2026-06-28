@@ -358,3 +358,27 @@ test('finalize-by-reference creates the order and is idempotent', async () => {
   const fresh = await Product.findById(product._id);
   assert.equal(fresh.stock, 9, 'stock is decremented exactly once');
 });
+
+test('admin login requires a valid TOTP code when 2FA is enabled', async () => {
+  const { generateTOTP } = require('../utils/totp');
+  const secret = 'GEZDGNBVGY3TQOJQGEZDGNBVGY3TQOJQ';
+  process.env.ADMIN_TOTP_SECRET = secret;
+  try {
+    // Right password but no/!wrong code → rejected.
+    await request(app)
+      .post('/api/admin/login')
+      .send({ email: process.env.ADMIN_EMAIL, password: process.env.ADMIN_PASSWORD })
+      .expect(401);
+    await request(app)
+      .post('/api/admin/login')
+      .send({ email: process.env.ADMIN_EMAIL, password: process.env.ADMIN_PASSWORD, totp: '000000' })
+      .expect(401);
+    // Right password + current code → in.
+    await request(app)
+      .post('/api/admin/login')
+      .send({ email: process.env.ADMIN_EMAIL, password: process.env.ADMIN_PASSWORD, totp: generateTOTP(secret) })
+      .expect(200);
+  } finally {
+    delete process.env.ADMIN_TOTP_SECRET;
+  }
+});
