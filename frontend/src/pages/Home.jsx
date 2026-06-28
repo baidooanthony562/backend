@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { categories } from '../data/categories';
-import { fetchFeaturedProducts } from '../utils/api';
+import { fetchFeaturedProducts, fetchProducts } from '../utils/api';
 import { getProducts } from '../utils/productStore';
 import ProductCard from '../components/ProductCard';
 
@@ -51,6 +51,7 @@ const BRANDS = ['Binatone', 'Philips', 'Kenwood', 'Tefal', 'Hoffmans', 'Centroni
 
 export default function Home() {
   const [featured, setFeatured] = useState([]);
+  const [heroPool, setHeroPool] = useState(getProducts());
   const [slideIdx, setSlideIdx] = useCycle(SLIDES.length);
 
   useEffect(() => {
@@ -59,11 +60,24 @@ export default function Home() {
       .catch(() => setFeatured(getProducts()));
   }, []);
 
+  // Pool of real products for the hero image: prefer featured, then the local
+  // product cache, then a quick fetch — so the hero shows real product photos
+  // even when nothing is flagged "featured", and only uses a stock image if the
+  // store genuinely has no products.
+  useEffect(() => {
+    if (featured.length) { setHeroPool(featured); return; }
+    const cached = getProducts();
+    if (cached.length) { setHeroPool(cached); return; }
+    fetchProducts({ limit: 6 })
+      .then((r) => setHeroPool(Array.isArray(r.data) ? r.data : r.data?.products || []))
+      .catch(() => {});
+  }, [featured]);
+
   const slide = SLIDES[slideIdx];
   // Use a real featured product's image per slide (fetchFeaturedProducts returns
   // up to 3), falling back to the curated stock image while loading or if a
   // product has no image. The hero image links through to that product.
-  const heroProduct = featured[slideIdx] || featured[0];
+  const heroProduct = heroPool[slideIdx] || heroPool[0];
   const heroImg = heroProduct?.images?.[0] || heroProduct?.image || slide.image;
   const heroLink = (heroProduct?._id || heroProduct?.id) ? `/product/${heroProduct._id || heroProduct.id}` : null;
   const deals = featured.filter((p) => p.discount > 0).slice(0, 4);
