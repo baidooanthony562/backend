@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { categories } from '../data/categories';
-import { fetchFeaturedProducts, fetchProducts } from '../utils/api';
+import { fetchFeaturedProducts } from '../utils/api';
 import { getProducts } from '../utils/productStore';
 import ProductCard from '../components/ProductCard';
 
@@ -23,7 +23,6 @@ const SLIDES = [
     cta2: { label: 'Browse All', to: '/shop' },
     accent: '#D4AF37',
     bg: 'linear-gradient(135deg, #0d1b2a 0%, #1a2e45 50%, #0f3d24 100%)',
-    image: 'https://images.unsplash.com/photo-1570222094114-d054a817e56b?auto=format&fit=crop&w=900&q=80',
   },
   {
     badge: 'New Arrivals',
@@ -33,7 +32,6 @@ const SLIDES = [
     cta2: { label: 'All Categories', to: '/shop' },
     accent: '#34d399',
     bg: 'linear-gradient(135deg, #0f2218 0%, #1a3a2a 50%, #0d1b2a 100%)',
-    image: 'https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?auto=format&fit=crop&w=900&q=80',
   },
   {
     badge: 'Real Brands. Real Delivery.',
@@ -43,7 +41,6 @@ const SLIDES = [
     cta2: { label: 'View Deals', to: '/shop?sort=popular' },
     accent: '#fb923c',
     bg: 'linear-gradient(135deg, #1a1000 0%, #3a2400 50%, #1a0a00 100%)',
-    image: 'https://images.unsplash.com/photo-1585515320310-259814833e62?auto=format&fit=crop&w=900&q=80',
   },
 ];
 
@@ -51,7 +48,6 @@ const BRANDS = ['Binatone', 'Philips', 'Kenwood', 'Tefal', 'Hoffmans', 'Centroni
 
 export default function Home() {
   const [featured, setFeatured] = useState([]);
-  const [heroPool, setHeroPool] = useState(getProducts());
   const [slideIdx, setSlideIdx] = useCycle(SLIDES.length);
 
   useEffect(() => {
@@ -60,26 +56,7 @@ export default function Home() {
       .catch(() => setFeatured(getProducts()));
   }, []);
 
-  // Pool of real products for the hero image: prefer featured, then the local
-  // product cache, then a quick fetch — so the hero shows real product photos
-  // even when nothing is flagged "featured", and only uses a stock image if the
-  // store genuinely has no products.
-  useEffect(() => {
-    if (featured.length) { setHeroPool(featured); return; }
-    const cached = getProducts();
-    if (cached.length) { setHeroPool(cached); return; }
-    fetchProducts({ limit: 6 })
-      .then((r) => setHeroPool(Array.isArray(r.data) ? r.data : r.data?.products || []))
-      .catch(() => {});
-  }, [featured]);
-
   const slide = SLIDES[slideIdx];
-  // Use a real featured product's image per slide (fetchFeaturedProducts returns
-  // up to 3), falling back to the curated stock image while loading or if a
-  // product has no image. The hero image links through to that product.
-  const heroProduct = heroPool[slideIdx] || heroPool[0];
-  const heroImg = heroProduct?.images?.[0] || heroProduct?.image || slide.image;
-  const heroLink = (heroProduct?._id || heroProduct?.id) ? `/product/${heroProduct._id || heroProduct.id}` : null;
   const deals = featured.filter((p) => p.discount > 0).slice(0, 4);
   const bestSellers = featured.filter((p) => p.bestseller).slice(0, 4);
   const rest = featured.filter((p) => !p.bestseller && !(p.discount > 0)).slice(0, 4);
@@ -91,51 +68,26 @@ export default function Home() {
       <div className="relative overflow-hidden text-white transition-all duration-700" style={{ background: slide.bg }}>
         <div className="absolute inset-0 opacity-5" style={{ backgroundImage: 'radial-gradient(circle, #fff 1px, transparent 1px)', backgroundSize: '28px 28px' }} />
         <div className="relative mx-auto max-w-7xl px-5 py-10 md:px-6 md:py-20">
-          <div className="grid items-center gap-8 md:grid-cols-2">
-            <div className="max-w-2xl">
-              <span className="inline-block rounded-full px-4 py-1.5 text-xs font-bold uppercase tracking-widest"
-                style={{ backgroundColor: `${slide.accent}22`, color: slide.accent, border: `1px solid ${slide.accent}44` }}>
-                {slide.badge}
-              </span>
-              <h1 className="mt-4 text-3xl font-extrabold leading-tight sm:text-4xl md:text-6xl">
-                {slide.headline[0]}<br />
-                <span style={{ color: slide.accent }}>{slide.headline[1]}</span>
-              </h1>
-              <p className="mt-4 max-w-lg text-base text-slate-300 md:text-lg">{slide.sub}</p>
-              <div className="mt-8 flex flex-wrap gap-3">
-                <Link to={slide.cta1.to}
-                  className="rounded-full px-6 py-3 sm:px-8 sm:py-3.5 text-sm font-extrabold text-black transition hover:opacity-90"
-                  style={{ backgroundColor: slide.accent }}>
-                  {slide.cta1.label}
-                </Link>
-                <Link to={slide.cta2.to}
-                  className="rounded-full border border-white/30 px-6 py-3 sm:px-8 sm:py-3.5 text-sm font-semibold text-white transition hover:bg-white/10">
-                  {slide.cta2.label}
-                </Link>
-              </div>
-            </div>
-
-            {/* Product imagery — shown from md up; the gradient carries the hero
-                on mobile. A failed load hides itself so the hero still looks right. */}
-            <div className="hidden md:block">
-              <div className="relative">
-                <div className="absolute -inset-6 rounded-full opacity-25 blur-3xl transition-colors duration-700" style={{ background: slide.accent }} />
-                {(() => {
-                  const img = (
-                    <img
-                      key={heroImg}
-                      src={heroImg}
-                      alt={heroProduct?.name || slide.headline.join(' ')}
-                      loading="eager"
-                      className="relative ml-auto max-h-[360px] w-full rounded-2xl bg-white object-cover shadow-2xl ring-1 ring-white/15"
-                      onError={(e) => { e.currentTarget.style.visibility = 'hidden'; }}
-                    />
-                  );
-                  return heroLink
-                    ? <Link to={heroLink} className="relative block transition hover:opacity-95">{img}</Link>
-                    : img;
-                })()}
-              </div>
+          <div className="max-w-2xl">
+            <span className="inline-block rounded-full px-4 py-1.5 text-xs font-bold uppercase tracking-widest"
+              style={{ backgroundColor: `${slide.accent}22`, color: slide.accent, border: `1px solid ${slide.accent}44` }}>
+              {slide.badge}
+            </span>
+            <h1 className="mt-4 text-3xl font-extrabold leading-tight sm:text-4xl md:text-6xl">
+              {slide.headline[0]}<br />
+              <span style={{ color: slide.accent }}>{slide.headline[1]}</span>
+            </h1>
+            <p className="mt-4 max-w-lg text-base text-slate-300 md:text-lg">{slide.sub}</p>
+            <div className="mt-8 flex flex-wrap gap-3">
+              <Link to={slide.cta1.to}
+                className="rounded-full px-6 py-3 sm:px-8 sm:py-3.5 text-sm font-extrabold text-black transition hover:opacity-90"
+                style={{ backgroundColor: slide.accent }}>
+                {slide.cta1.label}
+              </Link>
+              <Link to={slide.cta2.to}
+                className="rounded-full border border-white/30 px-6 py-3 sm:px-8 sm:py-3.5 text-sm font-semibold text-white transition hover:bg-white/10">
+                {slide.cta2.label}
+              </Link>
             </div>
           </div>
         </div>
