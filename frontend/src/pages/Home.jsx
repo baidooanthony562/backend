@@ -60,6 +60,12 @@ export default function Home() {
   }, []);
 
   const slide = SLIDES[slideIdx];
+  // Use a real featured product's image per slide (fetchFeaturedProducts returns
+  // up to 3), falling back to the curated stock image while loading or if a
+  // product has no image. The hero image links through to that product.
+  const heroProduct = featured[slideIdx] || featured[0];
+  const heroImg = heroProduct?.images?.[0] || heroProduct?.image || slide.image;
+  const heroLink = (heroProduct?._id || heroProduct?.id) ? `/product/${heroProduct._id || heroProduct.id}` : null;
   const deals = featured.filter((p) => p.discount > 0).slice(0, 4);
   const bestSellers = featured.filter((p) => p.bestseller).slice(0, 4);
   const rest = featured.filter((p) => !p.bestseller && !(p.discount > 0)).slice(0, 4);
@@ -100,14 +106,21 @@ export default function Home() {
             <div className="hidden md:block">
               <div className="relative">
                 <div className="absolute -inset-6 rounded-full opacity-25 blur-3xl transition-colors duration-700" style={{ background: slide.accent }} />
-                <img
-                  key={slide.image}
-                  src={slide.image}
-                  alt={slide.headline.join(' ')}
-                  loading="eager"
-                  className="relative ml-auto max-h-[360px] w-full rounded-2xl object-cover shadow-2xl ring-1 ring-white/15"
-                  onError={(e) => { e.currentTarget.style.visibility = 'hidden'; }}
-                />
+                {(() => {
+                  const img = (
+                    <img
+                      key={heroImg}
+                      src={heroImg}
+                      alt={heroProduct?.name || slide.headline.join(' ')}
+                      loading="eager"
+                      className="relative ml-auto max-h-[360px] w-full rounded-2xl bg-white object-cover shadow-2xl ring-1 ring-white/15"
+                      onError={(e) => { e.currentTarget.style.visibility = 'hidden'; }}
+                    />
+                  );
+                  return heroLink
+                    ? <Link to={heroLink} className="relative block transition hover:opacity-95">{img}</Link>
+                    : img;
+                })()}
               </div>
             </div>
           </div>
