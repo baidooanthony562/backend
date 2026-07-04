@@ -61,7 +61,7 @@ export default function ProductCard({ product }) {
   };
 
   return (
-    <div className="group flex flex-col overflow-hidden rounded-lg border border-slate-200 bg-white transition duration-200 ease-out hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-md">
+    <div className="group flex flex-col overflow-hidden rounded-xl border border-slate-200 bg-white transition duration-200 ease-out hover:-translate-y-1 hover:border-brand-gold/50 hover:shadow-lg">
       {/* Image */}
       <Link to={`/product/${productId}`} className="relative block bg-slate-50 p-2">
         {discount > 0 && !isWholesaleQty && (

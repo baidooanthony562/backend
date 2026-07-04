@@ -48,6 +48,7 @@ export default function Shop() {
     : search
     ? `Results for "${search}"`
     : 'All Products';
+  const activeCategory = categories.find((c) => c.name === selectedCategory) || null;
 
   // Reset to page 1 whenever filters change
   useEffect(() => { setCurrentPage(1); }, [search, selectedCategory, sort]);
@@ -130,6 +131,7 @@ export default function Shop() {
                   onClick={() => handleCategorySelect(cat.name)}
                   className={`flex shrink-0 items-center gap-1.5 rounded-full px-4 py-2 text-sm font-semibold transition ${active ? 'bg-brand-dark text-white' : 'bg-white border border-slate-200 text-slate-700'}`}
                 >
+                  <i className={`${cat.icon} ${active ? 'text-brand-gold' : 'text-slate-400'}`}></i>
                   <span>{cat.name}</span>
                   {count > 0 && <span className={`rounded-full px-1.5 text-xs ${active ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-500'}`}>{count}</span>}
                 </button>
@@ -157,21 +159,28 @@ export default function Shop() {
       </div>
 
       {/* ── PAGE HEADER (desktop only) ── */}
-      <div className="hidden lg:mb-6 lg:flex lg:items-center lg:justify-between">
-        <div>
-          <p className="text-xs font-bold uppercase tracking-widest text-brand-gold">
-            {selectedCategory !== 'All' ? 'Category' : 'Shop'}
-          </p>
-          <h1 className="mt-1 text-3xl font-extrabold text-slate-900">{pageTitle}</h1>
-          <p className="mt-1 text-sm text-slate-500">
-            {filteredProducts.length} product{filteredProducts.length !== 1 ? 's' : ''} found
-            {totalPages > 1 && ` — page ${currentPage} of ${totalPages}`}
-          </p>
+      <div className="hidden lg:mb-6 lg:flex lg:items-center lg:justify-between lg:gap-4 lg:overflow-hidden lg:rounded-2xl lg:border lg:border-slate-200 lg:bg-gradient-to-br lg:from-[#131921] lg:to-[#232F3E] lg:px-7 lg:py-6 lg:shadow-sm">
+        <div className="flex items-center gap-4">
+          <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-brand-gold/15 text-2xl text-brand-gold ring-1 ring-brand-gold/30">
+            <i className={activeCategory?.icon || 'fas fa-store'}></i>
+          </span>
+          <div>
+            <p className="text-xs font-bold uppercase tracking-widest text-brand-gold">
+              {selectedCategory !== 'All' ? 'Category' : 'Shop'}
+            </p>
+            <h1 className="mt-0.5 text-3xl font-extrabold text-white">{pageTitle}</h1>
+            <p className="mt-1 max-w-xl text-sm text-slate-300">
+              {activeCategory?.description || 'Genuine home & kitchen appliances, delivered nationwide across Ghana.'}
+              <span className="ml-1 whitespace-nowrap text-slate-400">
+                · {filteredProducts.length} product{filteredProducts.length !== 1 ? 's' : ''}{totalPages > 1 ? ` · page ${currentPage}/${totalPages}` : ''}
+              </span>
+            </p>
+          </div>
         </div>
         <select
           value={sort}
           onChange={(e) => setSort(e.target.value)}
-          className="w-fit rounded-full border border-slate-200 bg-white px-5 py-2.5 text-sm text-slate-700 shadow-sm"
+          className="w-fit shrink-0 rounded-full border border-white/15 bg-white/10 px-5 py-2.5 text-sm font-medium text-white shadow-sm outline-none [&>option]:text-slate-800"
         >
           {sortOptions.map((o) => (
             <option key={o.value} value={o.value}>{o.label}</option>
@@ -214,7 +223,8 @@ export default function Shop() {
                 onClick={() => handleCategorySelect('All')}
                 className={`flex w-full items-center gap-3 rounded-xl px-4 py-2.5 text-left text-sm transition ${selectedCategory === 'All' ? 'bg-brand-dark font-semibold text-white' : 'bg-slate-50 text-slate-700 hover:bg-slate-100'}`}
               >
-                <i className="fas fa-store"></i> All Products
+                <i className={`fas fa-store w-4 text-center ${selectedCategory === 'All' ? 'text-brand-gold' : 'text-slate-400'}`}></i>
+                <span className="flex-1">All Products</span>
               </button>
               {categories.map((cat) => {
                 const count = allProducts.filter((p) => {
@@ -227,6 +237,7 @@ export default function Shop() {
                     onClick={() => handleCategorySelect(cat.name)}
                     className={`flex w-full items-center gap-3 rounded-xl px-4 py-2.5 text-left text-sm transition ${selectedCategory === cat.name ? 'bg-brand-dark font-semibold text-white' : 'bg-slate-50 text-slate-700 hover:bg-slate-100'}`}
                   >
+                    <i className={`${cat.icon} w-4 text-center ${selectedCategory === cat.name ? 'text-brand-gold' : 'text-slate-400'}`}></i>
                     <span className="flex-1">{cat.name}</span>
                     <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${selectedCategory === cat.name ? 'bg-white/20 text-white' : 'bg-slate-200 text-slate-600'}`}>{count}</span>
                   </button>
@@ -242,7 +253,7 @@ export default function Shop() {
           {loading ? (
             <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 xl:grid-cols-4">
               {Array.from({ length: 8 }).map((_, i) => (
-                <div key={i} className="animate-pulse rounded border border-slate-200 bg-white overflow-hidden">
+                <div key={i} className="animate-pulse rounded-xl border border-slate-200 bg-white overflow-hidden">
                   <div className="aspect-square bg-slate-200" />
                   <div className="p-2 space-y-1.5">
                     <div className="h-3 bg-slate-200 rounded w-3/4" />
