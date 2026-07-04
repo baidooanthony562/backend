@@ -9,7 +9,7 @@ export default function PrivacyPolicy() {
 
         <div>
           <h2 className="mb-2 text-base font-bold text-slate-900">1. Who We Are</h2>
-          <p>Cindy Nat Enterprise is a home appliance retailer based in Kumasi, Ghana, with locations at Adum and Alabar. We operate the website at <strong>backend-alpha-seven-54.vercel.app</strong>. You can reach us at <a href="mailto:baidooanthony562@gmail.com" className="text-brand-dark underline">baidooanthony562@gmail.com</a> or on WhatsApp at <strong>0257543723</strong>.</p>
+          <p>Cindy Nat Enterprise is a home appliance retailer based in Kumasi, Ghana, with locations at Adum and Alabar. We operate the website at <strong>cindynat.vercel.app</strong>. You can reach us at <a href="mailto:baidooanthony562@gmail.com" className="text-brand-dark underline">baidooanthony562@gmail.com</a> or on WhatsApp at <strong>0257543723</strong>.</p>
         </div>
 
         <div>

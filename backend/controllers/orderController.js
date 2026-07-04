@@ -26,7 +26,7 @@ function httpError(statusCode, message) {
 function notifyLowStock(product) {
   const to = process.env.ADMIN_EMAIL;
   if (!to) return;
-  const FRONTEND = process.env.FRONTEND_URL || 'https://backend-alpha-seven-54.vercel.app';
+  const FRONTEND = process.env.FRONTEND_URL || 'https://cindynat.vercel.app';
   sendResendEmail({
     to,
     subject: `Low stock: ${product.name} (${product.stock} left)`,
@@ -265,7 +265,7 @@ function sendOrderConfirmationEmail({ order, items, recipientEmail, recipientNam
     </tr>`
   ).join('');
   const viewLink = includeViewLink
-    ? `<a href="${process.env.FRONTEND_URL || 'https://backend-alpha-seven-54.vercel.app'}/orders/${order._id}"
+    ? `<a href="${process.env.FRONTEND_URL || 'https://cindynat.vercel.app'}/orders/${order._id}"
            style="display:inline-block;margin:16px 0;padding:12px 28px;background:#D4AF37;color:#000;font-weight:700;border-radius:999px;text-decoration:none">
           View Order
         </a>`
@@ -390,7 +390,7 @@ const sendStatusEmail = (userEmail, userName, order, status) => {
   const tpl = STATUS_EMAIL[status];
   if (!tpl || !userEmail) return;
   const orderId = order._id.toString().slice(-8).toUpperCase();
-  const FRONTEND = process.env.FRONTEND_URL || 'https://backend-alpha-seven-54.vercel.app';
+  const FRONTEND = process.env.FRONTEND_URL || 'https://cindynat.vercel.app';
 
   sendResendEmail({
     to: userEmail,

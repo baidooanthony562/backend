@@ -194,7 +194,7 @@ export default function ProductDetail() {
   const metaDescription = rawDescription.length > 160
     ? `${rawDescription.slice(0, 157)}...`
     : rawDescription;
-  const canonicalUrl = `https://backend-alpha-seven-54.vercel.app/product/${productId}`;
+  const canonicalUrl = `https://cindynat.vercel.app/product/${productId}`;
   const productSchema = {
     '@context': 'https://schema.org/',
     '@type': 'Product',

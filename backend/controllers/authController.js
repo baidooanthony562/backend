@@ -9,7 +9,7 @@ const { sendResendEmail, escapeHtml } = require('../utils/email');
 const MAX_CODE_ATTEMPTS = 5;
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-const FRONTEND = process.env.FRONTEND_URL || 'https://backend-alpha-seven-54.vercel.app';
+const FRONTEND = process.env.FRONTEND_URL || 'https://cindynat.vercel.app';
 const { validatePassword } = require('../utils/passwordStrength');
 
 const registerUser = asyncHandler(async (req, res) => {

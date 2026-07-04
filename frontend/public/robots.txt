@@ -12,4 +12,4 @@ Disallow: /payment
 Disallow: /admin
 
 # Tell crawlers where the full URL list lives
-Sitemap: https://backend-alpha-seven-54.vercel.app/sitemap.xml
+Sitemap: https://cindynat.vercel.app/sitemap.xml
