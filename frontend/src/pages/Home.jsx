@@ -18,7 +18,7 @@ const SLIDES = [
   {
     badge: "Today's Special Offer",
     headline: ['Up to 15% Off', 'Kitchen Appliances'],
-    sub: 'Premium blenders, rice cookers, pots & more — delivered across Kumasi.',
+    sub: 'Premium blenders, rice cookers, pots & more — delivered nationwide across Ghana.',
     cta1: { label: 'Shop Deals Now', to: '/shop?sort=popular' },
     cta2: { label: 'Browse All', to: '/shop' },
     accent: '#D4AF37',
@@ -36,7 +36,7 @@ const SLIDES = [
   {
     badge: 'Real Brands. Real Delivery.',
     headline: ['Quality Appliances', 'Built to Last'],
-    sub: 'Genuine kitchen and home appliances, delivered across Kumasi and beyond.',
+    sub: 'Genuine kitchen and home appliances, delivered nationwide across Ghana.',
     cta1: { label: 'Shop the Range', to: '/shop' },
     cta2: { label: 'View Deals', to: '/shop?sort=popular' },
     accent: '#fb923c',

@@ -45,7 +45,7 @@ export default function Terms() {
         <div>
           <h2 className="mb-2 text-base font-bold text-slate-900">5. Delivery</h2>
           <ul className="list-disc space-y-1 pl-5">
-            <li>We deliver within Kumasi and surrounding areas. Contact us for delivery outside these areas.</li>
+            <li>We deliver nationwide across Ghana. Contact us if you have any questions about delivery to your area.</li>
             <li>Delivery timelines are estimates and may vary based on location and availability.</li>
             <li>Free delivery applies to orders over ₵5,000.</li>
             <li>Risk of damage or loss passes to you upon delivery.</li>

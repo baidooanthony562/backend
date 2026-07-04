@@ -190,7 +190,7 @@ export default function ProductDetail() {
   // Per-product meta — drives the page title, search engine snippet and the
   // preview shown when someone shares the link on WhatsApp / Facebook.
   const metaTitle = `${product.name} | Cindy Nat Enterprise`;
-  const rawDescription = (product.description || '').trim() || `Buy ${product.name} from Cindy Nat Enterprise — fast delivery across Kumasi, Ghana.`;
+  const rawDescription = (product.description || '').trim() || `Buy ${product.name} from Cindy Nat Enterprise — fast nationwide delivery across Ghana.`;
   const metaDescription = rawDescription.length > 160
     ? `${rawDescription.slice(0, 157)}...`
     : rawDescription;
