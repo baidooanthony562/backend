@@ -1,4 +1,4 @@
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import { getAuthUser, isAuthenticated, isAdmin, logout } from '../utils/auth';
 import { getCartCount } from '../utils/cart';
@@ -10,6 +10,7 @@ export default function NavBar() {
   const [adminMode, setAdminMode] = useState(false);
   const [user, setUser] = useState(null);
   const [search, setSearch] = useState('');
+  const location = useLocation();
   const [searchCat, setSearchCat] = useState('');
   const [cartCount, setCartCount] = useState(0);
   const navigate = useNavigate();
@@ -160,7 +161,9 @@ export default function NavBar() {
         </div>
       </div>
 
-      {/* Secondary nav */}
+      {/* Secondary nav — hidden on the Shop page, which has its own category
+          filter in the sidebar, so the categories aren't shown twice. */}
+      {location.pathname !== '/shop' && (
       <div className="hidden bg-[#232F3E] px-4 md:block md:px-6">
         <div className="mx-auto flex max-w-7xl items-center gap-1 overflow-x-auto py-1.5">
           <Link to="/shop" className="flex shrink-0 items-center gap-1 rounded transition duration-150 hover:bg-white/10 border border-transparent px-3 py-1 text-sm font-semibold text-white">
@@ -188,6 +191,7 @@ export default function NavBar() {
           </Link>
         </div>
       </div>
+      )}
 
       {/* Mobile menu */}
       {open && (

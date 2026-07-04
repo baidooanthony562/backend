@@ -13,19 +13,10 @@ const sortOptions = [
   { label: 'Biggest Discount', value: 'discount' },
 ];
 
-const priceOptions = [
-  { label: 'All Prices', value: 'all' },
-  { label: 'Under ₵200', value: 'under200' },
-  { label: '₵200 – ₵400', value: '200-400' },
-  { label: '₵400 – ₵600', value: '400-600' },
-  { label: 'Above ₵600', value: 'over600' },
-];
-
 export default function Shop() {
   const [searchParams, setSearchParams] = useSearchParams();
   const [search, setSearch] = useState(searchParams.get('search') || '');
   const [selectedCategory, setSelectedCategory] = useState(searchParams.get('category') || 'All');
-  const [priceRange, setPriceRange] = useState('all');
   const [sort, setSort] = useState(searchParams.get('sort') || 'newest');
   const [allProducts, setAllProducts] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -59,7 +50,7 @@ export default function Shop() {
     : 'All Products';
 
   // Reset to page 1 whenever filters change
-  useEffect(() => { setCurrentPage(1); }, [search, selectedCategory, priceRange, sort]);
+  useEffect(() => { setCurrentPage(1); }, [search, selectedCategory, sort]);
 
   const filteredProducts = useMemo(() => {
     return allProducts
@@ -69,13 +60,6 @@ export default function Shop() {
         const cat = typeof p.category === 'string' ? p.category : p.category?.name || '';
         return cat.toLowerCase() === selectedCategory.toLowerCase();
       })
-      .filter((p) => {
-        if (priceRange === 'under200') return p.price < 200;
-        if (priceRange === '200-400') return p.price >= 200 && p.price <= 400;
-        if (priceRange === '400-600') return p.price > 400 && p.price <= 600;
-        if (priceRange === 'over600') return p.price > 600;
-        return true;
-      })
       .sort((a, b) => {
         if (sort === 'cheapest')   return a.price - b.price;
         if (sort === 'expensive')  return b.price - a.price;
@@ -83,7 +67,7 @@ export default function Shop() {
         if (sort === 'discount')   return (b.discount || 0) - (a.discount || 0);
         return 0;
       });
-  }, [search, selectedCategory, priceRange, sort, allProducts]);
+  }, [search, selectedCategory, sort, allProducts]);
 
   const totalPages = Math.ceil(filteredProducts.length / PAGE_SIZE);
   const paginatedProducts = filteredProducts.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
@@ -94,13 +78,6 @@ export default function Shop() {
     setSelectedCategory(cat);
     setSearchParams(cat === 'All' ? {} : { category: cat });
     // On mobile scroll straight to products
-    if (window.innerWidth < 1024) {
-      setTimeout(() => productsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50);
-    }
-  };
-
-  const handlePriceSelect = (val) => {
-    setPriceRange(val);
     if (window.innerWidth < 1024) {
       setTimeout(() => productsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50);
     }
@@ -161,19 +138,12 @@ export default function Shop() {
           </div>
         </div>
 
-        {/* Filter + sort bar */}
-        <div className="mb-4 flex gap-2">
-          <select
-            value={priceRange}
-            onChange={(e) => handlePriceSelect(e.target.value)}
-            className="flex-1 rounded-full border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 outline-none"
-          >
-            {priceOptions.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
-          </select>
+        {/* Sort bar */}
+        <div className="mb-4">
           <select
             value={sort}
             onChange={(e) => setSort(e.target.value)}
-            className="flex-1 rounded-full border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 outline-none"
+            className="w-full rounded-full border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 outline-none"
           >
             {sortOptions.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
           </select>
@@ -265,21 +235,6 @@ export default function Shop() {
             </div>
           </div>
 
-          {/* Price */}
-          <div>
-            <h3 className="mb-3 font-bold text-slate-900">Price Range</h3>
-            <div className="space-y-2">
-              {priceOptions.map((o) => (
-                <button
-                  key={o.value}
-                  onClick={() => setPriceRange(o.value)}
-                  className={`w-full rounded-xl px-4 py-2.5 text-left text-sm transition ${priceRange === o.value ? 'bg-brand-dark font-semibold text-white' : 'bg-slate-50 text-slate-700 hover:bg-slate-100'}`}
-                >
-                  {o.label}
-                </button>
-              ))}
-            </div>
-          </div>
         </aside>
 
         {/* Product Grid */}
