@@ -73,8 +73,8 @@ export default function NavBar() {
           <Link to="/dashboard" className="hidden shrink-0 items-center gap-1 rounded transition duration-150 hover:bg-white/10 border border-transparent px-1 lg:flex">
             <i className="fas fa-map-marker-alt text-brand-gold"></i>
             <div>
-              <p className="text-xs text-slate-400">Deliver to</p>
-              <p className="text-sm font-bold text-white">Kumasi, GH</p>
+              <p className="text-xs text-slate-400">We deliver</p>
+              <p className="text-sm font-bold text-white">Nationwide 🇬🇭</p>
             </div>
           </Link>
 
