@@ -100,8 +100,10 @@ export default function Home() {
         </div>
       </div>
 
-      {/* ── CATEGORY STRIP ── */}
-      <div className="bg-[#232F3E] px-4 py-3">
+      {/* ── CATEGORY STRIP (mobile only) ── */}
+      {/* Hidden on md+ because the NavBar's secondary category bar (desktop-only)
+          already covers those screens — this avoids showing categories twice. */}
+      <div className="bg-[#232F3E] px-4 py-3 md:hidden">
         <div className="mx-auto flex max-w-7xl gap-2 overflow-x-auto pb-1 scrollbar-hide">
           <Link to="/shop" className="shrink-0 rounded-full border border-white/20 bg-white/10 px-4 py-1.5 text-xs font-semibold text-white whitespace-nowrap hover:bg-white/20">
             All Products
