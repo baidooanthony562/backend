@@ -19,11 +19,11 @@ export default function AuthLayout({ children }) {
         {/* Brand panel — desktop */}
         <div className="relative hidden flex-col justify-between overflow-hidden bg-gradient-to-br from-[#131921] via-[#18202b] to-[#0f2a1e] p-12 text-white lg:flex">
           <div className="absolute inset-0 opacity-[0.06]" style={{ backgroundImage: 'radial-gradient(circle, #fff 1px, transparent 1px)', backgroundSize: '26px 26px' }} />
-          <Link to="/" className="relative flex w-fit items-center gap-3">
-            <Logo size={44} />
+          <Link to="/" className="relative flex w-fit items-center gap-5">
+            <Logo size={96} />
             <div className="leading-tight">
-              <p className="text-lg font-bold" style={serif}>Cindy Nat</p>
-              <p className="text-[10px] font-bold uppercase tracking-[0.34em] text-brand-gold">Enterprise</p>
+              <p className="text-3xl font-bold" style={serif}>Cindy Nat</p>
+              <p className="text-xs font-bold uppercase tracking-[0.34em] text-brand-gold">Enterprise</p>
             </div>
           </Link>
 
