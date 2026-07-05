@@ -73,7 +73,7 @@ export default function Login() {
     <AuthLayout>
       <div className="mb-6">
         <h1 className="text-2xl font-extrabold text-slate-900">Sign in</h1>
-        <p className="mt-1 text-sm text-slate-500">Welcome back — access your orders, wishlist and dashboard.</p>
+        <p className="mt-1 text-sm text-slate-500">Welcome back.</p>
       </div>
 
       {verifySuccess && (
