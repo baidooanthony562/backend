@@ -1,9 +1,9 @@
 export default function PrivacyPolicy() {
   return (
     <section className="mx-auto max-w-3xl px-4 pb-24 pt-10 md:px-8">
-      <p className="text-xs font-bold uppercase tracking-widest text-brand-gold">Legal</p>
+      <p className="text-xs font-bold uppercase tracking-widest text-brand-golddeep">Legal</p>
       <h1 className="mt-1 text-3xl font-extrabold text-slate-900">Privacy Policy</h1>
-      <p className="mt-2 text-sm text-slate-500">Last updated: May 2026</p>
+      <p className="mt-2 text-sm text-slate-500">Last updated: July 2026</p>
 
       <div className="mt-8 space-y-8 text-sm leading-relaxed text-slate-700">
 
@@ -35,7 +35,7 @@ export default function PrivacyPolicy() {
 
         <div>
           <h2 className="mb-2 text-base font-bold text-slate-900">4. Payment Information</h2>
-          <p>We do not store card details on our servers. MTN Mobile Money payments are processed through the MTN MoMo API. Cash on delivery and bank transfer payments are handled directly and no card data is collected.</p>
+          <p>We never store card details on our servers. Card payments are processed securely by <strong>Paystack</strong>, a PCI-DSS compliant payment provider — your card information is entered on Paystack's secure checkout and never passes through us. MTN Mobile Money payments are processed through the MTN MoMo API. Cash on delivery and bank transfer payments are handled directly, with no card data collected.</p>
         </div>
 
         <div>
@@ -44,16 +44,18 @@ export default function PrivacyPolicy() {
         </div>
 
         <div>
-          <h2 className="mb-2 text-base font-bold text-slate-900">6. Your Rights</h2>
+          <h2 className="mb-2 text-base font-bold text-slate-900">6. Your Rights, Retention &amp; Ghana Data Protection</h2>
           <ul className="list-disc space-y-1 pl-5">
             <li>You can update your name, phone, and address from your account dashboard at any time.</li>
             <li>You can request deletion of your account and personal data by contacting us at <a href="mailto:baidooanthony562@gmail.com" className="text-brand-dark underline">baidooanthony562@gmail.com</a>.</li>
+            <li><strong>Retention:</strong> we keep your account and order information for as long as your account is active or as needed to fulfil orders and meet legal and accounting obligations, after which it is deleted or anonymised.</li>
+            <li>As a business operating in Ghana, we handle personal data in line with the <strong>Data Protection Act, 2012 (Act 843)</strong>. You may also contact Ghana's Data Protection Commission regarding your data rights.</li>
           </ul>
         </div>
 
         <div>
-          <h2 className="mb-2 text-base font-bold text-slate-900">7. Cookies</h2>
-          <p>We use localStorage and sessionStorage to keep you logged in and to remember your cart. No third-party tracking cookies are used.</p>
+          <h2 className="mb-2 text-base font-bold text-slate-900">7. Cookies &amp; Analytics</h2>
+          <p>We use essential browser storage — a secure sign-in cookie plus localStorage/sessionStorage — to keep you logged in and remember your cart. These are required for the site to work. With your consent, we also use <strong>Google Analytics</strong> to understand how the site is used; it sets its own cookies and shares aggregate usage data with Google. You are asked to accept or decline analytics on your first visit, and declining does not affect your ability to shop. We use no other third-party tracking or advertising cookies.</p>
         </div>
 
         <div>

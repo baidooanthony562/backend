@@ -95,7 +95,7 @@ export default function OrderConfirmation() {
               })()}
 
               <div className="rounded-xl border border-slate-200 bg-slate-50 p-5">
-                <p className="text-xs font-bold uppercase tracking-widest text-brand-gold">Order reference</p>
+                <p className="text-xs font-bold uppercase tracking-widest text-brand-golddeep">Order reference</p>
                 <p className="mt-2 text-2xl font-extrabold text-slate-900">#{order._id.slice(-8).toUpperCase()}</p>
                 <p className="mt-1 text-sm text-slate-500">Placed on {new Date(order.createdAt).toLocaleDateString('en-GH', { day: 'numeric', month: 'long', year: 'numeric' })}</p>
               </div>

@@ -21,6 +21,18 @@ button, input, select, textarea {
   font: inherit;
 }
 
+/* Visible keyboard focus. Many inputs use `outline-none` for the mouse look;
+   element selectors here outrank that class so keyboard users still see focus. */
+a:focus-visible,
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+[tabindex]:focus-visible {
+  outline: 2px solid #B8941F;
+  outline-offset: 2px;
+}
+
 /* Prevent iOS Safari from auto-zooming on input focus (requires font-size >= 16px) */
 @media (max-width: 768px) {
   input, select, textarea {

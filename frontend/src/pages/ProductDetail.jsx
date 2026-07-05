@@ -341,7 +341,7 @@ export default function ProductDetail() {
 
           {/* Product name + price */}
           <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
-            <p className="text-xs font-bold uppercase tracking-widest text-brand-gold">{productCategory}</p>
+            <p className="text-xs font-bold uppercase tracking-widest text-brand-golddeep">{productCategory}</p>
             <h1 className="mt-2 text-2xl font-extrabold leading-snug text-slate-900">{product.name}</h1>
             <div className="mt-1 flex items-center gap-2">
               <div className="flex">{[1,2,3,4,5].map((s) => <StarFull key={s} />)}</div>

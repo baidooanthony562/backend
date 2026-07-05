@@ -50,7 +50,7 @@ export default function OrderDetail() {
         {/* Header */}
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <p className="text-xs font-bold uppercase tracking-widest text-brand-gold">Order details</p>
+            <p className="text-xs font-bold uppercase tracking-widest text-brand-golddeep">Order details</p>
             <h1 className="mt-1 text-2xl font-extrabold text-slate-900">Order #{order._id.slice(-8).toUpperCase()}</h1>
             <p className="mt-0.5 text-sm text-slate-500">Placed on {new Date(order.createdAt).toLocaleDateString('en-GH', { day: 'numeric', month: 'long', year: 'numeric' })}</p>
           </div>

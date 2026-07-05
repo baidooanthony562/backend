@@ -6,6 +6,9 @@ export default {
       colors: {
         brand: {
           gold: '#D4AF37',
+          // A darker gold that meets WCAG AA (~4.5:1) for small text on white,
+          // where the bright gold fails. Use for eyebrow labels / links on light.
+          golddeep: '#7A5E12',
           green: '#0F3D24',
           dark: '#101010',
         },

@@ -73,14 +73,14 @@ export default function NavBar() {
             </div>
           </Link>
 
-          {/* Deliver to */}
-          <Link to="/dashboard" className="hidden shrink-0 items-center gap-1 rounded transition duration-150 hover:bg-white/10 border border-transparent px-1 lg:flex">
+          {/* Deliver to — informational, not a link */}
+          <div className="hidden shrink-0 items-center gap-1 rounded border border-transparent px-1 lg:flex">
             <i className="fas fa-map-marker-alt text-brand-gold"></i>
             <div>
               <p className="text-xs text-slate-400">We deliver</p>
               <p className="text-sm font-bold text-white">Nationwide 🇬🇭</p>
             </div>
-          </Link>
+          </div>
 
           {/* Search bar */}
           <form onSubmit={handleSearch} className="flex flex-1 overflow-hidden rounded-lg">
@@ -136,7 +136,7 @@ export default function NavBar() {
           </Link>
 
           {/* Cart */}
-          <Link to="/cart" className="relative flex shrink-0 items-center gap-1 rounded transition duration-150 hover:bg-white/10 border border-transparent px-2 py-1">
+          <Link to="/cart" aria-label="Cart" className="relative flex shrink-0 items-center gap-1 rounded transition duration-150 hover:bg-white/10 border border-transparent px-2 py-1">
             <div className="relative">
               <svg className="h-8 w-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
@@ -156,7 +156,7 @@ export default function NavBar() {
           </Link>
 
           {/* Mobile menu toggle */}
-          <button onClick={() => setOpen(!open)} className="shrink-0 rounded transition duration-150 hover:bg-white/10 border border-transparent p-1 text-white md:hidden">
+          <button onClick={() => setOpen(!open)} aria-label={open ? 'Close menu' : 'Open menu'} aria-expanded={open} className="shrink-0 rounded transition duration-150 hover:bg-white/10 border border-transparent p-1 text-white md:hidden">
             <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={open ? 'M6 18L18 6M6 6l12 12' : 'M4 6h16M4 12h16M4 18h16'} />
             </svg>

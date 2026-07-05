@@ -4,6 +4,7 @@ import NavBar from './components/NavBar';
 import Footer from './components/Footer';
 import LiveChat from './components/LiveChat';
 import Toast, { showToast } from './components/Toast';
+import CookieConsent from './components/CookieConsent';
 import { ProtectedRoute, AdminRoute } from './components/ProtectedRoute';
 import { isAdmin } from './utils/auth';
 import { syncWishlistFromServer } from './utils/wishlist';
@@ -74,6 +75,7 @@ function App() {
       {!isAdminArea && <Footer />}
       {!isAdminArea && <LiveChat />}
       <Toast />
+      {!isAdminArea && <CookieConsent />}
     </div>
   );
 }

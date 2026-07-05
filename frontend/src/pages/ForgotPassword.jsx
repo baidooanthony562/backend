@@ -119,7 +119,7 @@ export default function ForgotPassword() {
         </div>
 
         {error && (
-          <div className="mb-4 flex items-center gap-2 rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700">
+          <div role="alert" className="mb-4 flex items-center gap-2 rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700">
             <i className="fas fa-exclamation-triangle"></i> {error}
           </div>
         )}
@@ -200,6 +200,7 @@ export default function ForgotPassword() {
                   className="w-full rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 pr-11 text-sm outline-none focus:border-brand-gold focus:bg-white"
                 />
                 <button type="button" onClick={() => setShowPass(!showPass)}
+                  aria-label={showPass ? 'Hide password' : 'Show password'}
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700">
                   <i className={showPass ? 'fas fa-eye-slash' : 'fas fa-eye'}></i>
                 </button>

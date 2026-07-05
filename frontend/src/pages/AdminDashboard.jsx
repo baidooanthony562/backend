@@ -568,7 +568,7 @@ export default function AdminDashboard() {
         {/* Header */}
         <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <p className="text-xs font-bold uppercase tracking-widest text-brand-gold">Admin Panel</p>
+            <p className="text-xs font-bold uppercase tracking-widest text-brand-golddeep">Admin Panel</p>
             <h1 className="mt-1 text-2xl font-extrabold text-[#131921]">Cindy Nat Enterprise</h1>
           </div>
           <div className="flex items-center gap-2">

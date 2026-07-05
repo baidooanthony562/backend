@@ -236,7 +236,7 @@ export default function Cart() {
   return (
     <section className="mx-auto max-w-6xl px-4 pb-32 pt-4 md:px-8 xl:pb-20">
       <div className="mb-4">
-        <p className="text-xs font-bold uppercase tracking-widest text-brand-gold">Your cart</p>
+        <p className="text-xs font-bold uppercase tracking-widest text-brand-golddeep">Your cart</p>
         <h1 className="mt-1 text-xl font-bold text-slate-900 sm:text-2xl">Review &amp; Checkout</h1>
       </div>
 
@@ -448,7 +448,9 @@ export default function Cart() {
               </div>
             )}
           </div>
-          <p className="mt-4 text-xs text-slate-500">Secure support available through our live chat while you check out.</p>
+          <p className="mt-4 text-xs text-slate-500">
+            By placing your order you agree to our <Link to="/terms" className="underline hover:text-slate-700">Terms &amp; Returns policy</Link>. Secure support is available via live chat while you check out.
+          </p>
         </div>
       </div>
 

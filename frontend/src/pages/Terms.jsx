@@ -1,7 +1,7 @@
 export default function Terms() {
   return (
     <section className="mx-auto max-w-3xl px-4 pb-24 pt-10 md:px-8">
-      <p className="text-xs font-bold uppercase tracking-widest text-brand-gold">Legal</p>
+      <p className="text-xs font-bold uppercase tracking-widest text-brand-golddeep">Legal</p>
       <h1 className="mt-1 text-3xl font-extrabold text-slate-900">Terms & Conditions</h1>
       <p className="mt-2 text-sm text-slate-500">Last updated: May 2026</p>
 

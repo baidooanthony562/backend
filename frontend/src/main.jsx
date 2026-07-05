@@ -18,26 +18,10 @@ if (import.meta.env.VITE_SENTRY_DSN) {
   });
 }
 
-// Load Google Analytics 4 in production. Prefers the VITE_GA_MEASUREMENT_ID
-// env var so the value can be swapped per environment without a redeploy,
-// but falls back to the hardcoded ID below so we are not blocked when the
-// env var is missing or fails to reach the Vercel build. GA4's "Enhanced
-// Measurement" auto-tracks SPA route changes, so we don't fire page_view
-// manually on every navigation.
-const GA_ID = import.meta.env.VITE_GA_MEASUREMENT_ID
-  || (import.meta.env.PROD ? 'G-QPQKVEKQ7Z' : '');
-if (GA_ID) {
-  const script = document.createElement('script');
-  script.src = `https://www.googletagmanager.com/gtag/js?id=${GA_ID}`;
-  script.async = true;
-  document.head.appendChild(script);
-
-  window.dataLayer = window.dataLayer || [];
-  function gtag() { window.dataLayer.push(arguments); }
-  window.gtag = gtag;
-  gtag('js', new Date());
-  gtag('config', GA_ID);
-}
+// Google Analytics loads only after the visitor accepts cookies (see the
+// consent banner). initAnalytics honours a prior "accepted" choice on boot.
+import { initAnalytics } from './utils/analytics';
+initAnalytics();
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>

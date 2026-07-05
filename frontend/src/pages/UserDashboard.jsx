@@ -139,7 +139,7 @@ export default function UserDashboard() {
   return (
     <section className="mx-auto max-w-6xl px-4 pb-20 pt-6 md:px-8">
       <div className="mb-5">
-        <p className="text-xs font-bold uppercase tracking-widest text-brand-gold">My Account</p>
+        <p className="text-xs font-bold uppercase tracking-widest text-brand-golddeep">My Account</p>
         <h1 className="mt-1 text-2xl font-bold text-slate-900">Welcome back, {profile?.name || 'Customer'}</h1>
       </div>
 
