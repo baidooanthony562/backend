@@ -31,6 +31,9 @@ function App() {
   const navigate = useNavigate();
   // Match /admin and any /admin/<rest> path, but not a stray /adminsomething typo.
   const isAdminArea = location.pathname === '/admin' || location.pathname.startsWith('/admin/');
+  // Auth pages use a full-height split-screen brand layout, so the footer would
+  // just be a second big branded block below it — hide it there.
+  const isAuthPage = ['/login', '/register', '/forgot-password'].includes(location.pathname);
   const adminSignedIn = isAdmin();
 
   // Hard separation: while signed in as admin, the customer site is off
@@ -72,7 +75,7 @@ function App() {
           <Route path="*" element={<NotFound />} />
         </Routes>
       </main>
-      {!isAdminArea && <Footer />}
+      {!isAdminArea && !isAuthPage && <Footer />}
       {!isAdminArea && <LiveChat />}
       <Toast />
       {!isAdminArea && <CookieConsent />}
