@@ -1,10 +1,13 @@
 import axios from 'axios';
 
+// In production the frontend is served from Vercel and calls go to a relative
+// "/api" path, which vercel.json proxies to the Render backend. That keeps the
+// API same-origin with the site, so the auth cookie is first-party and mobile
+// browsers (which block third-party cookies) accept it. In dev we hit the
+// Render backend directly.
 const api = axios.create({
-  baseURL: 'https://backend-9m2y.onrender.com/api',
+  baseURL: import.meta.env.PROD ? '/api' : 'https://backend-9m2y.onrender.com/api',
   headers: { 'Content-Type': 'application/json' },
-  // Send the httpOnly auth cookie on every request — required for cross-site
-  // auth between the Vercel frontend and the Render backend.
   withCredentials: true,
 });
 
