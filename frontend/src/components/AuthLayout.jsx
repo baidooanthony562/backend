@@ -5,7 +5,6 @@ import Logo from './Logo';
 // forgot password): a branded navy panel on the left, the form on the right.
 // On mobile the panel collapses to a slim branded header above the form.
 const TRUST = [
-  { icon: 'fas fa-lock', text: 'Secure, encrypted sign-in' },
   { icon: 'fas fa-box-open', text: 'Track every order in one place' },
   { icon: 'fas fa-truck', text: 'Delivered nationwide across Ghana' },
 ];
