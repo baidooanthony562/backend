@@ -1,7 +1,7 @@
 // Cindy Nat seal. A code-drawn SVG (no image asset) so it stays crisp at any
 // size. A navy medallion with a gold frame and gold serif lettering — the
 // roundel shape with a framed-ink treatment. "CINDY NAT" arcs over the top and
-// "EST · KUMASI" sits below the CN monogram; at small sizes the microtype reads
+// "ENTERPRISE" sits below the CN monogram; at small sizes the microtype reads
 // as fine detail, giving it a premium, minted-coin feel.
 export default function Logo({ size = 32, className = '' }) {
   return (
@@ -30,7 +30,7 @@ export default function Logo({ size = 32, className = '' }) {
         <textPath href="#cnArc" startOffset="50%" textAnchor="middle">CINDY NAT</textPath>
       </text>
       <text x="50" y="50" textAnchor="middle" dominantBaseline="central" fontFamily="Georgia, 'Times New Roman', serif" fontWeight="700" fontSize="30" fill="url(#cnGold)">CN</text>
-      <text x="50" y="77" textAnchor="middle" fontFamily="Georgia, 'Times New Roman', serif" fontSize="6.5" fontWeight="600" letterSpacing="2" fill="url(#cnGold)">EST · KUMASI</text>
+      <text x="50" y="77" textAnchor="middle" fontFamily="Georgia, 'Times New Roman', serif" fontSize="6.5" fontWeight="600" letterSpacing="2.5" fill="url(#cnGold)">ENTERPRISE</text>
     </svg>
   );
 }
