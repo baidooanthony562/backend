@@ -4,7 +4,7 @@ import { loginUser, resendVerification } from '../utils/api';
 import { isAuthenticated, saveAuthUser } from '../utils/auth';
 import { mergeLocalWishlistToServer } from '../utils/wishlist';
 import { showToast } from '../components/Toast';
-import Logo from '../components/Logo';
+import AuthLayout from '../components/AuthLayout';
 
 export default function Login() {
   const navigate = useNavigate();
@@ -70,51 +70,49 @@ export default function Login() {
   };
 
   return (
-    <section className="mx-auto max-w-md px-4 pb-24 pt-8 md:px-0">
-      <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm sm:p-8">
-        <div className="mb-6 text-center">
-          <Logo size={48} className="mx-auto" />
-          <h1 className="mt-3 text-2xl font-extrabold text-slate-900">Sign in to your account</h1>
-          <p className="mt-1 text-sm text-slate-500">Access your orders, wishlist and dashboard.</p>
+    <AuthLayout>
+      <div className="mb-6">
+        <h1 className="text-2xl font-extrabold text-slate-900">Sign in</h1>
+        <p className="mt-1 text-sm text-slate-500">Welcome back — access your orders, wishlist and dashboard.</p>
+      </div>
+
+      {verifySuccess && (
+        <div className="mb-4 flex items-center gap-2 rounded-lg bg-green-50 px-4 py-3 text-sm font-semibold text-green-700">
+          <i className="fas fa-check"></i> Email verified! Your account is active — sign in below.
         </div>
+      )}
 
-        {verifySuccess && (
-          <div className="mb-4 flex items-center gap-2 rounded-lg bg-green-50 px-4 py-3 text-sm font-semibold text-green-700">
-            <i className="fas fa-check"></i> Email verified! Your account is active — sign in below.
-          </div>
-        )}
+      {resetSuccess && (
+        <div className="mb-4 flex items-center gap-2 rounded-lg bg-green-50 px-4 py-3 text-sm font-semibold text-green-700">
+          <i className="fas fa-check"></i> Password reset successfully. Sign in with your new password.
+        </div>
+      )}
 
-        {resetSuccess && (
-          <div className="mb-4 flex items-center gap-2 rounded-lg bg-green-50 px-4 py-3 text-sm font-semibold text-green-700">
-            <i className="fas fa-check"></i> Password reset successfully. Sign in with your new password.
-          </div>
-        )}
+      {error && (
+        <div className="mb-4 flex items-center gap-2 rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700">
+          <i className="fas fa-exclamation-triangle"></i> {error}
+        </div>
+      )}
 
-        {error && (
-          <div className="mb-4 flex items-center gap-2 rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700">
-            <i className="fas fa-exclamation-triangle"></i> {error}
-          </div>
-        )}
+      {notVerified && (
+        <div className="mb-4 rounded-lg bg-amber-50 px-4 py-4 text-sm text-amber-800">
+          <p className="font-semibold">Email not verified</p>
+          <p className="mt-1">Please check your inbox and click the verification link before signing in.</p>
+          {resendDone ? (
+            <p className="mt-2 font-semibold text-green-700">New verification link sent — check your inbox.</p>
+          ) : (
+            <button
+              onClick={handleResend}
+              disabled={resending}
+              className="mt-2 rounded-full bg-amber-600 px-4 py-1.5 text-xs font-bold text-white hover:bg-amber-700 disabled:opacity-60"
+            >
+              {resending ? 'Sending...' : 'Resend verification email'}
+            </button>
+          )}
+        </div>
+      )}
 
-        {notVerified && (
-          <div className="mb-4 rounded-lg bg-amber-50 px-4 py-4 text-sm text-amber-800">
-            <p className="font-semibold">Email not verified</p>
-            <p className="mt-1">Please check your inbox and click the verification link before signing in.</p>
-            {resendDone ? (
-              <p className="mt-2 font-semibold text-green-700">New verification link sent — check your inbox.</p>
-            ) : (
-              <button
-                onClick={handleResend}
-                disabled={resending}
-                className="mt-2 rounded-full bg-amber-600 px-4 py-1.5 text-xs font-bold text-white hover:bg-amber-700 disabled:opacity-60"
-              >
-                {resending ? 'Sending...' : 'Resend verification email'}
-              </button>
-            )}
-          </div>
-        )}
-
-        <form onSubmit={handleSubmit} className="space-y-4">
+      <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label className="mb-1.5 block text-sm font-semibold text-slate-700">Email address</label>
             <input
@@ -152,11 +150,10 @@ export default function Login() {
           </button>
         </form>
 
-        <div className="mt-5 flex items-center justify-between text-sm">
-          <Link to="/register" className="font-semibold text-[#C7511F] hover:underline">Create account</Link>
-          <Link to="/forgot-password" className="text-slate-500 hover:underline">Forgot password?</Link>
-        </div>
+      <div className="mt-5 flex items-center justify-between text-sm">
+        <Link to="/register" className="font-semibold text-[#C7511F] hover:underline">Create account</Link>
+        <Link to="/forgot-password" className="text-slate-500 hover:underline">Forgot password?</Link>
       </div>
-    </section>
+    </AuthLayout>
   );
 }

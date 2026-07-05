@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { forgotPassword, verifyResetCode, resetPassword } from '../utils/api';
 import { showToast } from '../components/Toast';
 import PasswordStrength from '../components/PasswordStrength';
-import Logo from '../components/Logo';
+import AuthLayout from '../components/AuthLayout';
 
 export default function ForgotPassword() {
   const navigate = useNavigate();
@@ -95,15 +95,12 @@ export default function ForgotPassword() {
   }[step];
 
   return (
-    <section className="mx-auto max-w-md px-4 pb-24 pt-8 md:px-0">
-      <div className="rounded-xl border border-slate-200 bg-white p-8 shadow-sm">
-
-        {/* Header */}
-        <div className="mb-6 text-center">
-          <Logo size={48} className="mx-auto" />
-          <h1 className="mt-3 text-2xl font-extrabold text-slate-900">{stepTitle}</h1>
-          <p className="mt-1 text-sm text-slate-500">{stepSub}</p>
-        </div>
+    <AuthLayout>
+      {/* Header */}
+      <div className="mb-6">
+        <h1 className="text-2xl font-extrabold text-slate-900">{stepTitle}</h1>
+        <p className="mt-1 text-sm text-slate-500">{stepSub}</p>
+      </div>
 
         {/* Step indicator */}
         <div className="mb-6 flex items-center justify-center gap-2">
@@ -226,8 +223,6 @@ export default function ForgotPassword() {
             </button>
           </form>
         )}
-
-      </div>
-    </section>
+    </AuthLayout>
   );
 }

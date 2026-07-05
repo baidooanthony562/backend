@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import { getAuthUser, isAuthenticated, isAdmin, logout } from '../utils/auth';
 import { getCartCount } from '../utils/cart';
 import Logo from './Logo';
+import { showToast } from './Toast';
 
 export default function NavBar() {
   const [open, setOpen] = useState(false);
@@ -37,11 +38,13 @@ export default function NavBar() {
   }, []);
 
   const handleLogout = () => {
+    const name = user?.name?.split(' ')[0];
     logout();
     setAuthenticated(false);
     setAdminMode(false);
     setUser(null);
     navigate('/');
+    showToast(name ? `Signed out — see you soon, ${name}!` : 'You have been signed out.');
   };
 
   const handleSearch = (e) => {

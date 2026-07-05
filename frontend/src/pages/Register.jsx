@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { registerUser, verifyEmailCode, resendVerification } from '../utils/api';
 import { isAuthenticated } from '../utils/auth';
 import PasswordStrength from '../components/PasswordStrength';
-import Logo from '../components/Logo';
+import AuthLayout from '../components/AuthLayout';
 
 export default function Register() {
   const navigate = useNavigate();
@@ -69,23 +69,21 @@ export default function Register() {
 
   if (done) {
     return (
-      <section className="mx-auto max-w-md px-4 pb-24 pt-8 md:px-0">
-        <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm sm:p-8">
-          <div className="mb-6 text-center">
-            <Logo size={48} className="mx-auto" />
-            <h1 className="mt-3 text-2xl font-extrabold text-slate-900">Verify your email</h1>
-            <p className="mt-1 text-sm text-slate-500">
-              We sent a 6-digit code to <strong>{form.email}</strong>. It expires in 10 minutes.
-            </p>
+      <AuthLayout>
+        <div className="mb-6">
+          <h1 className="text-2xl font-extrabold text-slate-900">Verify your email</h1>
+          <p className="mt-1 text-sm text-slate-500">
+            We sent a 6-digit code to <strong>{form.email}</strong>. It expires in 10 minutes.
+          </p>
+        </div>
+
+        {codeError && (
+          <div className="mb-4 flex items-center gap-2 rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700">
+            <i className="fas fa-exclamation-triangle"></i> {codeError}
           </div>
+        )}
 
-          {codeError && (
-            <div className="mb-4 flex items-center gap-2 rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700">
-              <i className="fas fa-exclamation-triangle"></i> {codeError}
-            </div>
-          )}
-
-          <form onSubmit={handleVerifyCode} className="space-y-4">
+        <form onSubmit={handleVerifyCode} className="space-y-4">
             <div>
               <label className="mb-1.5 block text-sm font-semibold text-slate-700">6-digit code</label>
               <input
@@ -115,22 +113,19 @@ export default function Register() {
                 Resend code
               </button>
             )}
-          </div>
         </div>
-      </section>
+      </AuthLayout>
     );
   }
 
   return (
-    <section className="mx-auto max-w-md px-4 pb-24 pt-8 md:px-0">
-      <div className="rounded-xl border border-slate-200 bg-white p-8 shadow-sm">
-        <div className="mb-6 text-center">
-          <Logo size={48} className="mx-auto" />
-          <h1 className="mt-3 text-2xl font-extrabold text-slate-900">Create your account</h1>
-          <p className="mt-1 text-sm text-slate-500">Join Cindy Nat Enterprise and start shopping.</p>
-        </div>
+    <AuthLayout>
+      <div className="mb-6">
+        <h1 className="text-2xl font-extrabold text-slate-900">Create your account</h1>
+        <p className="mt-1 text-sm text-slate-500">Join Cindy Nat Enterprise and start shopping.</p>
+      </div>
 
-        {error && (
+      {error && (
           <div className="mb-4 flex items-center gap-2 rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700">
             <i className="fas fa-exclamation-triangle"></i> {error}
           </div>
@@ -201,11 +196,10 @@ export default function Register() {
           </button>
         </form>
 
-        <p className="mt-5 text-center text-sm text-slate-500">
-          Already have an account?{' '}
-          <Link to="/login" className="font-semibold text-[#C7511F] hover:underline">Sign in</Link>
-        </p>
-      </div>
-    </section>
+      <p className="mt-5 text-center text-sm text-slate-500">
+        Already have an account?{' '}
+        <Link to="/login" className="font-semibold text-[#C7511F] hover:underline">Sign in</Link>
+      </p>
+    </AuthLayout>
   );
 }
