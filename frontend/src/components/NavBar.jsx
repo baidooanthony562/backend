@@ -59,7 +59,7 @@ export default function NavBar() {
   };
 
   return (
-    <header className="fixed inset-x-0 top-0 z-40">
+    <header className="fixed inset-x-0 top-0 z-50">
       {/* Main bar */}
       <div className="bg-[#131921] px-4 py-2 md:px-6">
         <div className="mx-auto flex max-w-7xl items-center gap-2 sm:gap-3">
@@ -198,7 +198,7 @@ export default function NavBar() {
 
       {/* Mobile menu */}
       {open && (
-        <div className="max-h-[calc(100vh-4rem)] overflow-y-auto border-t border-slate-700 bg-[#131921] px-4 py-3 md:hidden">
+        <div className="h-[calc(100vh-3.5rem)] overflow-y-auto border-t border-slate-700 bg-[#131921] px-4 py-3 md:hidden">
           <div className="space-y-0.5">
             {[
               ['Home', '/'],

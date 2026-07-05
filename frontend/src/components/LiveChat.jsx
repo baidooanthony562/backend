@@ -73,7 +73,7 @@ export default function LiveChat() {
   const messages = thread?.messages || [];
 
   return (
-    <div className="fixed bottom-20 right-4 z-50 sm:bottom-6 sm:right-6">
+    <div className="fixed bottom-20 right-4 z-40 sm:bottom-6 sm:right-6">
       <div className="flex justify-end">
         <button
           className="inline-flex h-12 w-12 items-center justify-center rounded-full bg-brand-dark text-base font-semibold text-white shadow-lg transition hover:bg-slate-800 sm:h-auto sm:w-auto sm:gap-2 sm:px-4 sm:py-3 sm:text-sm"
