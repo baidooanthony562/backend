@@ -59,6 +59,50 @@ function notifyLowStock(product) {
   }).catch((err) => console.error('[LowStock] Alert email failed:', err.message));
 }
 
+// Notify the store owner of a new order so it's never missed while they're away.
+// Fire-and-forget — a mail failure must never fail the order itself.
+function notifyAdminNewOrder({ order, items, customerName, customerEmail, total, paymentMethod, shippingAddress }) {
+  const to = process.env.ADMIN_EMAIL;
+  if (!to) return;
+  const FRONTEND = process.env.FRONTEND_URL || 'https://cindynat.vercel.app';
+  const orderId = order._id.toString().slice(-8).toUpperCase();
+  const paidTag = order.isPaid ? 'PAID' : 'UNPAID';
+  const itemRows = items.map((item) =>
+    `<tr style="border-bottom:1px solid #f0f0f0">
+      <td style="padding:8px 4px">${escapeHtml(item.name)}</td>
+      <td style="text-align:right;padding:8px 4px">${item.quantity}</td>
+      <td style="text-align:right;padding:8px 4px">&#8373;${(item.quantity * item.price).toFixed(2)}</td>
+    </tr>`
+  ).join('');
+
+  sendResendEmail({
+    to,
+    subject: `New order #${orderId} — ₵${Number(total).toFixed(2)} (${paidTag})`,
+    html: `
+      <div style="font-family:sans-serif;max-width:520px;margin:0 auto;padding:32px">
+        <h2 style="color:#131921;margin-bottom:4px">New order received</h2>
+        <p style="color:#555;margin-top:0">A customer just placed an order.</p>
+        <table style="width:100%;border-collapse:collapse;margin:16px 0;font-size:14px">
+          <tr style="border-bottom:1px solid #eee"><td style="padding:8px 0;color:#888;width:110px">Order</td><td style="padding:8px 0;font-weight:700;color:#131921">#${orderId}</td></tr>
+          <tr style="border-bottom:1px solid #eee"><td style="padding:8px 0;color:#888">Customer</td><td style="padding:8px 0;color:#131921">${escapeHtml(customerName || 'Customer')}${customerEmail ? ` &lt;${escapeHtml(customerEmail)}&gt;` : ''}</td></tr>
+          <tr style="border-bottom:1px solid #eee"><td style="padding:8px 0;color:#888">Payment</td><td style="padding:8px 0;font-weight:700;color:${order.isPaid ? '#10B981' : '#b45309'}">${escapeHtml(paymentMethod || 'N/A')} · ${paidTag}</td></tr>
+          <tr><td style="padding:8px 0;color:#888">Ship to</td><td style="padding:8px 0;color:#131921">${escapeHtml(shippingAddress?.address || '')}, ${escapeHtml(shippingAddress?.city || '')} · ${escapeHtml(shippingAddress?.phone || '')}</td></tr>
+        </table>
+        <table style="width:100%;border-collapse:collapse;margin:8px 0 4px;font-size:14px">
+          <tbody>${itemRows}</tbody>
+        </table>
+        <p style="text-align:right;font-size:18px;font-weight:bold;margin:8px 0">Total: &#8373;${Number(total).toFixed(2)}</p>
+        <a href="${FRONTEND}/admin"
+           style="display:inline-block;margin:12px 0 8px;padding:12px 24px;background:#D4AF37;color:#000;font-weight:700;border-radius:999px;text-decoration:none">
+          Open admin dashboard
+        </a>
+        <hr style="border:none;border-top:1px solid #eee;margin:24px 0"/>
+        <p style="color:#999;font-size:12px">${order.isPaid ? 'Payment is confirmed — fulfil when ready.' : 'Awaiting payment confirmation (cash on delivery / bank transfer).'} Cindy Nat Enterprise &mdash; Kumasi, Ghana</p>
+      </div>
+    `,
+  }).catch((err) => console.error('[NewOrder] Admin notification failed:', err.message));
+}
+
 function sanitizeAddress(addr) {
   return {
     address: String(addr?.address || '').trim().slice(0, 200),
@@ -243,6 +287,17 @@ async function buildOrder({ orderItems, shippingAddress, paymentMethod, promoCod
         includeViewLink: !isGuest,
       });
     }
+
+    // Ping the admin so a new order is never missed, even while away.
+    notifyAdminNewOrder({
+      order,
+      items: validatedItems,
+      customerName: recipientName,
+      customerEmail: recipientEmail,
+      total: serverTotal,
+      paymentMethod,
+      shippingAddress,
+    });
 
     return { order, guestOrderToken };
   } catch (err) {
